@@ -18,6 +18,9 @@
         font-family: Georgia, serif;
         overscroll-behavior: none;
         -webkit-overflow-scrolling: touch;
+        /* Push content below iPhone status bar */
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
       }
       /* Prevent iOS zoom on input focus — keep font-size at 16px minimum */
       input, textarea, select {
