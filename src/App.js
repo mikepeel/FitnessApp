@@ -625,7 +625,7 @@ export default function ForgeApp(){
   };
 
   const toggleTheme=(n)=>{
-    const mode=n||(themeMode==="dark"?"light":"dark");
+    const mode=(typeof n==="string")?n:(themeMode==="dark"?"light":"dark");
     setThemeMode(mode);
     saveSettings({...settings,theme_mode:mode});
   };
