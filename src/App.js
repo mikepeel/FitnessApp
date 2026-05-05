@@ -1,10 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-import { createClient } from "@supabase/supabase-js";
-
-const SUPABASE_URL = "https://ldbrabnvpiidrdkmjpbo.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkYnJhYm52cGlpZHJka21qcGJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5NDMxOTQsImV4cCI6MjA5MzUxOTE5NH0.mJZINJgMl8QD-gTSc2LLikwc8OUloCTyfqoHqRe1xZI";
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Supabase credentials (ready for full integration)
+// const SUPABASE_URL = "https://ldbrabnvpiidrdkmjpbo.supabase.co";
+// const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkYnJhYm52cGlpZHJka21qcGJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5NDMxOTQsImV4cCI6MjA5MzUxOTE5NH0.mJZINJgMl8QD-gTSc2LLikwc8OUloCTyfqoHqRe1xZI";
 
 
 // -- STORAGE -------------------------------------------------------------------
@@ -23,7 +21,6 @@ const programWeek = () => {
   const days = Math.floor((now - start) / 86400000);
   return Math.max(1, Math.ceil((days + 1) / 7));
 };
-const daysSinceStart = () => Math.floor((new Date() - new Date(PROGRAM_START)) / 86400000);
 
 // Pre-seeded Saturday May 2 2026 -- Plan B Arms Session 1 (user to fill weights)
 const SATURDAY_SESSION = (()=>{
@@ -388,7 +385,7 @@ function Modal({children,onClose,C}){
 }
 
 function SectionLabel({children,C}){
-  return <Mono style={{fontSize:10,color:C.muted,opacity:1,letterSpacing:"0.16em",letterSpacing:"0.14em",textTransform:"uppercase",display:"block",marginBottom:10,fontWeight:600}}>{children}</Mono>;
+  return <Mono style={{fontSize:10,color:C.muted,letterSpacing:"0.14em",textTransform:"uppercase",display:"block",marginBottom:10,fontWeight:600}}>{children}</Mono>;
 }
 
 function RestTimer({seconds,onDone,onSkip,C}){
@@ -397,7 +394,7 @@ function RestTimer({seconds,onDone,onSkip,C}){
     if(rem<=0){onDone();return;}
     const t=setTimeout(()=>setRem(r=>r-1),1000);
     return()=>clearTimeout(t);
-  },[rem]);
+  },[rem]); // eslint-disable-line react-hooks/exhaustive-deps
   return <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"16px 18px",marginBottom:12}}>
     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
       <div>
@@ -929,7 +926,7 @@ function SwapExerciseModal({exercise,onSwap,onClose,C}){
   const [custom,setCustom]=useState({name:"",sets:exercise.sets,reps:exercise.reps,note:"",muscle:exercise.muscle||""});
   const [tab,setTab]=useState("ai"); // ai | custom
 
-  useEffect(()=>{ loadAISuggestions(); },[]);
+  useEffect(()=>{ loadAISuggestions(); },[]);// eslint-disable-line react-hooks/exhaustive-deps
 
   async function loadAISuggestions(){
     setLoadingAI(true);
@@ -1768,7 +1765,7 @@ function StatsTab({sessions,prs,settings,C}){
     const grouped={};
     rel.forEach(s=>{const d=s.completedAt.split("T")[0];const best=(s.setsArr||[]).filter(x=>x.exName===selEx).reduce((m,x)=>Math.max(m,parseFloat(x.weight)||0),0);if(!grouped[d]||best>grouped[d])grouped[d]=best;});
     setChartData(Object.entries(grouped).sort(([a],[b])=>a>b?1:-1).map(([d,w])=>({date:d.slice(5),weight:w})));
-  },[selEx,sessions]);
+  },[selEx,sessions]);// eslint-disable-line react-hooks/exhaustive-deps
 
   const totalVol=sessions.reduce((a,s)=>(a+(s.setsArr||[]).reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
 
@@ -2017,7 +2014,7 @@ function AIModal({exercise,day,onClose,C}){
   const [response,setResponse]=useState("");
   const [loading,setLoading]=useState(true);
 
-  useEffect(()=>{getRecommendation();},[]);
+  useEffect(()=>{getRecommendation();},[]);// eslint-disable-line react-hooks/exhaustive-deps
 
   async function getRecommendation(){
     setLoading(true);
