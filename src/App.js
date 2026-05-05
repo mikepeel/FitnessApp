@@ -1,14 +1,24 @@
 import { useState, useEffect, useRef } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { createClient } from "@supabase/supabase-js";
+
+// ── SUPABASE ──────────────────────────────────────────────────────────────────
+const SUPABASE_URL = "https://ldbrabnvpiidrdkmjpbo.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkYnJhYm52cGlpZHJka21qcGJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5NDMxOTQsImV4cCI6MjA5MzUxOTE5NH0.mJZINJgMl8QD-gTSc2LLikwc8OUloCTyfqoHqRe1xZI";
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+import { useState, useEffect, useRef } from "react";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 // Supabase credentials (ready for full integration)
 // const SUPABASE_URL = "https://ldbrabnvpiidrdkmjpbo.supabase.co";
 // const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkYnJhYm52cGlpZHJka21qcGJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5NDMxOTQsImV4cCI6MjA5MzUxOTE5NH0.mJZINJgMl8QD-gTSc2LLikwc8OUloCTyfqoHqRe1xZI";
 
 
-// -- STORAGE -------------------------------------------------------------------
-const store = {
-  get: (k, fb = null) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; } catch { return fb; } },
-  set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+// ── IN-MEMORY CACHE (Supabase is source of truth) ────────────────────────────
+const _cacheData = {};
+const cache = {
+  get: (k, fb=null) => k in _cacheData ? _cacheData[k] : fb,
+  set: (k, v) => { _cacheData[k] = v; },
 };
 
 const DOW = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
@@ -22,49 +32,7 @@ const programWeek = () => {
   return Math.max(1, Math.ceil((days + 1) / 7));
 };
 
-// Pre-seeded Saturday May 2 2026 -- Plan B Arms Session 1 (user to fill weights)
-const SATURDAY_SESSION = (()=>{
-  return {
-  id: "saturday_may2_2026",
-  dayId: "b6",
-  dayLabel: "Arms",
-  startedAt: "2026-05-02T10:00:00.000Z",
-  completedAt: "2026-05-02T11:00:00.000Z",
-  notes: "",
-  sets: {
-    "Machine Shoulder Press":     {1:{weight:"",reps:""},2:{weight:"",reps:""},3:{weight:"",reps:""}},
-    "Cable Lateral Raise":        {1:{weight:"",reps:""},2:{weight:"",reps:""},3:{weight:"",reps:""}},
-    "Front Delt Raise":           {1:{weight:"",reps:""},2:{weight:"",reps:""}},
-    "Cable Rope Pressdown":       {1:{weight:"",reps:""},2:{weight:"",reps:""},3:{weight:"",reps:""}},
-    "Incline Tricep Extension":   {1:{weight:"",reps:""},2:{weight:"",reps:""}},
-    "Barbell / Cable Curl":       {1:{weight:"",reps:""},2:{weight:"",reps:""},3:{weight:"",reps:""}},
-    "Concentration Curl":         {1:{weight:"",reps:""},2:{weight:"",reps:""}},
-    "Decline Sit-Ups":            {1:{weight:"",reps:""},2:{weight:"",reps:""},3:{weight:"",reps:""}},
-  },
-  setsArr: [
-    {exName:"Machine Shoulder Press",setNum:1,weight:"",reps:"",isPR:false},
-    {exName:"Machine Shoulder Press",setNum:2,weight:"",reps:"",isPR:false},
-    {exName:"Machine Shoulder Press",setNum:3,weight:"",reps:"",isPR:false},
-    {exName:"Cable Lateral Raise",setNum:1,weight:"",reps:"",isPR:false},
-    {exName:"Cable Lateral Raise",setNum:2,weight:"",reps:"",isPR:false},
-    {exName:"Cable Lateral Raise",setNum:3,weight:"",reps:"",isPR:false},
-    {exName:"Front Delt Raise",setNum:1,weight:"",reps:"",isPR:false},
-    {exName:"Front Delt Raise",setNum:2,weight:"",reps:"",isPR:false},
-    {exName:"Cable Rope Pressdown",setNum:1,weight:"",reps:"",isPR:false},
-    {exName:"Cable Rope Pressdown",setNum:2,weight:"",reps:"",isPR:false},
-    {exName:"Cable Rope Pressdown",setNum:3,weight:"",reps:"",isPR:false},
-    {exName:"Incline Tricep Extension",setNum:1,weight:"",reps:"",isPR:false},
-    {exName:"Incline Tricep Extension",setNum:2,weight:"",reps:"",isPR:false},
-    {exName:"Barbell / Cable Curl",setNum:1,weight:"",reps:"",isPR:false},
-    {exName:"Barbell / Cable Curl",setNum:2,weight:"",reps:"",isPR:false},
-    {exName:"Barbell / Cable Curl",setNum:3,weight:"",reps:"",isPR:false},
-    {exName:"Concentration Curl",setNum:1,weight:"",reps:"",isPR:false},
-    {exName:"Concentration Curl",setNum:2,weight:"",reps:"",isPR:false},
-    {exName:"Decline Sit-Ups",setNum:1,weight:"",reps:"",isPR:false},
-    {exName:"Decline Sit-Ups",setNum:2,weight:"",reps:"",isPR:false},
-    {exName:"Decline Sit-Ups",setNum:3,weight:"",reps:"",isPR:false},
-  ]
-};})();
+// Saturday May 2 2026 session — enter manually via Log tab
 
 
 // -- THEME ---------------------------------------------------------------------
@@ -452,51 +420,155 @@ function OverloadCalc({C}){
 
 // -- MAIN APP ------------------------------------------------------------------
 export default function ForgeApp(){
-  const [plans,setPlans]=useState(()=>{
-    const saved=store.get("forge_plans2",null);
-    // Validate saved plans have days with exercises arrays (guards against stale shape)
-    if(saved&&typeof saved==="object"){
-      const valid=Object.values(saved).every(p=>Array.isArray(p.days)&&p.days.every(d=>Array.isArray(d.exercises)));
-      if(valid)return saved;
-    }
-    return MIKE_PLANS;
-  });
-  const [activePlanKey,setActivePlanKey]=useState(()=>store.get("forge_active_plan","A"));
-  const [settings,setSettings]=useState(()=>store.get("forge_settings2",DEFAULT_SETTINGS));
-  const [sessions,setSessions]=useState(()=>{
-    const saved=store.get("forge_sessions",[]);
-    // Seed Saturday session if not already present
-    const hasSat=saved.some(s=>s.id==="saturday_may2_2026"||s.id==="saturday_may3_2025");
-    return hasSat ? saved : [SATURDAY_SESSION, ...saved];
-  });
-  const [prs,setPrs]=useState(()=>store.get("forge_prs",{}));
-  const [themeMode,setThemeMode]=useState(()=>store.get("forge_theme","dark"));
+  const [plans,setPlans]=useState(MIKE_PLANS);
+  const [activePlanKey,setActivePlanKey]=useState("B");
+  const [settings,setSettings]=useState(DEFAULT_SETTINGS);
+  const [sessions,setSessions]=useState([]);
+  const [prs,setPrs]=useState({});
+  const [themeMode,setThemeMode]=useState("dark");
+  const [loading,setLoading]=useState(false);
   const [tab,setTab]=useState("today");
   const [activeWorkout,setActiveWorkout]=useState(null);
-  const [deloadDismissed,setDeloadDismissed]=useState(()=>store.get("forge_deload_dismissed",null));
+  const [deloadDismissed,setDeloadDismissed]=useState(null);
   const C=useTheme(themeMode);
 
-  const savePlans=p=>{setPlans(p);store.set("forge_plans2",p);};
-  const saveSettings=s=>{setSettings(s);store.set("forge_settings2",s);};
-  const saveSessions=s=>{if(!Array.isArray(s))return;setSessions(s);store.set("forge_sessions",s);};
-  const savePRs=p=>{setPrs(p);store.set("forge_prs",p);};
-  const toggleTheme=()=>{const n=themeMode==="dark"?"light":"dark";setThemeMode(n);store.set("forge_theme",n);};
+  const user = supabase.auth.getUser ? null : null; // resolved via auth state
 
-  // Auto-save everything on tab close / navigation away
+  const savePlans=async(p)=>{
+    setPlans(p);
+    const {data:{user:u}}=await supabase.auth.getUser();
+    if(!u)return;
+    // Upsert each plan
+    for(const[key,plan]of Object.entries(p)){
+      await supabase.from("plans").upsert({
+        id:plan.supabaseId||undefined,
+        user_id:u.id, plan_key:key, name:plan.name,
+        subtitle:plan.subtitle, description:plan.description
+      },{onConflict:"user_id,plan_key"});
+    }
+  };
+
+  const saveSettings=async(s)=>{
+    setSettings(s);
+    const {data:{user:u}}=await supabase.auth.getUser();
+    if(!u)return;
+    await supabase.from("user_settings").upsert({
+      user_id:u.id,
+      rest_timer:s.restTimer, rest_seconds:s.restSeconds,
+      pr_detection:s.prDetection, last_ref:s.lastRef,
+      deload_reminder:s.deloadReminder, streak_tracking:s.streakTracking,
+      plate_calc:s.plateCalc, workout_notes:s.workoutNotes,
+      ai_recs:s.aiRecs, start_day:s.startDay, theme_mode:themeMode
+    },{onConflict:"user_id"});
+  };
+
+  const saveSessions=async(s)=>{
+    if(!Array.isArray(s))return;
+    setSessions(s);
+    const {data:{user:u}}=await supabase.auth.getUser();
+    if(!u)return;
+    // Save the most recent session (last in array)
+    const latest=s[s.length-1];
+    if(latest&&!latest.supabaseId){
+      const {data}=await supabase.from("workout_sessions").insert({
+        user_id:u.id, day_label:latest.dayLabel,
+        started_at:latest.startedAt, completed_at:latest.completedAt,
+        notes:latest.notes, sets_data:latest.sets||{}
+      }).select().single();
+      if(data){
+        // Save individual sets
+        const setRows=(latest.setsArr||[]).map(x=>({
+          session_id:data.id, user_id:u.id,
+          exercise_name:x.exName, set_number:x.setNum,
+          weight:parseFloat(x.weight)||null,
+          reps:parseInt(x.reps)||null,
+          minutes:parseFloat(x.minutes)||null,
+          is_pr:x.isPR||false
+        }));
+        if(setRows.length>0)await supabase.from("logged_sets").insert(setRows);
+      }
+    }
+  };
+
+  const savePRs=async(p)=>{
+    setPrs(p);
+    const {data:{user:u}}=await supabase.auth.getUser();
+    if(!u)return;
+    for(const[name,pr]of Object.entries(p)){
+      await supabase.from("personal_records").upsert({
+        user_id:u.id, exercise_name:name,
+        max_weight:pr.weight, achieved_at:pr.date
+      },{onConflict:"user_id,exercise_name"});
+    }
+  };
+
+  const toggleTheme=(n)=>{
+    const mode=n||(themeMode==="dark"?"light":"dark");
+    setThemeMode(mode);
+    saveSettings({...settings,theme_mode:mode});
+  };
+
+  // Load user data from Supabase on auth
   useEffect(()=>{
-    const handleUnload=()=>{
-      store.set("forge_sessions",sessions);
-      store.set("forge_prs",prs);
-      store.set("forge_plans2",plans);
-      store.set("forge_settings2",settings);
+    const loadUserData=async(u)=>{
+      if(!u)return;
+      setLoading(true);
+      // Load settings
+      const {data:sett}=await supabase.from("user_settings").select("*").eq("user_id",u.id).single();
+      if(sett){
+        setSettings({
+          restTimer:sett.rest_timer, restSeconds:sett.rest_seconds,
+          prDetection:sett.pr_detection, lastRef:sett.last_ref,
+          deloadReminder:sett.deload_reminder, streakTracking:sett.streak_tracking,
+          plateCalc:sett.plate_calc, workoutNotes:sett.workout_notes,
+          aiRecs:sett.ai_recs, startDay:sett.start_day||1
+        });
+        if(sett.theme_mode)setThemeMode(sett.theme_mode);
+      }
+      // Load sessions
+      const {data:sessData}=await supabase.from("workout_sessions")
+        .select("*, logged_sets(*)")
+        .eq("user_id",u.id)
+        .order("completed_at",{ascending:false})
+        .limit(100);
+      if(sessData){
+        const mapped=sessData.map(s=>({
+          id:s.id, supabaseId:s.id,
+          dayLabel:s.day_label, dayId:s.day_id,
+          startedAt:s.started_at, completedAt:s.completed_at,
+          notes:s.notes, sets:s.sets_data||{},
+          setsArr:(s.logged_sets||[]).map(x=>({
+            exName:x.exercise_name, setNum:x.set_number,
+            weight:x.weight?.toString()||"",
+            reps:x.reps?.toString()||"",
+            minutes:x.minutes?.toString()||"",
+            isPR:x.is_pr
+          }))
+        }));
+        setSessions(mapped);
+      }
+      // Load PRs
+      const {data:prData}=await supabase.from("personal_records").select("*").eq("user_id",u.id);
+      if(prData){
+        const prMap={};
+        prData.forEach(r=>{prMap[r.exercise_name]={weight:r.max_weight,date:r.achieved_at};});
+        setPrs(prMap);
+      }
+      // Load active plan key from profile
+      const {data:prof}=await supabase.from("profiles").select("*").eq("id",u.id).single();
+      if(prof?.active_plan_key)setActivePlanKey(prof.active_plan_key);
+      setLoading(false);
     };
-    window.addEventListener("beforeunload",handleUnload);
-    window.addEventListener("pagehide",handleUnload); // iOS Safari
-    return()=>{
-      window.removeEventListener("beforeunload",handleUnload);
-      window.removeEventListener("pagehide",handleUnload);
-    };
-  },[sessions,prs,plans,settings]);
+    supabase.auth.getSession().then(({data:{session}})=>{
+      if(session?.user)loadUserData(session.user);
+    });
+    const {data:{subscription}}=supabase.auth.onAuthStateChange((_,session)=>{
+      if(session?.user)loadUserData(session.user);
+    });
+    return()=>subscription.unsubscribe();
+  },[]);// eslint-disable-line react-hooks/exhaustive-deps
+
+  // Data persisted to Supabase automatically
 
   const activePlan=plans[activePlanKey];
 
@@ -596,14 +668,14 @@ export default function ForgeApp(){
       onCancel={()=>setActiveWorkout(null)} C={C}/>;
   }
 
-  return <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:C.serif,paddingBottom:72,userSelect:"none"}}>
+  return <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:C.serif,paddingBottom:72,userSelect:"none",scrollBehavior:"smooth"}}>
     {tab==="today"&&<TodayTab plan={activePlan} plans={plans} activePlanKey={activePlanKey}
-      setActivePlanKey={k=>{setActivePlanKey(k);store.set("forge_active_plan",k);}}
+      setActivePlanKey={k=>{setActivePlanKey(k);}}
       settings={settings} sessions={sessions} streak={streak} scheduledStreak={scheduledStreak} calendarStreak={calendarStreak} deloadDue={deloadDue&&deloadDismissed!==new Date().toISOString().slice(0,7)}
-      onDeloadDismiss={()=>{const m=new Date().toISOString().slice(0,7);setDeloadDismissed(m);store.set("forge_deload_dismissed",m);}}
+      onDeloadDismiss={()=>{setDeloadDismissed(new Date().toISOString().slice(0,7));}}
       onStart={day=>setActiveWorkout(day)} C={C} getOrderedDays={getOrderedDays} toggleTheme={toggleTheme} themeMode={themeMode}/>}
     {tab==="plan"&&<PlanTab plans={plans} activePlanKey={activePlanKey}
-      setActivePlanKey={k=>{setActivePlanKey(k);store.set("forge_active_plan",k);}}
+      setActivePlanKey={k=>{setActivePlanKey(k);}}
       savePlans={savePlans} settings={settings} C={C}/>}
     {tab==="log"&&<HistoryTab sessions={sessions} saveSessions={saveSessions} savePRs={savePRs} prs={prs} C={C}/>}
     {tab==="stats"&&<StatsTab sessions={sessions} prs={prs} settings={settings} C={C}/>}
@@ -706,14 +778,16 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
 function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,savePlans,onFinish,onCancel,C}){
   const [exercises,setExercises]=useState(workout.exercises||[]);
   const [loggedSets,setLoggedSets]=useState({});
+  const [completedExIds,setCompletedExIds]=useState(new Set());
   const [showRest,setShowRest]=useState(false);
   const [notes,setNotes]=useState("");
   const [startTime]=useState(new Date().toISOString());
   const [aiModal,setAiModal]=useState(null);
   const [elapsed,setElapsed]=useState(0);
-  const [swapModal,setSwapModal]=useState(null); // ex being swapped
+  const [swapModal,setSwapModal]=useState(null);
   const [addExModal,setAddExModal]=useState(false);
   const [editExModal,setEditExModal]=useState(null);
+  const topRef=useRef(null);
 
   useEffect(()=>{const t=setInterval(()=>setElapsed(e=>e+1),1000);return()=>clearInterval(t);},[]);
 
@@ -722,6 +796,27 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
 
   function logSet(exName,setNum,field,value){
     setLoggedSets(prev=>({...prev,[exName]:{...(prev[exName]||{}),[setNum]:{...(prev[exName]?.[setNum]||{}),[field]:value}}}));
+  }
+
+  // When all sets for an exercise are ticked, move it to the bottom
+  function markExerciseDone(exId, exName){
+    setShowRest(true);
+    setCompletedExIds(prev=>{
+      const next=new Set(prev);
+      next.add(exId);
+      return next;
+    });
+    // Reorder: move this exercise to end of list
+    setExercises(prev=>{
+      const idx=prev.findIndex(e=>e.id===exId);
+      if(idx===-1)return prev;
+      const reordered=[...prev.slice(0,idx),...prev.slice(idx+1),prev[idx]];
+      return reordered;
+    });
+    // Smooth scroll to top of exercise list
+    setTimeout(()=>{
+      topRef.current?.scrollIntoView({behavior:"smooth",block:"start"});
+    },100);
   }
 
   // Persist exercise changes back to the plan
@@ -806,7 +901,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
 
   const inputStyle={padding:"9px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:7,color:C.text,fontSize:14,fontFamily:"'SF Mono','Courier New',monospace",width:"100%",boxSizing:"border-box"};
 
-  return <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:C.serif,paddingBottom:100}}>
+  return <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:C.serif,paddingBottom:100,scrollBehavior:"smooth"}}>
     <div style={{background:C.surface,borderBottom:`2px solid ${C.neon}`,padding:"14px 18px",position:"sticky",top:0,zIndex:50}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div>
@@ -823,6 +918,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
     <div style={{padding:"14px 18px"}}>
       {showRest&&settings.restTimer&&<RestTimer seconds={settings.restSeconds||90} onDone={()=>setShowRest(false)} onSkip={()=>setShowRest(false)} C={C}/>}
 
+      <div ref={topRef}/>
       {exercises.map((ex,exIdx)=>{
         const isCardio=ex.muscle==="Cardio"||ex.muscle==="Recovery"||/stair|stepper|treadmill|bike|walk|jog|run|cardio|stretch|yoga/i.test(ex.name);
         const myLog=loggedSets[ex.name]||{};
@@ -832,7 +928,8 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
         const w0=myLog[1]?.weight;
         const isPRNow=myPR&&w0&&parseFloat(w0)>myPR.weight;
 
-        return <div key={ex.id} style={{background:C.card,border:`1px solid ${hasAnyLog?C.neon+"44":C.border}`,borderLeft:`3px solid ${isCardio?C.green:hasAnyLog?C.neon:C.accent}`,borderRadius:10,padding:"14px",marginBottom:10,transition:"border-color .2s"}}>
+        const isDone=completedExIds.has(ex.id);
+        return <div key={ex.id} style={{background:isDone?C.surface:C.card,border:`1px solid ${isDone?C.faint:hasAnyLog?C.neon+"44":C.border}`,borderLeft:`3px solid ${isDone?C.faint:isCardio?C.green:hasAnyLog?C.neon:C.accent}`,borderRadius:10,padding:"14px",marginBottom:10,transition:"all .3s",opacity:isDone?0.55:1}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
             <div style={{flex:1}}>
               <div style={{fontSize:15,fontWeight:700,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
@@ -878,7 +975,12 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
               <Mono key={`n${n}`} style={{fontSize:12,color:C.muted,textAlign:"center"}}>{n}</Mono>,
               <input key={`w${n}`} type="number" placeholder={last?.[n]?.weight||"lbs"} value={myLog[n]?.weight||""} onChange={e=>logSet(ex.name,n,"weight",e.target.value)} style={inputStyle}/>,
               <input key={`r${n}`} type="number" placeholder={last?.[n]?.reps||"reps"} value={myLog[n]?.reps||""} onChange={e=>logSet(ex.name,n,"reps",e.target.value)} style={inputStyle}/>,
-              <button key={`d${n}`} onClick={()=>setShowRest(true)} style={{padding:"9px 4px",background:"transparent",border:`1px solid ${C.neon}44`,borderRadius:7,color:C.neon,cursor:"pointer",fontSize:14,fontWeight:700}}>✓</button>
+              <button key={`d${n}`} onClick={()=>{
+                const numS=parseInt(ex.sets)||3;
+                const myL=loggedSets[ex.name]||{};
+                const allFilled=Array.from({length:numS},(_,i)=>i+1).every(s=>myL[s]?.weight||myL[s]?.reps);
+                if(allFilled&&n===numS){markExerciseDone(ex.id,ex.name);}else{setShowRest(true);}
+              }} style={{padding:"9px 4px",background:completedExIds.has(ex.id)&&n===parseInt(ex.sets)?C.neon+"44":"transparent",border:`1px solid ${C.neon}44`,borderRadius:7,color:C.neon,cursor:"pointer",fontSize:14,fontWeight:700}}>✓</button>
             ])}
           </div>}
         </div>;
@@ -1521,7 +1623,7 @@ function HistoryTab({sessions,saveSessions,savePRs,prs,C}){
           Raw sessions in storage: {sessions.length}
         </Mono>
         {sessions.length===0&&<Mono style={{fontSize:11,color:C.danger,display:"block",marginBottom:6}}>
-          ⚠ No sessions found in localStorage. Sessions may not have saved correctly.
+          ⚠ No sessions found. Complete a workout to start logging.
         </Mono>}
         {sessions.slice(0,8).map((s,i)=>(
           <Mono key={i} style={{fontSize:10,color:C.muted,display:"block",marginBottom:2}}>
@@ -1531,9 +1633,9 @@ function HistoryTab({sessions,saveSessions,savePRs,prs,C}){
         {sessions.length>8&&<Mono style={{fontSize:10,color:C.faint,display:"block"}}>...+{sessions.length-8} more</Mono>}
         <Btn size="sm" variant="ghost" C={C} style={{marginTop:10,fontSize:10,color:C.danger,borderColor:C.danger+"44"}}
           onClick={()=>{
-            const raw=localStorage.getItem("forge_sessions");
+            const raw=JSON.stringify(sessions);
             alert(raw?`Raw storage:
-${raw.slice(0,500)}...`:"Nothing in forge_sessions");
+${raw.slice(0,500)}...`:"No sessions found");
           }}>
           Inspect Raw Storage
         </Btn>
@@ -1826,9 +1928,7 @@ function ExportPanel({C,sessions,prs}){
   const [showData,setShowData]=useState(false);
 
   const data=JSON.stringify({
-    sessions,prs,
-    plans:store.get("forge_plans2",{}),
-    settings:store.get("forge_settings2",{}),
+    sessions,prs,plans,settings,
     exportedAt:new Date().toISOString(),
     version:"forge_v2"
   });
@@ -2002,7 +2102,8 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,saveSessions,savePRs,
           FORGE -- Built for Mike{"\n"}
           Program start: May 2, 2026{"\n"}
           Plan B (Antagonist) . Progressive overload . Joint-aware{"\n"}
-          <span style={{color:C.muted}}>v1.3 preview . Supabase sync coming</span>
+          Cloud sync: Supabase{"\n"}
+          <span style={{color:C.muted}}>v2.0 . Supabase connected</span>
         </Mono>
       </div>
     </div>
