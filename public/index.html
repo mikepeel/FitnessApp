@@ -2,17 +2,35 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#0b0c0e" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="FORGE" />
-    <meta name="description" content="FORGE — Workout Tracker" />
+    <meta name="description" content="FORGE Workout Tracker" />
     <title>FORGE</title>
     <style>
       * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-      body { margin: 0; background: #0b0c0e; font-family: Georgia, serif; overscroll-behavior: none; }
-      input, textarea, select { font-size: 16px !important; } /* prevents iOS zoom on focus */
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        background: #0b0c0e;
+        font-family: Georgia, serif;
+        overscroll-behavior: none;
+        -webkit-overflow-scrolling: touch;
+      }
+      /* Prevent iOS zoom on input focus — keep font-size at 16px minimum */
+      input, textarea, select {
+        font-size: 16px !important;
+      }
+      /* Smooth scrolling for all scrollable elements */
+      * {
+        scroll-behavior: smooth;
+      }
+      /* Prevent double-tap zoom on buttons */
+      button, a {
+        touch-action: manipulation;
+      }
     </style>
   </head>
   <body>
