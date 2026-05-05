@@ -426,8 +426,6 @@ export default function ForgeApp(){
   const [deloadDismissed,setDeloadDismissed]=useState(null);
   const C=useTheme(themeMode);
 
-  const user = supabase.auth.getUser ? null : null; // resolved via auth state
-
   const savePlans=async(p)=>{
     setPlans(p);
     const {data:{user:u}}=await supabase.auth.getUser();
@@ -1917,7 +1915,7 @@ function StatsTab({sessions,prs,settings,C}){
 }
 
 // -- EXPORT PANEL -------------------------------------------------------------
-function ExportPanel({C,sessions,prs}){
+function ExportPanel({C,sessions,prs,plans,settings}){
   const [copied,setCopied]=useState(false);
   const [showData,setShowData]=useState(false);
 
@@ -2075,7 +2073,7 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,saveSessions,savePRs,
             <Mono style={{fontSize:10,color:C.muted}}>PRs</Mono>
           </div>
         </div>
-        <ExportPanel C={C} sessions={sessions} prs={prs}/>
+        <ExportPanel C={C} sessions={sessions} prs={prs} plans={plans} settings={settings}/>
         <ImportPanel C={C} onImport={(imported)=>{
           if(imported.sessions&&Array.isArray(imported.sessions)){
             const existing=sessions;
