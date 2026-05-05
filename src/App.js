@@ -822,7 +822,7 @@ export default function ForgeApp(){
       savePlans={savePlans} settings={settings} C={C}/>}
     {tab==="log"&&<HistoryTab sessions={sessions} saveSessions={saveSessions} savePRs={savePRs} prs={prs} C={C}/>}
     {tab==="stats"&&<StatsTab sessions={sessions} prs={prs} settings={settings} C={C}/>}
-    {tab==="more"&&<MoreTab settings={settings} saveSettings={saveSettings} plans={plans} sessions={sessions} prs={prs} saveSessions={saveSessions} savePRs={savePRs} C={C} toggleTheme={toggleTheme} themeMode={themeMode}/>}
+    {tab==="more"&&<MoreTab settings={settings} saveSettings={saveSettings} plans={plans} sessions={sessions} prs={prs} C={C} toggleTheme={toggleTheme} themeMode={themeMode}/>}
     <nav style={{position:"fixed",bottom:0,left:0,right:0,background:C.navBg,borderTop:`1px solid ${C.border}`,display:"flex",zIndex:100}}>
       {tabs.map(t=>(
         <button key={t.key} onClick={()=>setTab(t.key)} style={{flex:1,padding:"10px 4px 8px",background:"none",border:"none",color:tab===t.key?C.accent:C.muted,cursor:"pointer",fontSize:9,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.06em",textTransform:"uppercase",display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
@@ -2066,90 +2066,10 @@ function StatsTab({sessions,prs,settings,C}){
 }
 
 // -- EXPORT PANEL -------------------------------------------------------------
-function ExportPanel({C,sessions,prs,plans,settings}){
-  const [copied,setCopied]=useState(false);
-  const [showData,setShowData]=useState(false);
 
-  const data=JSON.stringify({
-    sessions,prs,plans,settings,
-    exportedAt:new Date().toISOString(),
-    version:"forge_v2"
-  });
-
-  async function copyToClipboard(){
-    try{
-      await navigator.clipboard.writeText(data);
-      setCopied(true);
-      setTimeout(()=>setCopied(false),3000);
-    }catch{
-      // Fallback: show the data in a textarea for manual copy
-      setShowData(true);
-    }
-  }
-
-  return <div style={{marginBottom:10}}>
-    <Btn variant="subtle" style={{width:"100%",marginBottom:8}} C={C} onClick={copyToClipboard}>
-      {copied?"✓ Copied to Clipboard!":"↓ Copy Backup to Clipboard"}
-    </Btn>
-    <div style={{fontSize:11,fontFamily:"'SF Mono','Courier New',monospace",color:C.muted,textAlign:"center",marginBottom:8}}>
-      Paste into Notes, email it to yourself, or save to Files
-    </div>
-    {showData&&<div>
-      <div style={{fontSize:11,fontFamily:"'SF Mono','Courier New',monospace",color:C.muted,marginBottom:6}}>
-        Copy all the text below and save it somewhere safe:
-      </div>
-      <textarea readOnly value={data}
-        style={{width:"100%",height:120,padding:"8px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",resize:"none",boxSizing:"border-box"}}
-        onClick={e=>e.target.select()}
-      />
-    </div>}
-  </div>;
-}
-
-// -- IMPORT PANEL -------------------------------------------------------------
-function ImportPanel({C,onImport}){
-  const [status,setStatus]=useState(null);
-  const [preview,setPreview]=useState(null);
-  const [parsed,setParsed]=useState(null);
-  const fileRef=useRef(null);
-
-  function handleFile(file){
-    if(!file)return;
-    const reader=new FileReader();
-    reader.onload=e=>{
-      try{
-        const data=JSON.parse(e.target.result);
-        const sessCount=(data.sessions||[]).length;
-        const prsCount=Object.keys(data.prs||{}).length;
-        setStatus("ok");
-        setParsed(data);
-        setPreview(`${sessCount} session${sessCount!==1?"s":""} . ${prsCount} PRs . exported ${data.exportedAt?new Date(data.exportedAt).toLocaleDateString("en",{month:"short",day:"numeric",year:"numeric"}):"unknown"}`);
-      }catch{
-        setStatus("error");
-        setPreview("Invalid file -- use a Forge .json backup.");
-      }
-    };
-    reader.readAsText(file);
-  }
-
-  return <div>
-    <div onClick={()=>fileRef.current?.click()} style={{border:`2px dashed ${status==="ok"?C.neon:status==="error"?C.danger:C.border}`,borderRadius:10,padding:"14px",textAlign:"center",cursor:"pointer",background:C.card,marginBottom:status?8:0}}>
-      <input ref={fileRef} type="file" accept=".json" style={{display:"none"}} onChange={e=>handleFile(e.target.files[0])}/>
-      <Mono style={{fontSize:12,color:C.muted,display:"block",marginBottom:3}}>↑ Import Backup</Mono>
-      <Mono style={{fontSize:10,color:C.muted}}>Tap to select a .json backup file</Mono>
-    </div>
-    {status&&<div style={{padding:"9px 12px",background:status==="ok"?C.neon+"12":C.danger+"12",border:`1px solid ${status==="ok"?C.neon+"55":C.danger+"55"}`,borderRadius:8,marginBottom:status==="ok"?8:0}}>
-      <Mono style={{fontSize:11,color:status==="ok"?C.neon:C.danger}}>{preview}</Mono>
-    </div>}
-    {status==="ok"&&parsed&&<div style={{display:"flex",gap:8,marginTop:8}}>
-      <Btn variant="subtle" style={{flex:1}} C={C} onClick={()=>{onImport(parsed);setStatus(null);setParsed(null);setPreview(null);}}>Merge & Restore</Btn>
-      <Btn variant="ghost" style={{flex:1}} C={C} onClick={()=>{setStatus(null);setParsed(null);setPreview(null);}}>Cancel</Btn>
-    </div>}
-  </div>;
-}
 
 // -- MORE / SETTINGS -----------------------------------------------------------
-function MoreTab({settings,saveSettings,plans,sessions,prs,saveSessions,savePRs,C,toggleTheme,themeMode}){
+function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMode}){
   const [local,setLocal]=useState({...settings});
   const [saved,setSaved]=useState(false);
 
@@ -2212,44 +2132,10 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,saveSessions,savePRs,
 
       <Btn size="lg" style={{width:"100%",marginTop:20}} onClick={save} C={C}>{saved?"Saved ✓":"Save Settings"}</Btn>
 
-      {/* Data & Backup */}
-      <div style={{marginTop:24,paddingTop:20,borderTop:`1px solid ${C.border}`}}>
-        <SectionLabel C={C}>Data & Backup</SectionLabel>
-        <div style={{fontSize:12,color:C.muted,fontFamily:"'SF Mono','Courier New',monospace",lineHeight:1.7,marginBottom:14}}>
-          App auto-saves when closed. Export a full backup anytime -- import to restore or migrate to a new device.
-        </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
-          {/* Session count chip */}
-          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",textAlign:"center"}}>
-            <div style={{fontSize:20,fontWeight:800,fontFamily:"'SF Mono','Courier New',monospace",color:C.accent}}>{sessions.length}</div>
-            <Mono style={{fontSize:10,color:C.muted}}>sessions</Mono>
-          </div>
-          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",textAlign:"center"}}>
-            <div style={{fontSize:20,fontWeight:800,fontFamily:"'SF Mono','Courier New',monospace",color:C.gold}}>{Object.keys(prs).length}</div>
-            <Mono style={{fontSize:10,color:C.muted}}>PRs</Mono>
-          </div>
-        </div>
-        <ExportPanel C={C} sessions={sessions} prs={prs} plans={plans} settings={settings}/>
-        <ImportPanel C={C} onImport={(imported)=>{
-          if(imported.sessions&&Array.isArray(imported.sessions)){
-            const existing=sessions;
-            const merged=Object.values(
-              [...existing,...imported.sessions].reduce((acc,s)=>{acc[s.id]=s;return acc;},{})
-            ).sort((a,b)=>new Date(b.completedAt||0)-new Date(a.completedAt||0));
-            saveSessions(merged);
-          }
-          if(imported.prs&&typeof imported.prs==="object"){
-            savePRs({...prs,...imported.prs});
-          }
-        }}/>
-      </div>
-
       <div style={{marginTop:24,padding:"14px 0",borderTop:`1px solid ${C.border}`}}>
         <SectionLabel C={C}>About</SectionLabel>
         <Mono style={{fontSize:12,color:C.muted,lineHeight:1.9,display:"block"}}>
           FORGE Workout Tracker{"\n"}
-          Antagonist Split . Progressive overload . Joint-aware{"\n"}
-          Cloud sync: Supabase{"\n"}
           <span style={{color:C.muted}}>v2.0 . Supabase connected</span>
         </Mono>
       </div>
