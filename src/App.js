@@ -18,7 +18,7 @@ const cache = {
 const DOW = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 
 // -- PROGRAM START -------------------------------------------------------------
-const PROGRAM_START = "2026-05-02"; // Mike's Day 1 -- Plan B Saturday May 2 2026
+const PROGRAM_START = "2026-05-02"; // Program start date
 const programWeek = () => {
   const start = new Date(PROGRAM_START);
   const now = new Date();
@@ -412,7 +412,135 @@ function OverloadCalc({C}){
   </div>;
 }
 
-// -- MAIN APP ------------------------------------------------------------------
+
+// ── AUTH SCREEN ───────────────────────────────────────────────────────────────
+function AuthScreen({C,onAuth,themeMode,toggleTheme}){
+  const [mode,setMode]=useState("login"); // login | signup | reset
+  const [email,setEmail]=useState("");
+  const [password,setPassword]=useState("");
+  const [name,setName]=useState("");
+  const [loading,setLoading]=useState(false);
+  const [error,setError]=useState("");
+  const [message,setMessage]=useState("");
+
+  async function handleSubmit(){
+    setError("");setMessage("");
+    if(!email||(!password&&mode!=="reset")){setError("Please fill in all fields.");return;}
+    if(mode==="signup"&&password.length<6){setError("Password must be at least 6 characters.");return;}
+    setLoading(true);
+    try{
+      if(mode==="login"){
+        const {data,error:e}=await supabase.auth.signInWithPassword({email,password});
+        if(e)throw e;
+        onAuth(data.user);
+      } else if(mode==="signup"){
+        const {data,error:e}=await supabase.auth.signUp({
+          email,password,
+          options:{data:{display_name:name||email.split("@")[0]}}
+        });
+        if(e)throw e;
+        if(data.user&&data.session){
+          onAuth(data.user);
+        } else {
+          setMessage("Account created! Check your email to confirm, then sign in.");
+          setMode("login");
+        }
+      } else if(mode==="reset"){
+        const {error:e}=await supabase.auth.resetPasswordForEmail(email,{
+          redirectTo:window.location.origin
+        });
+        if(e)throw e;
+        setMessage("Password reset email sent. Check your inbox.");
+        setMode("login");
+      }
+    }catch(e){
+      setError(e.message||"Something went wrong. Please try again.");
+    }
+    setLoading(false);
+  }
+
+  const inputStyle={
+    width:"100%",padding:"13px 14px",
+    background:"#1c1f26",border:"1px solid #2e333d",
+    borderRadius:10,color:"#f0f2f5",fontSize:16,
+    fontFamily:"'SF Mono','Courier New',monospace",
+    boxSizing:"border-box",outline:"none",
+    WebkitAppearance:"none"
+  };
+
+  return <div style={{minHeight:"100vh",background:"#0b0c0e",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px",fontFamily:"Georgia,serif"}}>
+    {/* Theme toggle */}
+    <button onClick={toggleTheme} style={{position:"fixed",top:16,right:16,background:"transparent",border:"1px solid #2e333d",borderRadius:8,color:"#9ba3b0",cursor:"pointer",padding:"6px 10px",fontSize:14}}>
+      {themeMode==="dark"?"☀️":"🌙"}
+    </button>
+
+    <div style={{width:"100%",maxWidth:380}}>
+      {/* Logo */}
+      <div style={{textAlign:"center",marginBottom:36}}>
+        <div style={{fontSize:11,fontFamily:"'SF Mono','Courier New',monospace",color:"#aaff00",letterSpacing:"0.28em",fontWeight:800,marginBottom:8}}>FORGE</div>
+        <div style={{fontSize:26,fontWeight:800,letterSpacing:"-0.03em",color:"#f0f2f5",marginBottom:6}}>
+          {mode==="login"?"Welcome back":mode==="signup"?"Create account":"Reset password"}
+        </div>
+        <div style={{fontSize:13,color:"#9ba3b0"}}>
+          {mode==="login"?"Sign in to your training log":mode==="signup"?"Start tracking your progress":"We'll send you a reset link"}
+        </div>
+      </div>
+
+      {/* Form */}
+      <div style={{background:"#13151a",border:"1px solid #2e333d",borderRadius:16,padding:"24px"}}>
+        {mode==="signup"&&<div style={{marginBottom:14}}>
+          <div style={{fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",color:"#9ba3b0",letterSpacing:"0.12em",marginBottom:6}}>NAME (optional)</div>
+          <input value={name} onChange={e=>setName(e.target.value)} placeholder="Your name"
+            style={inputStyle} autoComplete="name"/>
+        </div>}
+
+        <div style={{marginBottom:14}}>
+          <div style={{fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",color:"#9ba3b0",letterSpacing:"0.12em",marginBottom:6}}>EMAIL</div>
+          <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com"
+            style={inputStyle} autoComplete="email"
+            onKeyDown={e=>e.key==="Enter"&&handleSubmit()}/>
+        </div>
+
+        {mode!=="reset"&&<div style={{marginBottom:20}}>
+          <div style={{fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",color:"#9ba3b0",letterSpacing:"0.12em",marginBottom:6}}>PASSWORD</div>
+          <input type="password" value={password} onChange={e=>setPassword(e.target.value)}
+            placeholder={mode==="signup"?"At least 6 characters":"Your password"}
+            style={inputStyle} autoComplete={mode==="signup"?"new-password":"current-password"}
+            onKeyDown={e=>e.key==="Enter"&&handleSubmit()}/>
+        </div>}
+
+        {error&&<div style={{background:"#e8202015",border:"1px solid #e8202044",borderRadius:8,padding:"10px 12px",marginBottom:14}}>
+          <div style={{fontSize:12,color:"#e82020",fontFamily:"'SF Mono','Courier New',monospace"}}>{error}</div>
+        </div>}
+        {message&&<div style={{background:"#aaff0015",border:"1px solid #aaff0044",borderRadius:8,padding:"10px 12px",marginBottom:14}}>
+          <div style={{fontSize:12,color:"#aaff00",fontFamily:"'SF Mono','Courier New',monospace"}}>{message}</div>
+        </div>}
+
+        <button onClick={handleSubmit} disabled={loading}
+          style={{width:"100%",padding:"14px",background:loading?"#2e333d":"#ff5500",border:"none",borderRadius:10,color:"#fff",fontSize:14,fontFamily:"'SF Mono','Courier New',monospace",fontWeight:700,letterSpacing:"0.08em",cursor:loading?"not-allowed":"pointer",transition:"background .2s"}}>
+          {loading?"...":(mode==="login"?"SIGN IN":mode==="signup"?"CREATE ACCOUNT":"SEND RESET EMAIL")}
+        </button>
+      </div>
+
+      {/* Mode switcher */}
+      <div style={{textAlign:"center",marginTop:20,display:"flex",flexDirection:"column",gap:10}}>
+        {mode==="login"&&<>
+          <button onClick={()=>{setMode("signup");setError("");setMessage("");}} style={{background:"transparent",border:"none",color:"#9ba3b0",cursor:"pointer",fontSize:13,fontFamily:"Georgia,serif"}}>
+            Don't have an account? <span style={{color:"#aaff00",fontWeight:600}}>Sign up</span>
+          </button>
+          <button onClick={()=>{setMode("reset");setError("");setMessage("");}} style={{background:"transparent",border:"none",color:"#555e6b",cursor:"pointer",fontSize:12,fontFamily:"'SF Mono','Courier New',monospace"}}>
+            Forgot password?
+          </button>
+        </>}
+        {mode!=="login"&&<button onClick={()=>{setMode("login");setError("");setMessage("");}} style={{background:"transparent",border:"none",color:"#9ba3b0",cursor:"pointer",fontSize:13,fontFamily:"Georgia,serif"}}>
+          Already have an account? <span style={{color:"#aaff00",fontWeight:600}}>Sign in</span>
+        </button>}
+      </div>
+    </div>
+  </div>;
+}
+
+// ── MAIN APP ──────────────────────────────────────────────────────────────────
 export default function ForgeApp(){
   const [plans,setPlans]=useState(MIKE_PLANS);
   const [activePlanKey,setActivePlanKey]=useState("B");
@@ -420,7 +548,9 @@ export default function ForgeApp(){
   const [sessions,setSessions]=useState([]);
   const [prs,setPrs]=useState({});
   const [themeMode,setThemeMode]=useState("dark");
-  const [loading,setLoading]=useState(false);
+  const [loading,setLoading]=useState(true);
+  const [authUser,setAuthUser]=useState(null);
+  const [authChecked,setAuthChecked]=useState(false);
   const [tab,setTab]=useState("today");
   const [activeWorkout,setActiveWorkout]=useState(null);
   const [deloadDismissed,setDeloadDismissed]=useState(null);
@@ -552,10 +682,15 @@ export default function ForgeApp(){
       setLoading(false);
     };
     supabase.auth.getSession().then(({data:{session}})=>{
+      setAuthUser(session?.user||null);
+      setAuthChecked(true);
       if(session?.user)loadUserData(session.user);
+      else setLoading(false);
     });
     const {data:{subscription}}=supabase.auth.onAuthStateChange((_,session)=>{
-      if(session?.user)loadUserData(session.user);
+      setAuthUser(session?.user||null);
+      if(session?.user){loadUserData(session.user);}
+      else{setSessions([]);setPrs({});setPlans(MIKE_PLANS);setSettings(DEFAULT_SETTINGS);setLoading(false);}
     });
     return()=>subscription.unsubscribe();
   },[]);// eslint-disable-line react-hooks/exhaustive-deps
@@ -652,6 +787,22 @@ export default function ForgeApp(){
     {key:"stats",icon:"↗",label:"Stats"},
     {key:"more",icon:"⊙",label:"More"},
   ];
+
+  // Show loading spinner while checking auth
+  if(!authChecked){
+    return <div style={{minHeight:"100vh",background:"#0b0c0e",display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{textAlign:"center"}}>
+        <div style={{fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",color:"#aaff00",letterSpacing:"0.22em",fontWeight:800,marginBottom:24}}>FORGE</div>
+        <div style={{width:32,height:32,border:"2px solid #2e333d",borderTop:"2px solid #ff5500",borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto"}}/>
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      </div>
+    </div>;
+  }
+
+  // Show auth screen if not logged in
+  if(!authUser){
+    return <AuthScreen C={C} onAuth={u=>{setAuthUser(u);}} themeMode={themeMode} toggleTheme={toggleTheme}/>;
+  }
 
   if(activeWorkout){
     return <WorkoutSession workout={activeWorkout} settings={settings} prs={prs} sessions={sessions}
@@ -1866,7 +2017,7 @@ function StatsTab({sessions,prs,settings,C}){
   return <div>
     <div style={{background:C.surface,borderBottom:`2px solid ${C.accent}`,padding:"16px 18px"}}>
       <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>Progress</div>
-      <Mono style={{fontSize:11,color:C.muted}}>Program started May 2, 2026 . Week {programWeek()}</Mono>
+      <Mono style={{fontSize:11,color:C.muted}}>Week {programWeek()} of your program</Mono>
     </div>
     <div style={{padding:"14px 18px"}}>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:20}}>
@@ -2019,9 +2170,14 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,saveSessions,savePRs,
     <div style={{background:C.surface,borderBottom:`2px solid ${C.accent}`,padding:"16px 18px"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>Settings</div>
-        <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,cursor:"pointer",padding:"7px 12px",fontSize:13}}>
-          {themeMode==="dark"?"☀️ Light":"🌙 Dark"}
-        </button>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,cursor:"pointer",padding:"7px 12px",fontSize:13}}>
+            {themeMode==="dark"?"☀️":"🌙"}
+          </button>
+          <button onClick={async()=>{await supabase.auth.signOut();}} style={{background:"transparent",border:`1px solid ${C.danger}44`,borderRadius:8,color:C.danger,cursor:"pointer",padding:"7px 12px",fontSize:11,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.04em"}}>
+            Sign Out
+          </button>
+        </div>
       </div>
     </div>
     <div style={{padding:"14px 18px"}}>
@@ -2091,9 +2247,8 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,saveSessions,savePRs,
       <div style={{marginTop:24,padding:"14px 0",borderTop:`1px solid ${C.border}`}}>
         <SectionLabel C={C}>About</SectionLabel>
         <Mono style={{fontSize:12,color:C.muted,lineHeight:1.9,display:"block"}}>
-          FORGE -- Built for Mike{"\n"}
-          Program start: May 2, 2026{"\n"}
-          Plan B (Antagonist) . Progressive overload . Joint-aware{"\n"}
+          FORGE Workout Tracker{"\n"}
+          Antagonist Split . Progressive overload . Joint-aware{"\n"}
           Cloud sync: Supabase{"\n"}
           <span style={{color:C.muted}}>v2.0 . Supabase connected</span>
         </Mono>
@@ -2151,4 +2306,3 @@ Plain text, no markdown, be concise.`;
       :<div style={{fontSize:13,lineHeight:1.8,color:C.text,whiteSpace:"pre-wrap"}}>{response}</div>}
   </Modal>;
 }
-
