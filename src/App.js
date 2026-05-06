@@ -474,7 +474,7 @@ function AuthScreen({C,onAuth,themeMode,toggleTheme}){
 
   return <div style={{minHeight:"100vh",background:"#161b22",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px",fontFamily:"Georgia,serif"}}>
     {/* Theme toggle */}
-    <button onClick={toggleTheme} style={{position:"fixed",top:16,right:16,background:"transparent",border:"1px solid #2e333d",borderRadius:8,color:"#9ba3b0",cursor:"pointer",padding:"6px 10px",fontSize:14}}>
+    <button onClick={toggleTheme} style={{position:"fixed",top:"calc(env(safe-area-inset-top) + 12px)",right:16,background:"transparent",border:"1px solid #2e333d",borderRadius:8,color:"#9ba3b0",cursor:"pointer",padding:"6px 10px",fontSize:14}}>
       {themeMode==="dark"?"☀️":"🌙"}
     </button>
 
@@ -483,12 +483,48 @@ function AuthScreen({C,onAuth,themeMode,toggleTheme}){
       <div style={{textAlign:"center",marginBottom:36}}>
         {/* Dumbbell icon */}
         <div style={{display:"flex",justifyContent:"center",marginBottom:14}}>
-          <svg width="52" height="52" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="1" y="10" width="3" height="4" rx="1" fill="#f7c948"/>
-            <rect x="4" y="8" width="2" height="8" rx="1" fill="#f7c948"/>
-            <rect x="6" y="10.5" width="12" height="3" rx="1.5" fill="#3ecf8e"/>
-            <rect x="18" y="8" width="2" height="8" rx="1" fill="#f7c948"/>
-            <rect x="20" y="10" width="3" height="4" rx="1" fill="#f7c948"/>
+          <svg width="140" height="70" viewBox="0 0 120 60" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="abar" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#f9e07a"/><stop offset="35%" stopColor="#f0c040"/>
+                <stop offset="65%" stopColor="#c8860a"/><stop offset="100%" stopColor="#e8a820"/>
+              </linearGradient>
+              <linearGradient id="aplateO" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#fceea0"/><stop offset="30%" stopColor="#f5c842"/>
+                <stop offset="70%" stopColor="#b87010"/><stop offset="100%" stopColor="#d4940a"/>
+              </linearGradient>
+              <linearGradient id="aplateI" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#fde878"/><stop offset="40%" stopColor="#e8b030"/>
+                <stop offset="100%" stopColor="#a06008"/>
+              </linearGradient>
+              <linearGradient id="acollar" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#fff0a0"/><stop offset="50%" stopColor="#d4a020"/>
+                <stop offset="100%" stopColor="#986000"/>
+              </linearGradient>
+              <filter id="ashadow"><feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="rgba(0,0,0,0.5)"/></filter>
+            </defs>
+            <g filter="url(#ashadow)">
+              <rect x="28" y="27" width="64" height="6" rx="3" fill="url(#abar)"/>
+              <rect x="28" y="27.5" width="64" height="1.5" rx="0.75" fill="rgba(255,255,220,0.5)"/>
+              <rect x="20" y="24" width="10" height="12" rx="2" fill="url(#acollar)"/>
+              <rect x="20" y="24.5" width="10" height="2" rx="1" fill="rgba(255,255,200,0.6)"/>
+              <rect x="90" y="24" width="10" height="12" rx="2" fill="url(#acollar)"/>
+              <rect x="90" y="24.5" width="10" height="2" rx="1" fill="rgba(255,255,200,0.6)"/>
+              <ellipse cx="14" cy="30" rx="4.5" ry="14" fill="#906000"/>
+              <ellipse cx="14" cy="30" rx="3.8" ry="12.5" fill="url(#aplateO)"/>
+              <ellipse cx="10" cy="30" rx="5.5" ry="19" fill="#804800"/>
+              <ellipse cx="10" cy="30" rx="4.8" ry="17.5" fill="url(#aplateO)"/>
+              <ellipse cx="10" cy="30" rx="3" ry="11" fill="url(#aplateI)"/>
+              <ellipse cx="10" cy="30" rx="1.4" ry="5" fill="rgba(255,245,120,0.8)"/>
+              <ellipse cx="10" cy="21" rx="4.5" ry="1.8" fill="rgba(255,255,200,0.35)"/>
+              <ellipse cx="106" cy="30" rx="4.5" ry="14" fill="#906000"/>
+              <ellipse cx="106" cy="30" rx="3.8" ry="12.5" fill="url(#aplateO)"/>
+              <ellipse cx="110" cy="30" rx="5.5" ry="19" fill="#804800"/>
+              <ellipse cx="110" cy="30" rx="4.8" ry="17.5" fill="url(#aplateO)"/>
+              <ellipse cx="110" cy="30" rx="3" ry="11" fill="url(#aplateI)"/>
+              <ellipse cx="110" cy="30" rx="1.4" ry="5" fill="rgba(255,245,120,0.8)"/>
+              <ellipse cx="110" cy="21" rx="4.5" ry="1.8" fill="rgba(255,255,200,0.35)"/>
+            </g>
           </svg>
         </div>
         <div style={{fontSize:11,fontFamily:"'SF Mono','Courier New',monospace",color:"#3ecf8e",letterSpacing:"0.28em",fontWeight:800,marginBottom:16}}>IRON</div>
@@ -887,7 +923,21 @@ export default function ForgeApp(){
       {tabs.map(t=>(
         <button key={t.key} onClick={()=>setTab(t.key)} style={{flex:1,padding:"10px 4px 8px",background:"none",border:"none",color:tab===t.key?C.accent:C.muted,cursor:"pointer",fontSize:9,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.06em",textTransform:"uppercase",display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
           {t.icon==="dumbbell"
-            ?<svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{flexShrink:0}}><rect x="1" y="10" width="3" height="4" rx="1" fill="currentColor"/><rect x="4" y="8" width="2" height="8" rx="1" fill="currentColor"/><rect x="6" y="10.5" width="12" height="3" rx="1.5" fill="currentColor"/><rect x="18" y="8" width="2" height="8" rx="1" fill="currentColor"/><rect x="20" y="10" width="3" height="4" rx="1" fill="currentColor"/></svg>
+            ?<svg width="28" height="14" viewBox="0 0 120 60" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
+              <defs>
+                <linearGradient id="dbn" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#fde878"/><stop offset="50%" stopColor="#e8b030"/><stop offset="100%" stopColor="#a06008"/></linearGradient>
+                <linearGradient id="dbr" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f9e07a"/><stop offset="50%" stopColor="#c8860a"/><stop offset="100%" stopColor="#e8a820"/></linearGradient>
+              </defs>
+              <rect x="28" y="27" width="64" height="6" rx="3" fill="url(#dbr)"/>
+              <rect x="20" y="24" width="10" height="12" rx="2" fill="#d4a020"/>
+              <rect x="90" y="24" width="10" height="12" rx="2" fill="#d4a020"/>
+              <ellipse cx="10" cy="30" rx="5" ry="18" fill="#906000"/>
+              <ellipse cx="10" cy="30" rx="4.2" ry="16" fill="url(#dbn)"/>
+              <ellipse cx="14" cy="30" rx="3.5" ry="13" fill="#c88010"/>
+              <ellipse cx="110" cy="30" rx="5" ry="18" fill="#906000"/>
+              <ellipse cx="110" cy="30" rx="4.2" ry="16" fill="url(#dbn)"/>
+              <ellipse cx="106" cy="30" rx="3.5" ry="13" fill="#c88010"/>
+            </svg>
             :<span style={{fontSize:18,lineHeight:1}}>{t.icon}</span>}
           {t.label}
         </button>
@@ -946,7 +996,21 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
       {/* Smart Start Today button */}
       {todayDay&&<div style={{padding:"12px 18px 0",position:"relative"}}>
         <button onClick={()=>onStart(todayDay)} style={{width:"100%",padding:"14px",background:`linear-gradient(135deg,${C.accent},${C.neon})`,border:"none",borderRadius:12,color:"#fff",fontSize:15,fontFamily:"'SF Mono','Courier New',monospace",fontWeight:800,letterSpacing:"0.08em",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10,boxShadow:`0 4px 16px ${C.accent}44`}}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{flexShrink:0}}><rect x="1" y="10" width="3" height="4" rx="1" fill="white"/><rect x="4" y="8" width="2" height="8" rx="1" fill="white"/><rect x="6" y="10.5" width="12" height="3" rx="1.5" fill="white"/><rect x="18" y="8" width="2" height="8" rx="1" fill="white"/><rect x="20" y="10" width="3" height="4" rx="1" fill="white"/></svg> START TODAY — {todayDay.label.toUpperCase()}
+          <svg width="36" height="18" viewBox="0 0 120 60" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
+              <defs>
+                <linearGradient id="dbs" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#fff8d0"/><stop offset="50%" stopColor="#ffe090"/><stop offset="100%" stopColor="#ffc840"/></linearGradient>
+                <linearGradient id="dbsr" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#fffde0"/><stop offset="50%" stopColor="#ffe878"/><stop offset="100%" stopColor="#ffd040"/></linearGradient>
+              </defs>
+              <rect x="28" y="27" width="64" height="6" rx="3" fill="url(#dbsr)"/>
+              <rect x="20" y="24" width="10" height="12" rx="2" fill="#ffe090"/>
+              <rect x="90" y="24" width="10" height="12" rx="2" fill="#ffe090"/>
+              <ellipse cx="10" cy="30" rx="5" ry="18" fill="rgba(255,200,50,0.6)"/>
+              <ellipse cx="10" cy="30" rx="4.2" ry="16" fill="url(#dbs)"/>
+              <ellipse cx="14" cy="30" rx="3.5" ry="13" fill="rgba(255,220,100,0.8)"/>
+              <ellipse cx="110" cy="30" rx="5" ry="18" fill="rgba(255,200,50,0.6)"/>
+              <ellipse cx="110" cy="30" rx="4.2" ry="16" fill="url(#dbs)"/>
+              <ellipse cx="106" cy="30" rx="3.5" ry="13" fill="rgba(255,220,100,0.8)"/>
+            </svg> START TODAY — {todayDay.label.toUpperCase()}
         </button>
       </div>}
     </div>
@@ -2541,6 +2605,25 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
       </div>}
 
       <Btn size="lg" style={{width:"100%",marginTop:20}} onClick={save} C={C}>{saved?"Saved ✓":"Save Settings"}</Btn>
+
+      {/* Workout reminders */}
+      <div style={{marginTop:16,padding:"14px",background:C.card,border:`1px solid ${C.border}`,borderRadius:12}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={{flex:1,paddingRight:16}}>
+            <div style={{fontSize:14,fontWeight:600}}>Workout Reminders</div>
+            <Mono style={{fontSize:11,color:C.muted}}>Notify me on scheduled training days</Mono>
+          </div>
+          <Btn size="sm" variant="subtle" C={C} onClick={async()=>{
+            if(!("Notification" in window)){alert("Notifications not supported on this device.");return;}
+            const permission=await Notification.requestPermission();
+            if(permission==="granted"){
+              new Notification("IRON",{body:"Reminders enabled! You'll be notified on your scheduled training days.",icon:"/favicon.ico"});
+            }else{
+              alert("To enable reminders, allow notifications in your browser or phone settings.");
+            }
+          }}>Enable</Btn>
+        </div>
+      </div>
 
       <div style={{marginTop:24,padding:"14px 0",borderTop:`1px solid ${C.border}`}}>
         <SectionLabel C={C}>About</SectionLabel>
