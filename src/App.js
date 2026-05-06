@@ -18,9 +18,17 @@ const cache = {
 const DOW = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 
 // -- PROGRAM START -------------------------------------------------------------
-const PROGRAM_START = "2026-05-02"; // Program start date
-const programWeek = () => {
-  const start = new Date(PROGRAM_START);
+const PROGRAM_START = "2026-05-02"; // fallback only
+const getProgramStart = (sessions) => {
+  if(!sessions||!sessions.length) return PROGRAM_START;
+  const dates = sessions
+    .filter(s=>s.completedAt)
+    .map(s=>s.completedAt.split("T")[0])
+    .sort();
+  return dates[0] || PROGRAM_START;
+};
+const programWeek = (sessions=[]) => {
+  const start = new Date(getProgramStart(sessions));
   const now = new Date();
   const days = Math.floor((now - start) / 86400000);
   return Math.max(1, Math.ceil((days + 1) / 7));
@@ -32,22 +40,22 @@ const programWeek = () => {
 // -- THEME ---------------------------------------------------------------------
 const THEMES = {
   dark: {
-    bg:"#0b0c0e", surface:"#13151a", card:"#1c1f26", border:"#2e333d",
-    accent:"#ff5500", neon:"#aaff00", red:"#e82020", gold:"#f0b429",
-    blue:"#3d8eff", green:"#aaff00", danger:"#e82020",
-    text:"#f0f2f5", muted:"#9ba3b0", faint:"#555e6b",
+    bg:"#161b22", surface:"#1e2530", card:"#252d3a", border:"#3a4456",
+    accent:"#4f8ef7", neon:"#3ecf8e", red:"#f06584", gold:"#f7c948",
+    blue:"#4f8ef7", green:"#3ecf8e", danger:"#f06584",
+    text:"#e8edf4", muted:"#8a96a8", faint:"#4a5568",
     mono:"'SF Mono','Courier New',monospace",
     serif:"'Georgia','Times New Roman',serif",
-    navBg:"#0f1115", gradTop:"linear-gradient(135deg,#ff550020 0%,#aaff0008 100%)",
+    navBg:"#1a2130", gradTop:"linear-gradient(135deg,#4f8ef715 0%,#3ecf8e08 100%)",
   },
   light: {
-    bg:"#e8eaed", surface:"#f4f5f7", card:"#ffffff", border:"#c0c6d0",
-    accent:"#e84800", neon:"#4db800", red:"#c41a1a", gold:"#b87800",
-    blue:"#1a5fd4", green:"#4db800", danger:"#c41a1a",
-    text:"#0d1017", muted:"#3a424f", faint:"#6b7585",
+    bg:"#f7f9fc", surface:"#ffffff", card:"#ffffff", border:"#e2e8f0",
+    accent:"#4f8ef7", neon:"#0ea66e", red:"#e53e6a", gold:"#d4a017",
+    blue:"#4f8ef7", green:"#0ea66e", danger:"#e53e6a",
+    text:"#1a202c", muted:"#64748b", faint:"#94a3b8",
     mono:"'SF Mono','Courier New',monospace",
     serif:"'Georgia','Times New Roman',serif",
-    navBg:"#f4f5f7", gradTop:"linear-gradient(135deg,#e8480012 0%,#4db80008 100%)",
+    navBg:"#ffffff", gradTop:"linear-gradient(135deg,#4f8ef710 0%,#0ea66e08 100%)",
   }
 };
 
@@ -56,10 +64,10 @@ const mkId = () => `id_${Math.random().toString(36).slice(2,9)}`;
 
 const MIKE_PLANS = {
   A: {
-    key:"A", name:"Plan A -- Integrated Arms", subtitle:"PPL-style . 4-5 days",
+    key:"A", name:"Custom - PPL", subtitle:"Push/Pull/Legs . 4-5 days",
     description:"Arms built into Push/Pull days. High frequency, clean structure.",
     days:[
-      { id:"a1", name:"Monday", label:"Push", tag:"Chest . Shoulders . Triceps", color:"#ff5500", isRest:false, exercises:[
+      { id:"a1", name:"Monday", label:"Push", tag:"Chest . Shoulders . Triceps", color:"#4f8ef7", isRest:false, exercises:[
         {id:"a1e1",name:"Bench Press",sets:"4",reps:"6-10",note:"Primary strength move",muscle:"Chest"},
         {id:"a1e2",name:"Incline Press (DB)",sets:"3",reps:"8-12",note:"DB preferred for shoulder safety",muscle:"Chest"},
         {id:"a1e3",name:"Machine Shoulder Press",sets:"3",reps:"10-12",note:"Machine reduces joint stress",muscle:"Shoulders"},
@@ -88,7 +96,7 @@ const MIKE_PLANS = {
         {id:"a4e5",name:"Russian Twist",sets:"3",reps:"20 total",note:"",muscle:"Abs"},
         {id:"a4e6",name:"Stair Stepper",sets:"--",reps:"10 min",note:"Shorter today -- legs already worked",muscle:"Cardio"},
       ]},
-      { id:"a5", name:"Friday", label:"Push", tag:"Chest . Shoulders . Triceps (Vol)", color:"#ff5500", isRest:false, exercises:[
+      { id:"a5", name:"Friday", label:"Push", tag:"Chest . Shoulders . Triceps (Vol)", color:"#4f8ef7", isRest:false, exercises:[
         {id:"a5e1",name:"Incline Press (DB)",sets:"4",reps:"8-12",note:"Lead with incline today",muscle:"Chest"},
         {id:"a5e2",name:"Cable Fly / Pec Deck",sets:"3",reps:"12-15",note:"Stretch-focused, lighter load",muscle:"Chest"},
         {id:"a5e3",name:"Machine Shoulder Press",sets:"3",reps:"10-12",note:"",muscle:"Shoulders"},
@@ -111,10 +119,10 @@ const MIKE_PLANS = {
     ]
   },
   B: {
-    key:"B", name:"Plan B -- Dedicated Arm Day", subtitle:"Antagonist-inspired . 4-5 days",
+    key:"B", name:"Custom - Antagonist Split", subtitle:"Antagonist pairs . 4-5 days",
     description:"Chest/Back paired, then a standalone Arm day. Full arm focus and great pumps.",
     days:[
-      { id:"b1", name:"Monday", label:"Chest + Back", tag:"Antagonist Pair", color:"#ff5500", isRest:false, exercises:[
+      { id:"b1", name:"Monday", label:"Chest + Back", tag:"Antagonist Pair", color:"#4f8ef7", isRest:false, exercises:[
         {id:"b1e1",name:"Bench Press",sets:"4",reps:"6-10",note:"Primary push strength",muscle:"Chest"},
         {id:"b1e2",name:"T-Bar Row",sets:"4",reps:"8-12",note:"Superset option with bench",muscle:"Back"},
         {id:"b1e3",name:"Incline Press (DB)",sets:"3",reps:"8-12",note:"",muscle:"Chest"},
@@ -146,7 +154,7 @@ const MIKE_PLANS = {
         {id:"b4e6",name:"Machine Crunch",sets:"3",reps:"15-20",note:"",muscle:"Abs"},
         {id:"b4e7",name:"Stair Stepper",sets:"--",reps:"10 min",note:"",muscle:"Cardio"},
       ]},
-      { id:"b5", name:"Friday", label:"Chest + Back", tag:"Antagonist Pair (Volume)", color:"#ff5500", isRest:false, exercises:[
+      { id:"b5", name:"Friday", label:"Chest + Back", tag:"Antagonist Pair (Volume)", color:"#4f8ef7", isRest:false, exercises:[
         {id:"b5e1",name:"Incline Press (DB)",sets:"4",reps:"8-12",note:"Lead with incline",muscle:"Chest"},
         {id:"b5e2",name:"Seated Row (Close Grip)",sets:"4",reps:"10-12",note:"",muscle:"Back"},
         {id:"b5e3",name:"Pec Deck / Cable Fly",sets:"3",reps:"12-15",note:"",muscle:"Chest"},
@@ -178,7 +186,7 @@ const PRESET_TEMPLATES = [
     id:"preset_strength", emoji:"🏋️", name:"Strength Builder", tag:"4 days . Full Body Power",
     desc:"Classic powerlifting-inspired split focused on compound lifts and progressive overload. Great for building raw strength.",
     days:[
-      { label:"Upper Strength", tag:"Chest . Back . Shoulders", color:"#ff5500", isRest:false, exercises:[
+      { label:"Upper Strength", tag:"Chest . Back . Shoulders", color:"#4f8ef7", isRest:false, exercises:[
         {name:"Bench Press",sets:"5",reps:"3-5",note:"Heavy -- focus on form",muscle:"Chest"},
         {name:"Barbell Row",sets:"5",reps:"3-5",note:"Overhand grip",muscle:"Back"},
         {name:"Overhead Press",sets:"4",reps:"5-8",note:"Standing or seated",muscle:"Shoulders"},
@@ -195,7 +203,7 @@ const PRESET_TEMPLATES = [
       { label:"Rest", tag:"Active Recovery", color:"#aaff00", isRest:true, exercises:[
         {name:"Walk / Stretch",sets:"--",reps:"20-30 min",note:"",muscle:"Recovery"},
       ]},
-      { label:"Upper Volume", tag:"Chest . Back . Arms", color:"#ff5500", isRest:false, exercises:[
+      { label:"Upper Volume", tag:"Chest . Back . Arms", color:"#4f8ef7", isRest:false, exercises:[
         {name:"Incline DB Press",sets:"4",reps:"8-12",note:"",muscle:"Chest"},
         {name:"Cable Row",sets:"4",reps:"10-12",note:"",muscle:"Back"},
         {name:"DB Lateral Raises",sets:"3",reps:"12-15",note:"",muscle:"Shoulders"},
@@ -357,19 +365,15 @@ function RestTimer({seconds,onDone,onSkip,C}){
     const t=setTimeout(()=>setRem(r=>r-1),1000);
     return()=>clearTimeout(t);
   },[rem]); // eslint-disable-line react-hooks/exhaustive-deps
-  return <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"16px 18px",marginBottom:12}}>
-    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-      <div>
-        <Mono style={{fontSize:10,color:C.muted,letterSpacing:"0.12em"}}>REST</Mono>
-        <div style={{fontSize:38,fontFamily:"'SF Mono','Courier New',monospace",color:rem<10?C.red:C.neon,lineHeight:1.1}}>
-          {Math.floor(rem/60)}:{String(rem%60).padStart(2,"0")}
-        </div>
-      </div>
-      <Btn onClick={onSkip} variant="ghost" size="sm" C={C}>Skip</Btn>
+  return <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"8px 12px",marginBottom:8,display:"flex",alignItems:"center",gap:12}}>
+    <Mono style={{fontSize:9,color:C.muted,letterSpacing:"0.12em",flexShrink:0}}>REST</Mono>
+    <div style={{fontSize:20,fontFamily:"'SF Mono','Courier New',monospace",color:rem<10?C.red:C.neon,fontWeight:700,minWidth:42}}>
+      {Math.floor(rem/60)}:{String(rem%60).padStart(2,"0")}
     </div>
-    <div style={{height:3,background:C.border,borderRadius:2,marginTop:10}}>
-      <div style={{height:"100%",background:C.accent,borderRadius:2,width:`${(rem/seconds)*100}%`,transition:"width 1s linear"}}/>
+    <div style={{flex:1,height:3,background:C.border,borderRadius:2}}>
+      <div style={{height:"100%",background:C.neon,borderRadius:2,width:`${(rem/seconds)*100}%`,transition:"width 1s linear"}}/>
     </div>
+    <Btn onClick={onSkip} variant="ghost" size="sm" C={C} style={{fontSize:10,padding:"4px 8px"}}>Skip</Btn>
   </div>;
 }
 
@@ -461,14 +465,14 @@ function AuthScreen({C,onAuth,themeMode,toggleTheme}){
 
   const inputStyle={
     width:"100%",padding:"13px 14px",
-    background:"#1c1f26",border:"1px solid #2e333d",
-    borderRadius:10,color:"#f0f2f5",fontSize:16,
+    background:"#252d3a",border:"1px solid #3a4456",
+    borderRadius:10,color:"#e8edf4",fontSize:16,
     fontFamily:"'SF Mono','Courier New',monospace",
     boxSizing:"border-box",outline:"none",
     WebkitAppearance:"none"
   };
 
-  return <div style={{minHeight:"100vh",background:"#0b0c0e",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px",fontFamily:"Georgia,serif"}}>
+  return <div style={{minHeight:"100vh",background:"#161b22",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"24px",fontFamily:"Georgia,serif"}}>
     {/* Theme toggle */}
     <button onClick={toggleTheme} style={{position:"fixed",top:16,right:16,background:"transparent",border:"1px solid #2e333d",borderRadius:8,color:"#9ba3b0",cursor:"pointer",padding:"6px 10px",fontSize:14}}>
       {themeMode==="dark"?"☀️":"🌙"}
@@ -477,17 +481,35 @@ function AuthScreen({C,onAuth,themeMode,toggleTheme}){
     <div style={{width:"100%",maxWidth:380}}>
       {/* Logo */}
       <div style={{textAlign:"center",marginBottom:36}}>
-        <div style={{fontSize:11,fontFamily:"'SF Mono','Courier New',monospace",color:"#aaff00",letterSpacing:"0.28em",fontWeight:800,marginBottom:8}}>FORGE</div>
-        <div style={{fontSize:26,fontWeight:800,letterSpacing:"-0.03em",color:"#f0f2f5",marginBottom:6}}>
-          {mode==="login"?"Welcome back":mode==="signup"?"Create account":"Reset password"}
+        {/* Dumbbell icon */}
+        <div style={{display:"flex",justifyContent:"center",marginBottom:14}}>
+          <svg width="52" height="52" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="1" y="10" width="3" height="4" rx="1" fill="#f7c948"/>
+            <rect x="4" y="8" width="2" height="8" rx="1" fill="#f7c948"/>
+            <rect x="6" y="10.5" width="12" height="3" rx="1.5" fill="#3ecf8e"/>
+            <rect x="18" y="8" width="2" height="8" rx="1" fill="#f7c948"/>
+            <rect x="20" y="10" width="3" height="4" rx="1" fill="#f7c948"/>
+          </svg>
         </div>
-        <div style={{fontSize:13,color:"#9ba3b0"}}>
-          {mode==="login"?"Sign in to your training log":mode==="signup"?"Start tracking your progress":"We'll send you a reset link"}
-        </div>
+        <div style={{fontSize:11,fontFamily:"'SF Mono','Courier New',monospace",color:"#3ecf8e",letterSpacing:"0.28em",fontWeight:800,marginBottom:16}}>IRON</div>
+        {mode==="login"&&<div style={{marginBottom:6}}>
+          <div style={{fontSize:32,fontWeight:900,letterSpacing:"-0.04em",color:"#e8edf4",lineHeight:1.1,marginBottom:4}}>Workout.</div>
+          <div style={{fontSize:32,fontWeight:900,letterSpacing:"-0.04em",color:"#e8edf4",lineHeight:1.1,marginBottom:4}}>Track.</div>
+          <div style={{fontSize:32,fontWeight:900,letterSpacing:"-0.04em",color:"#3ecf8e",lineHeight:1.1,marginBottom:16}}>Improve.</div>
+          <div style={{fontSize:13,color:"#8a96a8",lineHeight:1.6,maxWidth:280,margin:"0 auto"}}>Your training log, reinvented. Plan your program, track every set, and watch yourself get stronger.</div>
+        </div>}
+        {mode==="signup"&&<div style={{marginBottom:6}}>
+          <div style={{fontSize:26,fontWeight:800,letterSpacing:"-0.03em",color:"#e8edf4",marginBottom:6}}>Create your account</div>
+          <div style={{fontSize:13,color:"#8a96a8"}}>Start tracking your progress today.</div>
+        </div>}
+        {mode==="reset"&&<div style={{marginBottom:6}}>
+          <div style={{fontSize:26,fontWeight:800,letterSpacing:"-0.03em",color:"#e8edf4",marginBottom:6}}>Reset password</div>
+          <div style={{fontSize:13,color:"#8a96a8"}}>We'll send you a reset link.</div>
+        </div>}
       </div>
 
       {/* Form */}
-      <div style={{background:"#13151a",border:"1px solid #2e333d",borderRadius:16,padding:"24px"}}>
+      <div style={{background:"#1e2530",border:"1px solid #3a4456",borderRadius:16,padding:"24px"}}>
         {mode==="signup"&&<div style={{marginBottom:14}}>
           <div style={{fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",color:"#9ba3b0",letterSpacing:"0.12em",marginBottom:6}}>NAME (optional)</div>
           <input value={name} onChange={e=>setName(e.target.value)} placeholder="Your name"
@@ -509,15 +531,15 @@ function AuthScreen({C,onAuth,themeMode,toggleTheme}){
             onKeyDown={e=>e.key==="Enter"&&handleSubmit()}/>
         </div>}
 
-        {error&&<div style={{background:"#e8202015",border:"1px solid #e8202044",borderRadius:8,padding:"10px 12px",marginBottom:14}}>
-          <div style={{fontSize:12,color:"#e82020",fontFamily:"'SF Mono','Courier New',monospace"}}>{error}</div>
+        {error&&<div style={{background:"#f0658415",border:"1px solid #f0658444",borderRadius:8,padding:"10px 12px",marginBottom:14}}>
+          <div style={{fontSize:12,color:"#f06584",fontFamily:"'SF Mono','Courier New',monospace"}}>{error}</div>
         </div>}
-        {message&&<div style={{background:"#aaff0015",border:"1px solid #aaff0044",borderRadius:8,padding:"10px 12px",marginBottom:14}}>
-          <div style={{fontSize:12,color:"#aaff00",fontFamily:"'SF Mono','Courier New',monospace"}}>{message}</div>
+        {message&&<div style={{background:"#3ecf8e15",border:"1px solid #3ecf8e44",borderRadius:8,padding:"10px 12px",marginBottom:14}}>
+          <div style={{fontSize:12,color:"#3ecf8e",fontFamily:"'SF Mono','Courier New',monospace"}}>{message}</div>
         </div>}
 
         <button onClick={handleSubmit} disabled={loading}
-          style={{width:"100%",padding:"14px",background:loading?"#2e333d":"#ff5500",border:"none",borderRadius:10,color:"#fff",fontSize:14,fontFamily:"'SF Mono','Courier New',monospace",fontWeight:700,letterSpacing:"0.08em",cursor:loading?"not-allowed":"pointer",transition:"background .2s"}}>
+          style={{width:"100%",padding:"14px",background:loading?"#2e333d":"#4f8ef7",border:"none",borderRadius:10,color:"#fff",fontSize:14,fontFamily:"'SF Mono','Courier New',monospace",fontWeight:700,letterSpacing:"0.08em",cursor:loading?"not-allowed":"pointer",transition:"background .2s"}}>
           {loading?"...":(mode==="login"?"SIGN IN":mode==="signup"?"CREATE ACCOUNT":"SEND RESET EMAIL")}
         </button>
       </div>
@@ -551,6 +573,8 @@ export default function ForgeApp(){
   const [loading,setLoading]=useState(true);
   const [authUser,setAuthUser]=useState(null);
   const [authChecked,setAuthChecked]=useState(false);
+  const [isOnline,setIsOnline]=useState(navigator.onLine);
+  const [offlineQueue,setOfflineQueue]=useState([]);
   const [tab,setTab]=useState("today");
   const [activeWorkout,setActiveWorkout]=useState(null);
   const [deloadDismissed,setDeloadDismissed]=useState(null);
@@ -695,6 +719,24 @@ export default function ForgeApp(){
     return()=>subscription.unsubscribe();
   },[]);// eslint-disable-line react-hooks/exhaustive-deps
 
+  // Online/offline detection
+  useEffect(()=>{
+    const goOnline=()=>{
+      setIsOnline(true);
+      // Flush offline queue when back online
+      setOfflineQueue(q=>{
+        q.forEach(async(item)=>{
+          try{ await supabase.from(item.table).insert(item.data); }catch{}
+        });
+        return [];
+      });
+    };
+    const goOffline=()=>setIsOnline(false);
+    window.addEventListener("online",goOnline);
+    window.addEventListener("offline",goOffline);
+    return()=>{window.removeEventListener("online",goOnline);window.removeEventListener("offline",goOffline);};
+  },[]);// eslint-disable-line react-hooks/exhaustive-deps
+
   // Data persisted to Supabase automatically
 
   const activePlan=plans[activePlanKey];
@@ -781,19 +823,19 @@ export default function ForgeApp(){
   })();
 
   const tabs=[
-    {key:"today",icon:"◎",label:"Today"},
+    {key:"today",icon:"dumbbell",label:"Workout"},
     {key:"plan",icon:"▦",label:"Plan"},
-    {key:"log",icon:"◈",label:"Log"},
+    {key:"log",icon:"◈",label:"History"},
     {key:"stats",icon:"↗",label:"Stats"},
     {key:"more",icon:"⊙",label:"More"},
   ];
 
   // Show loading spinner while checking auth
   if(!authChecked){
-    return <div style={{minHeight:"100vh",background:"#0b0c0e",display:"flex",alignItems:"center",justifyContent:"center"}}>
+    return <div style={{minHeight:"100vh",background:"#161b22",display:"flex",alignItems:"center",justifyContent:"center"}}>
       <div style={{textAlign:"center"}}>
-        <div style={{fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",color:"#aaff00",letterSpacing:"0.22em",fontWeight:800,marginBottom:24}}>FORGE</div>
-        <div style={{width:32,height:32,border:"2px solid #2e333d",borderTop:"2px solid #ff5500",borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto"}}/>
+        <div style={{fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",color:"#3ecf8e",letterSpacing:"0.22em",fontWeight:800,marginBottom:24}}>IRON</div>
+        <div style={{width:32,height:32,border:"2px solid #2e333d",borderTop:"2px solid #4f8ef7",borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto"}}/>
         <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       </div>
     </div>;
@@ -812,21 +854,32 @@ export default function ForgeApp(){
   }
 
   return <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:C.serif,paddingBottom:72,userSelect:"none",scrollBehavior:"smooth"}}>
+    {!isOnline&&<div style={{background:"#f7c948",color:"#1a202c",padding:"8px 18px",fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"center",letterSpacing:"0.04em"}}>
+      ⚠ Offline — workouts will sync when connection is restored
+    </div>}
     {tab==="today"&&<TodayTab plan={activePlan} plans={plans} activePlanKey={activePlanKey}
       setActivePlanKey={k=>{setActivePlanKey(k);}}
       settings={settings} sessions={sessions} streak={streak} scheduledStreak={scheduledStreak} calendarStreak={calendarStreak} deloadDue={deloadDue&&deloadDismissed!==new Date().toISOString().slice(0,7)}
       onDeloadDismiss={()=>{setDeloadDismissed(new Date().toISOString().slice(0,7));}}
-      onStart={day=>setActiveWorkout(day)} C={C} getOrderedDays={getOrderedDays} toggleTheme={toggleTheme} themeMode={themeMode}/>}
+      onStart={day=>setActiveWorkout(day)} C={C} getOrderedDays={getOrderedDays} toggleTheme={toggleTheme} themeMode={themeMode}
+      authUser={authUser} todayDay={(plan?.days||[]).find(d=>d.name===DOW[new Date().getDay()]&&!d.isRest)}/>}
     {tab==="plan"&&<PlanTab plans={plans} activePlanKey={activePlanKey}
       setActivePlanKey={k=>{setActivePlanKey(k);}}
       savePlans={savePlans} settings={settings} C={C}/>}
-    {tab==="log"&&<HistoryTab sessions={sessions} saveSessions={saveSessions} savePRs={savePRs} prs={prs} C={C}/>}
+    {tab==="log"&&<HistoryTab sessions={sessions} saveSessions={saveSessions} savePRs={savePRs} prs={prs} C={C} onRerun={sess=>{
+      const day=(activePlan?.days||[]).find(d=>d.id===sess.dayId)||{...sess,exercises:Object.keys(sess.sets||{}).map(name=>({id:name,name,sets:"3",reps:"",muscle:"",note:""})),label:sess.dayLabel||"Workout"};
+      setActiveWorkout({...day,_rerunSets:sess.sets});
+      setTab("today");
+    }}/>}
     {tab==="stats"&&<StatsTab sessions={sessions} prs={prs} settings={settings} C={C}/>}
     {tab==="more"&&<MoreTab settings={settings} saveSettings={saveSettings} plans={plans} sessions={sessions} prs={prs} C={C} toggleTheme={toggleTheme} themeMode={themeMode}/>}
     <nav style={{position:"fixed",bottom:0,left:0,right:0,background:C.navBg,borderTop:`1px solid ${C.border}`,display:"flex",zIndex:100,paddingBottom:"env(safe-area-inset-bottom)"}}>
       {tabs.map(t=>(
         <button key={t.key} onClick={()=>setTab(t.key)} style={{flex:1,padding:"10px 4px 8px",background:"none",border:"none",color:tab===t.key?C.accent:C.muted,cursor:"pointer",fontSize:9,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.06em",textTransform:"uppercase",display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
-          <span style={{fontSize:18,lineHeight:1}}>{t.icon}</span>{t.label}
+          {t.icon==="dumbbell"
+            ?<svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{flexShrink:0}}><rect x="1" y="10" width="3" height="4" rx="1" fill="currentColor"/><rect x="4" y="8" width="2" height="8" rx="1" fill="currentColor"/><rect x="6" y="10.5" width="12" height="3" rx="1.5" fill="currentColor"/><rect x="18" y="8" width="2" height="8" rx="1" fill="currentColor"/><rect x="20" y="10" width="3" height="4" rx="1" fill="currentColor"/></svg>
+            :<span style={{fontSize:18,lineHeight:1}}>{t.icon}</span>}
+          {t.label}
         </button>
       ))}
     </nav>
@@ -834,18 +887,20 @@ export default function ForgeApp(){
 }
 
 // -- TODAY ---------------------------------------------------------------------
-function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,streak,scheduledStreak,calendarStreak,deloadDue,onDeloadDismiss,onStart,C,getOrderedDays,toggleTheme,themeMode}){
+function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,streak,scheduledStreak,calendarStreak,deloadDue,onDeloadDismiss,onStart,C,getOrderedDays,toggleTheme,themeMode,authUser,todayDay}){
   const todayName=DOW[new Date().getDay()];
   const orderedDays=getOrderedDays(plan?.days||[]);
   const todaySessions=sessions.filter(s=>s.completedAt?.startsWith(new Date().toISOString().split("T")[0]));
 
+  const userName = authUser?.user_metadata?.display_name || authUser?.email?.split("@")[0] || "there";
+
   return <div>
-    <div style={{background:C.surface,borderBottom:`2px solid ${C.accent}`,padding:"16px 18px 14px",position:"relative",overflow:"hidden"}}>
+    <div style={{background:C.surface,borderBottom:`1px solid ${C.border}`,padding:"16px 18px 14px",position:"relative",overflow:"hidden"}}>
       <div style={{position:"absolute",top:0,left:0,right:0,bottom:0,background:C.gradTop,pointerEvents:"none"}}/>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",position:"relative"}}>
         <div>
-          <div style={{fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",color:C.neon,letterSpacing:"0.22em",fontWeight:800,marginBottom:1}}>FORGE</div>
-          <div style={{fontSize:24,letterSpacing:"-0.03em",fontWeight:800}}>{new Date().toLocaleDateString("en",{weekday:"long"})}</div>
+          <div style={{fontSize:13,color:C.muted,marginBottom:2}}>Hello, <span style={{color:C.text,fontWeight:600}}>{userName}</span> 👋</div>
+          <div style={{fontSize:22,letterSpacing:"-0.03em",fontWeight:800}}>{new Date().toLocaleDateString("en",{weekday:"long"})}</div>
           <Mono style={{fontSize:11,color:C.muted}}>{new Date().toLocaleDateString("en",{month:"short",day:"numeric",year:"numeric"})}</Mono>
         </div>
         <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6}}>
@@ -853,7 +908,7 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
             {themeMode==="dark"?"☀️":"🌙"}
           </button>
           <div style={{textAlign:"right",display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
-            <Mono style={{fontSize:10,color:C.accent,letterSpacing:"0.1em"}}>WEEK {programWeek()}</Mono>
+            <Mono style={{fontSize:10,color:C.accent,letterSpacing:"0.1em"}}>WEEK {programWeek(sessions)}</Mono>
             {settings.streakTracking&&(
               scheduledStreak>0
                 ?<div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:1}}>
@@ -874,10 +929,16 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
       <div style={{display:"flex",gap:6,marginTop:12,flexWrap:"wrap",position:"relative"}}>
         {Object.keys(plans).map(k=>(
           <button key={k} onClick={()=>setActivePlanKey(k)} style={{padding:"6px 12px",borderRadius:6,fontFamily:"'SF Mono','Courier New',monospace",fontSize:11,cursor:"pointer",border:activePlanKey===k?"none":`1px solid ${C.border}`,background:activePlanKey===k?C.accent:"transparent",color:activePlanKey===k?"#fff":C.muted,letterSpacing:"0.04em"}}>
-            {plans[k]?.name?.split("--")[0]?.trim()}
+            {plans[k]?.name}
           </button>
         ))}
       </div>
+      {/* Smart Start Today button */}
+      {todayDay&&<div style={{padding:"12px 18px 0",position:"relative"}}>
+        <button onClick={()=>onStart(todayDay)} style={{width:"100%",padding:"14px",background:`linear-gradient(135deg,${C.accent},${C.neon})`,border:"none",borderRadius:12,color:"#fff",fontSize:15,fontFamily:"'SF Mono','Courier New',monospace",fontWeight:800,letterSpacing:"0.08em",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10,boxShadow:`0 4px 16px ${C.accent}44`}}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{flexShrink:0}}><rect x="1" y="10" width="3" height="4" rx="1" fill="white"/><rect x="4" y="8" width="2" height="8" rx="1" fill="white"/><rect x="6" y="10.5" width="12" height="3" rx="1.5" fill="white"/><rect x="18" y="8" width="2" height="8" rx="1" fill="white"/><rect x="20" y="10" width="3" height="4" rx="1" fill="white"/></svg> START TODAY — {todayDay.label.toUpperCase()}
+        </button>
+      </div>}
     </div>
     <div style={{padding:"14px 18px"}}>
       {deloadDue&&<div style={{background:C.gold+"15",border:`1px solid ${C.gold}55`,borderRadius:10,padding:"12px 14px",marginBottom:14}}>
@@ -894,6 +955,22 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
           <button onClick={onDeloadDismiss} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:18,padding:"0 0 0 12px",flexShrink:0,lineHeight:1}}>✕</button>
         </div>
       </div>}
+      {/* Weekly volume summary - show every Monday or always */}
+      {(()=>{
+        const today=new Date();
+        const weekStart=new Date(today);weekStart.setDate(today.getDate()-today.getDay());
+        const weekStr=weekStart.toISOString().split("T")[0];
+        const weekSess=sessions.filter(s=>s.completedAt>=weekStr);
+        const weekVol=weekSess.reduce((a,s)=>(a+(s.setsArr||[]).reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
+        if(weekSess.length===0)return null;
+        return <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"12px 14px",marginBottom:12,display:"flex",gap:16,alignItems:"center"}}>
+          <div style={{flex:1}}>
+            <Mono style={{fontSize:9,color:C.muted,letterSpacing:"0.1em",display:"block",marginBottom:2}}>THIS WEEK</Mono>
+            <div style={{fontSize:13,fontWeight:600}}>{weekSess.length} session{weekSess.length!==1?"s":""} · {weekVol>0?`${Math.round(weekVol/1000)}k lbs`:"just started"}</div>
+          </div>
+          <div style={{fontSize:22}}>{"💪"}</div>
+        </div>;
+      })()}
       <SectionLabel C={C}>This Week</SectionLabel>
       {orderedDays.map((day,i)=>{
         const isToday=day.name===todayName;
@@ -913,6 +990,22 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
           </div>
         </div>;
       })}
+      {/* Rest day content */}
+      {(()=>{
+        const todayDayObj=orderedDays.find(d=>d.name===todayName);
+        if(!todayDayObj?.isRest)return null;
+        const tips=["Focus on mobility — spend 20 min on hip flexors and thoracic rotation.","Active recovery: a 20-minute walk at a conversational pace speeds muscle repair.","Prioritize sleep tonight — 80% of muscle growth happens during sleep.","Foam roll your quads, lats, and calves for 10 minutes.","Stay hydrated — aim for at least 3 liters today to flush metabolic waste.","Stretch your chest and shoulders — the muscles you use most need the most recovery work."];
+        const tip=tips[new Date().getDate()%tips.length];
+        return <div style={{background:C.card,border:`1px solid ${C.border}`,borderLeft:`3px solid ${C.neon}`,borderRadius:10,padding:"14px",marginTop:4}}>
+          <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+            <span style={{fontSize:22,flexShrink:0}}>🧘</span>
+            <div>
+              <div style={{fontSize:13,fontWeight:600,marginBottom:4,color:C.neon}}>Rest Day Tip</div>
+              <div style={{fontSize:13,color:C.muted,lineHeight:1.6}}>{tip}</div>
+            </div>
+          </div>
+        </div>;
+      })()}
     </div>
   </div>;
 }
@@ -924,6 +1017,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   const [completedExIds,setCompletedExIds]=useState(new Set());
   const [showRest,setShowRest]=useState(false);
   const [notes,setNotes]=useState("");
+  const [rating,setRating]=useState(0);
   const [startTime]=useState(new Date().toISOString());
   const [aiModal,setAiModal]=useState(null);
   const [elapsed,setElapsed]=useState(0);
@@ -1039,10 +1133,13 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
         }
       }
     }
-    onFinish({id:Date.now().toString(),dayId:workout.id,dayLabel:workout.label,startedAt:startTime,completedAt:new Date().toISOString(),notes,sets:loggedSets,setsArr},newPRs);
+    onFinish({id:Date.now().toString(),dayId:workout.id,dayLabel:workout.label,startedAt:startTime,completedAt:new Date().toISOString(),notes,rating,sets:loggedSets,setsArr},newPRs);
   }
 
   const inputStyle={padding:"9px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:7,color:C.text,fontSize:14,fontFamily:"'SF Mono','Courier New',monospace",width:"100%",boxSizing:"border-box"};
+
+  // Auto-start timer on mount
+  useEffect(()=>{setTimerRunning(true);},[]);// eslint-disable-line react-hooks/exhaustive-deps
 
   return <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:C.serif,paddingBottom:100,scrollBehavior:"smooth"}}>
     <div style={{background:C.surface,borderBottom:`2px solid ${C.neon}`,padding:"14px 18px",position:"sticky",top:0,zIndex:50,marginTop:0}}>
@@ -1139,7 +1236,19 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
         <textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Energy, joints, anything notable..."
           style={{width:"100%",padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:10,color:C.text,fontSize:13,fontFamily:C.serif,height:72,resize:"none",boxSizing:"border-box"}}/>
       </div>}
-      <Btn onClick={finish} size="lg" C={C} style={{width:"100%",marginTop:14,background:C.neon,color:"#0b0c0e",fontWeight:800,letterSpacing:"0.1em",fontSize:15}}>COMPLETE WORKOUT ✓</Btn>
+      {/* Session rating */}
+      <div style={{marginTop:14,marginBottom:8}}>
+        <SectionLabel C={C}>How was this session?</SectionLabel>
+        <div style={{display:"flex",gap:8,justifyContent:"center"}}>
+          {[1,2,3,4,5].map(n=>(
+            <button key={n} onClick={()=>setRating(n)}
+              style={{width:44,height:44,borderRadius:22,border:`2px solid ${rating>=n?C.accent:C.border}`,background:rating>=n?C.accent+"22":"transparent",fontSize:18,cursor:"pointer",transition:"all .15s"}}>
+              {["😴","😐","🙂","💪","🔥"][n-1]}
+            </button>
+          ))}
+        </div>
+      </div>
+      <Btn onClick={finish} size="lg" C={C} style={{width:"100%",marginTop:8,background:C.neon,color:"#fff",fontWeight:800,letterSpacing:"0.1em",fontSize:15}}>COMPLETE WORKOUT ✓</Btn>
     </div>
 
     {/* Swap exercise modal */}
@@ -1356,7 +1465,7 @@ No explanation, no markdown, just the JSON array.`;
       {view==="mine"&&<div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
         {Object.keys(plans).map(k=>(
           <button key={k} onClick={()=>setActivePlanKey(k)} style={{padding:"5px 11px",borderRadius:6,fontFamily:"'SF Mono','Courier New',monospace",fontSize:10,cursor:"pointer",border:activePlanKey===k?"none":`1px solid ${C.border}`,background:activePlanKey===k?C.accent:"transparent",color:activePlanKey===k?"#fff":C.muted}}>
-            {plans[k]?.name?.split("--")[0]?.trim()||plans[k]?.name?.slice(0,18)}
+            {plans[k]?.name||plans[k]?.name?.slice(0,18)}
           </button>
         ))}
       </div>}
@@ -1657,7 +1766,7 @@ function ExerciseForm({title,initial,onSave,onClose,isNew,C}){
 }
 
 function DayForm({onSave,onClose,C}){
-  const [d,setD]=useState({name:"",label:"",tag:"",color:"#ff5500",isRest:false});
+  const [d,setD]=useState({name:"",label:"",tag:"",color:"#4f8ef7",isRest:false});
   const colors=["#ff5e1a","#3d9bff","#b06aff","#00d4aa","#ffb830"];
   return <div>
     <div style={{fontSize:16,fontWeight:600,marginBottom:18}}>Add Day</div>
@@ -1682,7 +1791,7 @@ function DayForm({onSave,onClose,C}){
 }
 
 // -- HISTORY -------------------------------------------------------------------
-function HistoryTab({sessions,saveSessions,savePRs,prs,C}){
+function HistoryTab({sessions,saveSessions,savePRs,prs,C,onRerun}){
   const todayStr=new Date().toISOString().split("T")[0];
   const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
   const yesterdayStr=yesterday.toISOString().split("T")[0];
@@ -1753,7 +1862,7 @@ function HistoryTab({sessions,saveSessions,savePRs,prs,C}){
     <div style={{background:C.surface,borderBottom:`2px solid ${C.accent}`,padding:"16px 18px"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
         <div>
-          <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>Workout Log</div>
+          <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>Workout History</div>
           <Mono style={{fontSize:11,color:C.muted}}>{sorted.length} sessions . {Object.keys(grouped).length} months</Mono>
         </div>
         <Btn size="sm" variant="ghost" C={C} onClick={()=>setShowDebug(d=>!d)} style={{fontSize:10}}>
@@ -1836,7 +1945,17 @@ ${raw.slice(0,500)}...`:"No sessions found");
 
                 {/* Action buttons */}
                 <div style={{display:"flex",gap:8,marginTop:10,paddingTop:10,borderTop:`1px solid ${C.border}`}}>
-                  <Btn size="sm" variant="subtle" C={C} onClick={()=>setEditingSession({...s})}>✎ Edit Workout</Btn>
+                  <Btn size="sm" variant="subtle" C={C} onClick={()=>setEditingSession({...s})}>✎ Edit</Btn>
+                  <Btn size="sm" variant="ghost" C={C} style={{color:C.neon,borderColor:C.neon+"44"}} onClick={()=>onRerun&&onRerun(s)}>↺ Re-run</Btn>
+                  <Btn size="sm" variant="ghost" C={C} style={{color:C.blue,borderColor:C.blue+"44"}} onClick={()=>{
+                    const vol=allSets.reduce((a,x)=>(a+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0);
+                    const prCount=allSets.filter(x=>x.isPR).length;
+                    const text=`💪 Just crushed ${s.dayLabel||"a workout"} on IRON!
+${allSets.length} sets · ${vol>0?Math.round(vol).toLocaleString()+" lbs total volume":""}
+${prCount>0?`★ ${prCount} new PR${prCount>1?"s":""}!`:""}
+#IRON #fitness #workout`;
+                    if(navigator.share){navigator.share({text});}else{navigator.clipboard.writeText(text);}
+                  }}>↗ Share</Btn>
                   <Btn size="sm" variant="danger" C={C} onClick={()=>setConfirmDelete(s.id)}>Delete</Btn>
                 </div>
               </div>}
@@ -1998,69 +2117,345 @@ function SessionEditModal({session,onSave,onClose,C}){
 }
 
 // -- STATS ---------------------------------------------------------------------
+// Strength score thresholds per muscle (relative to bodyweight approximation)
+const STRENGTH_LEVELS = ["Beginner","Novice","Intermediate","Advanced","Elite"];
+function getStrengthScore(exName, maxWeight){
+  if(!maxWeight) return 0;
+  // Rough benchmarks (lbs) per level per exercise type
+  const benchmarks = {
+    "Bench Press":[95,135,185,225,275],
+    "T-Bar Row":[85,115,155,195,245],
+    "Incline Press (DB)":[40,60,80,100,130],
+    "Goblet Squat":[35,55,75,95,115],
+    "DB Romanian Deadlift":[50,75,105,135,165],
+    "Cable Curl":[30,45,60,75,95],
+    "Concentration Curl":[20,30,40,55,70],
+    "Cable Rope Pressdown":[30,50,70,90,110],
+    "Machine Shoulder Press":[50,80,110,140,170],
+  };
+  const b = benchmarks[exName];
+  if(!b) return Math.min(4, Math.floor(maxWeight/50));
+  let level = 0;
+  for(let i=0;i<b.length;i++){ if(maxWeight>=b[i]) level=i+1; }
+  return Math.min(level, 4);
+}
+
 function StatsTab({sessions,prs,settings,C}){
   const [selEx,setSelEx]=useState(null);
   const [chartData,setChartData]=useState([]);
+  const [statsView,setStatsView]=useState("overview"); // overview | progress | muscles | body | trainer
+  const [bodyStats,setBodyStats]=useState([]);
+  const [newBodyStat,setNewBodyStat]=useState({weight:"",chest:"",waist:"",hips:"",arms:"",date:new Date().toISOString().split("T")[0]});
+  const [addingBody,setAddingBody]=useState(false);
+  const [trainerInsight,setTrainerInsight]=useState("");
+  const [loadingInsight,setLoadingInsight]=useState(false);
+
   const allExNames=[...new Set(sessions.flatMap(s=>(s.setsArr||[]).map(x=>x.exName)))].sort();
   const prList=Object.entries(prs).sort((a,b)=>b[1].weight-a[1].weight);
+  const totalVol=sessions.reduce((a,s)=>(a+(s.setsArr||[]).reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
+
+  // Month over month
+  const now = new Date();
+  const thisMonth = now.toISOString().slice(0,7);
+  const lastMonthDate = new Date(now.getFullYear(), now.getMonth()-1, 1);
+  const lastMonth = lastMonthDate.toISOString().slice(0,7);
+  const thisMonthVol = sessions.filter(s=>s.completedAt?.startsWith(thisMonth)).reduce((a,s)=>(a+(s.setsArr||[]).reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
+  const lastMonthVol = sessions.filter(s=>s.completedAt?.startsWith(lastMonth)).reduce((a,s)=>(a+(s.setsArr||[]).reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
+  const momChange = lastMonthVol>0 ? Math.round(((thisMonthVol-lastMonthVol)/lastMonthVol)*100) : null;
+
+  // Weekly volume summary
+  const weekStart = new Date(); weekStart.setDate(weekStart.getDate()-weekStart.getDay());
+  const weekStr = weekStart.toISOString().split("T")[0];
+  const weekSessions = sessions.filter(s=>s.completedAt>=weekStr);
+  const weekVol = weekSessions.reduce((a,s)=>(a+(s.setsArr||[]).reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
+
+  // Muscle volume by group (last 7 days)
+  const muscleVol = {};
+  const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate()-7);
+  sessions.filter(s=>s.completedAt&&new Date(s.completedAt)>sevenDaysAgo).forEach(s=>{
+    (s.setsArr||[]).forEach(x=>{
+      // Map exercise to muscle group
+      const plan_ex = null;
+      const muscle = x.muscle || "Other";
+      if(!muscleVol[muscle]) muscleVol[muscle]=0;
+      muscleVol[muscle]+=(parseFloat(x.weight)||0)*(parseInt(x.reps)||0);
+    });
+  });
+  // Better muscle mapping from exercise names
+  const muscleMap={"Bench Press":"Chest","Incline Press (DB)":"Chest","Cable Fly":"Chest","Pec Deck / Cable Fly":"Chest","T-Bar Row":"Back","Reverse Grip Lat Pulldown":"Back","Seated Cable Row":"Back","Reverse Grip Pulldown":"Back","Machine Shoulder Press":"Shoulders","Cable Lateral Raise":"Shoulders","Rear Delt Machine":"Shoulders","DB / Cable Lateral Raises":"Shoulders","Front Delt Raise":"Shoulders","Cable Rope Pressdown":"Triceps","Incline Tricep Extension":"Triceps","Cable Overhead Extension":"Triceps","Cable Curl":"Biceps","Concentration Curl":"Biceps","Barbell / Cable Curl":"Biceps","Goblet Squat":"Legs","DB Romanian Deadlift":"Legs","Box Step-Ups (DB)":"Legs","DB Lunges (optional)":"Legs","Decline Sit-Ups":"Abs","Machine Crunch":"Abs","Russian Twist":"Abs","Stair Stepper":"Cardio"};
+  const muscleVolMapped={};
+  sessions.filter(s=>s.completedAt&&new Date(s.completedAt)>sevenDaysAgo).forEach(s=>{
+    (s.setsArr||[]).forEach(x=>{
+      const m=muscleMap[x.exName]||"Other";
+      if(!muscleVolMapped[m])muscleVolMapped[m]=0;
+      muscleVolMapped[m]+=(parseFloat(x.weight)||1)*(parseInt(x.reps)||1);
+    });
+  });
+  const muscleOrder=["Chest","Back","Shoulders","Biceps","Triceps","Legs","Abs","Cardio"];
+  const maxMuscleVol=Math.max(...Object.values(muscleVolMapped),1);
 
   useEffect(()=>{
     if(!selEx){if(allExNames.length)setSelEx(allExNames[0]);return;}
     const rel=sessions.filter(s=>s.completedAt&&(s.setsArr||[]).some(x=>x.exName===selEx));
     const grouped={};
     rel.forEach(s=>{const d=s.completedAt.split("T")[0];const best=(s.setsArr||[]).filter(x=>x.exName===selEx).reduce((m,x)=>Math.max(m,parseFloat(x.weight)||0),0);if(!grouped[d]||best>grouped[d])grouped[d]=best;});
-    setChartData(Object.entries(grouped).sort(([a],[b])=>a>b?1:-1).map(([d,w])=>({date:d.slice(5),weight:w})));
+    setChartData(Object.entries(grouped).sort(([a],[b])=>a>b?1:-1).map(([d,w])=>({date:d.slice(5),weight:w,orm:Math.round(w*1.0333*1)})));
   },[selEx,sessions]);// eslint-disable-line react-hooks/exhaustive-deps
 
-  const totalVol=sessions.reduce((a,s)=>(a+(s.setsArr||[]).reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
+  async function loadTrainerInsight(){
+    setLoadingInsight(true);
+    const recentSessions=sessions.slice(0,5).map(s=>({day:s.dayLabel,date:s.completedAt?.split("T")[0],sets:(s.setsArr||[]).length,rating:s.rating}));
+    const topPRs=prList.slice(0,5).map(([n,p])=>(`${n}: ${p.weight}lbs`));
+    const prompt=`You are a personal trainer AI. Analyze this user's recent workout data and provide ONE specific, actionable insight in 2-3 sentences. Be direct and personalized.
+
+Recent sessions: ${JSON.stringify(recentSessions)}
+Top PRs: ${topPRs.join(", ")}
+Total sessions: ${sessions.length}
+This week volume: ${Math.round(weekVol).toLocaleString()} lbs
+Month-over-month change: ${momChange!==null?`${momChange>0?"+":""}${momChange}%`:"N/A"}
+
+Focus on: progress trends, recovery patterns, or a specific recommendation to improve results. No generic advice.`;
+    try{
+      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:200,messages:[{role:"user",content:prompt}]})});
+      const data=await res.json();
+      setTrainerInsight(data.content?.find(b=>b.type==="text")?.text||"");
+    }catch{
+      setTrainerInsight("Keep logging consistently to unlock personalized AI insights about your training patterns.");
+    }
+    setLoadingInsight(false);
+  }
+
+  const tabStyle=(active)=>({flex:1,padding:"7px 4px",borderRadius:7,border:"none",background:active?C.accent:"transparent",color:active?"#fff":C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:10,cursor:"pointer",letterSpacing:"0.04em"});
 
   return <div>
-    <div style={{background:C.surface,borderBottom:`2px solid ${C.accent}`,padding:"16px 18px"}}>
-      <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>Progress</div>
-      <Mono style={{fontSize:11,color:C.muted}}>Week {programWeek()} of your program</Mono>
-    </div>
-    <div style={{padding:"14px 18px"}}>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:20}}>
-        {[{label:"Sessions",value:sessions.filter(s=>s.completedAt).length},{label:"Total Volume",value:totalVol>0?`${Math.round(totalVol/1000)}k lbs`:"--"},{label:"PRs Set",value:prList.length},{label:"Exercises",value:allExNames.length}].map(c=>(
-          <div key={c.label} style={{background:C.card,border:`1px solid ${C.border}`,borderTop:`2px solid ${C.accent}`,borderRadius:6,padding:"14px"}}>
-            <SectionLabel C={C}>{c.label}</SectionLabel>
-            <div style={{fontSize:24,fontWeight:800,fontFamily:"'SF Mono','Courier New',monospace",color:C.neon}}>{c.value}</div>
-          </div>
+    <div style={{background:C.surface,borderBottom:`1px solid ${C.border}`,padding:"16px 18px 0"}}>
+      <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em",marginBottom:2}}>Progress</div>
+      <Mono style={{fontSize:11,color:C.muted,display:"block",marginBottom:12}}>Week {programWeek(sessions)} of your program</Mono>
+      <div style={{display:"flex",gap:4,background:C.card,padding:4,borderRadius:10,marginBottom:"-1px"}}>
+        {[["overview","Overview"],["progress","Progress"],["muscles","Muscles"],["body","Body"],["trainer","✦ Coach"]].map(([k,label])=>(
+          <button key={k} onClick={()=>{setStatsView(k);if(k==="trainer"&&!trainerInsight)loadTrainerInsight();}} style={tabStyle(statsView===k)}>{label}</button>
         ))}
       </div>
+    </div>
 
-      {/* Overload Calculator */}
-      <div style={{marginBottom:20}}><OverloadCalc C={C}/></div>
+    <div style={{padding:"14px 18px"}}>
 
-      {prList.length>0&&<div style={{marginBottom:20}}>
-        <SectionLabel C={C}>Personal Records</SectionLabel>
-        {prList.slice(0,6).map(([name,pr])=>(
-          <div key={name} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-            <div style={{fontSize:13}}>{name}</div>
-            <Mono style={{fontSize:14,color:C.gold,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace"}}>{pr.weight} lbs ★</Mono>
+      {/* OVERVIEW */}
+      {statsView==="overview"&&<div>
+        {/* Weekly summary */}
+        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px",marginBottom:14}}>
+          <SectionLabel C={C}>This Week</SectionLabel>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+            <div style={{textAlign:"center"}}><div style={{fontSize:22,fontWeight:800,color:C.neon,fontFamily:"'SF Mono','Courier New',monospace"}}>{weekSessions.length}</div><Mono style={{fontSize:10,color:C.muted}}>sessions</Mono></div>
+            <div style={{textAlign:"center"}}><div style={{fontSize:22,fontWeight:800,color:C.accent,fontFamily:"'SF Mono','Courier New',monospace"}}>{weekVol>0?`${Math.round(weekVol/1000)}k`:"0"}</div><Mono style={{fontSize:10,color:C.muted}}>lbs</Mono></div>
+            <div style={{textAlign:"center"}}><div style={{fontSize:22,fontWeight:800,color:C.gold,fontFamily:"'SF Mono','Courier New',monospace"}}>{sessions.filter(s=>s.completedAt).length}</div><Mono style={{fontSize:10,color:C.muted}}>total</Mono></div>
           </div>
-        ))}
+        </div>
+
+        {/* Month over month */}
+        {momChange!==null&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <SectionLabel C={C}>Month vs Last Month</SectionLabel>
+            <div style={{fontSize:13,color:C.muted}}>Volume comparison</div>
+          </div>
+          <div style={{fontSize:28,fontWeight:800,fontFamily:"'SF Mono','Courier New',monospace",color:momChange>=0?C.neon:C.red}}>
+            {momChange>0?"+":""}{momChange}%
+          </div>
+        </div>}
+
+        {/* PR Board */}
+        {prList.length>0&&<div style={{marginBottom:14}}>
+          <SectionLabel C={C}>Personal Records</SectionLabel>
+          {prList.slice(0,5).map(([name,pr])=>(
+            <div key={name} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+              <div>
+                <div style={{fontSize:13}}>{name}</div>
+                <Mono style={{fontSize:10,color:C.muted}}>{STRENGTH_LEVELS[getStrengthScore(name,pr.weight)]}</Mono>
+              </div>
+              <Mono style={{fontSize:14,color:C.gold,fontWeight:700}}>{pr.weight} lbs ★</Mono>
+            </div>
+          ))}
+        </div>}
+
+        <div style={{marginBottom:14}}><OverloadCalc C={C}/></div>
       </div>}
 
-      {allExNames.length>0&&<div>
+      {/* PROGRESS */}
+      {statsView==="progress"&&<div>
         <SectionLabel C={C}>Exercise Progress</SectionLabel>
         <select value={selEx||""} onChange={e=>setSelEx(e.target.value)}
           style={{width:"100%",padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",marginBottom:14}}>
           {allExNames.map(n=><option key={n} value={n}>{n}</option>)}
         </select>
-        {chartData.length>1?<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"14px 8px"}}>
-          <div style={{fontSize:13,fontWeight:600,marginBottom:12,paddingLeft:8}}>{selEx} -- Max Weight</div>
-          <ResponsiveContainer width="100%" height={180}>
-            <LineChart data={chartData} margin={{top:4,right:12,left:-10,bottom:0}}>
-              <CartesianGrid strokeDasharray="3 3" stroke={C.border}/>
-              <XAxis dataKey="date" tick={{fill:C.muted,fontSize:9,fontFamily:"'SF Mono','Courier New',monospace"}}/>
-              <YAxis tick={{fill:C.muted,fontSize:9,fontFamily:"'SF Mono','Courier New',monospace"}}/>
-              <Tooltip contentStyle={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,fontFamily:"'SF Mono','Courier New',monospace",fontSize:11,color:C.text}}/>
-              <Line type="monotone" dataKey="weight" stroke={C.accent} strokeWidth={2} dot={{fill:C.accent,r:3}} activeDot={{r:5}}/>
-            </LineChart>
-          </ResponsiveContainer>
+        {chartData.length>1?<div>
+          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"14px 8px",marginBottom:12}}>
+            <div style={{fontSize:13,fontWeight:600,marginBottom:4,paddingLeft:8}}>{selEx} — Max Weight</div>
+            <ResponsiveContainer width="100%" height={160}>
+              <LineChart data={chartData} margin={{top:4,right:12,left:-10,bottom:0}}>
+                <CartesianGrid strokeDasharray="3 3" stroke={C.border}/>
+                <XAxis dataKey="date" tick={{fill:C.muted,fontSize:9,fontFamily:"'SF Mono','Courier New',monospace"}}/>
+                <YAxis tick={{fill:C.muted,fontSize:9,fontFamily:"'SF Mono','Courier New',monospace"}}/>
+                <Tooltip contentStyle={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,fontFamily:"'SF Mono','Courier New',monospace",fontSize:11,color:C.text}}/>
+                <Line type="monotone" dataKey="weight" stroke={C.accent} strokeWidth={2} dot={{fill:C.accent,r:3}} activeDot={{r:5}}/>
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          {/* Est 1RM chart */}
+          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"14px 8px",marginBottom:12}}>
+            <div style={{fontSize:13,fontWeight:600,marginBottom:4,paddingLeft:8}}>{selEx} — Est. 1RM Trend</div>
+            <ResponsiveContainer width="100%" height={140}>
+              <LineChart data={chartData.map(d=>({...d,orm:d.weight?Math.round(d.weight*1.0333*1):0}))} margin={{top:4,right:12,left:-10,bottom:0}}>
+                <CartesianGrid strokeDasharray="3 3" stroke={C.border}/>
+                <XAxis dataKey="date" tick={{fill:C.muted,fontSize:9,fontFamily:"'SF Mono','Courier New',monospace"}}/>
+                <YAxis tick={{fill:C.muted,fontSize:9,fontFamily:"'SF Mono','Courier New',monospace"}}/>
+                <Tooltip contentStyle={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,fontFamily:"'SF Mono','Courier New',monospace",fontSize:11,color:C.text}}/>
+                <Line type="monotone" dataKey="orm" stroke={C.gold} strokeWidth={2} dot={{fill:C.gold,r:3}} activeDot={{r:5}}/>
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          {/* Strength score for this exercise */}
+          {prs[selEx]&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"14px",marginBottom:12}}>
+            <SectionLabel C={C}>Strength Level</SectionLabel>
+            <div style={{display:"flex",gap:4}}>
+              {STRENGTH_LEVELS.map((level,i)=>{
+                const score=getStrengthScore(selEx,prs[selEx]?.weight);
+                return <div key={level} style={{flex:1,textAlign:"center"}}>
+                  <div style={{height:8,borderRadius:4,background:i<=score?C.accent:C.border,marginBottom:4,transition:"background .3s"}}/>
+                  <Mono style={{fontSize:8,color:i<=score?C.accent:C.faint}}>{level.slice(0,3)}</Mono>
+                </div>;
+              })}
+            </div>
+            <Mono style={{fontSize:12,color:C.accent,display:"block",marginTop:8,textAlign:"center",fontWeight:700}}>
+              {STRENGTH_LEVELS[getStrengthScore(selEx,prs[selEx]?.weight)]} — {prs[selEx]?.weight} lbs
+            </Mono>
+          </div>}
         </div>:<div style={{textAlign:"center",padding:"24px",color:C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:12}}>Log more sessions to see your trend.</div>}
       </div>}
+
+      {/* MUSCLE VOLUME DASHBOARD */}
+      {statsView==="muscles"&&<div>
+        <SectionLabel C={C}>Volume by Muscle — Last 7 Days</SectionLabel>
+        {muscleOrder.filter(m=>muscleVolMapped[m]>0).length===0&&<div style={{textAlign:"center",padding:"32px 0",color:C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:12}}>Log workouts to see muscle volume breakdown.</div>}
+        {muscleOrder.map(muscle=>{
+          const vol=muscleVolMapped[muscle]||0;
+          if(!vol)return null;
+          const pct=Math.round((vol/maxMuscleVol)*100);
+          const colors={"Chest":C.accent,"Back":C.blue,"Shoulders":C.gold,"Biceps":C.neon,"Triceps":C.neon,"Legs":"#b06aff","Abs":C.muted,"Cardio":C.green};
+          return <div key={muscle} style={{marginBottom:12}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+              <Mono style={{fontSize:12,color:C.text,fontWeight:600}}>{muscle}</Mono>
+              <Mono style={{fontSize:11,color:C.muted}}>{Math.round(vol/1000*10)/10}k lbs</Mono>
+            </div>
+            <div style={{height:10,background:C.border,borderRadius:5}}>
+              <div style={{height:"100%",background:colors[muscle]||C.accent,borderRadius:5,width:`${pct}%`,transition:"width .5s ease"}}/>
+            </div>
+          </div>;
+        })}
+        {/* Strength scores per muscle */}
+        <div style={{marginTop:20}}>
+          <SectionLabel C={C}>Strength Score by Muscle</SectionLabel>
+          {Object.entries(prs).slice(0,8).map(([name,pr])=>{
+            const score=getStrengthScore(name,pr.weight);
+            const level=STRENGTH_LEVELS[score];
+            const colors=["#8a96a8","#4f8ef7","#3ecf8e","#f7c948","#f06584"];
+            return <div key={name} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
+              <div style={{flex:1}}>
+                <div style={{fontSize:12}}>{name}</div>
+                <Mono style={{fontSize:10,color:C.muted}}>{pr.weight} lbs PR</Mono>
+              </div>
+              <div style={{padding:"3px 10px",borderRadius:12,background:colors[score]+"22",border:`1px solid ${colors[score]}44`}}>
+                <Mono style={{fontSize:10,color:colors[score],fontWeight:700}}>{level}</Mono>
+              </div>
+            </div>;
+          })}
+        </div>
+      </div>}
+
+      {/* BODY MEASUREMENTS */}
+      {statsView==="body"&&<div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <SectionLabel C={C}>Body Measurements</SectionLabel>
+          <Btn size="sm" variant="subtle" C={C} onClick={()=>setAddingBody(true)}>+ Log</Btn>
+        </div>
+        {addingBody&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px",marginBottom:14}}>
+          <SectionLabel C={C}>New Entry — {newBodyStat.date}</SectionLabel>
+          {[["Weight (lbs)","weight"],["Chest (in)","chest"],["Waist (in)","waist"],["Hips (in)","hips"],["Arms (in)","arms"]].map(([label,key])=>(
+            <div key={key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+              <Mono style={{fontSize:12,color:C.muted,width:120}}>{label}</Mono>
+              <input type="number" value={newBodyStat[key]||""} onChange={e=>setNewBodyStat(p=>({...p,[key]:e.target.value}))}
+                style={{width:80,padding:"6px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,color:C.text,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"right"}}/>
+            </div>
+          ))}
+          <div style={{display:"flex",gap:8,marginTop:10}}>
+            <Btn size="sm" C={C} style={{flex:1}} onClick={()=>{
+              if(newBodyStat.weight||newBodyStat.chest||newBodyStat.waist){
+                setBodyStats(prev=>[{...newBodyStat,id:Date.now()},...prev]);
+                setNewBodyStat({weight:"",chest:"",waist:"",hips:"",arms:"",date:new Date().toISOString().split("T")[0]});
+                setAddingBody(false);
+              }
+            }}>Save</Btn>
+            <Btn size="sm" variant="ghost" C={C} style={{flex:1}} onClick={()=>setAddingBody(false)}>Cancel</Btn>
+          </div>
+        </div>}
+        {bodyStats.length===0&&!addingBody&&<div style={{textAlign:"center",padding:"32px 0",color:C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:12}}>
+          No measurements logged yet.<br/>Tap + Log to add your first entry.
+        </div>}
+        {bodyStats.length>0&&<div>
+          {/* Weight trend chart */}
+          {bodyStats.filter(s=>s.weight).length>1&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"14px 8px",marginBottom:14}}>
+            <div style={{fontSize:13,fontWeight:600,marginBottom:8,paddingLeft:8}}>Weight Trend</div>
+            <ResponsiveContainer width="100%" height={140}>
+              <LineChart data={[...bodyStats].reverse().filter(s=>s.weight).map(s=>({date:s.date.slice(5),weight:parseFloat(s.weight)}))} margin={{top:4,right:12,left:-10,bottom:0}}>
+                <CartesianGrid strokeDasharray="3 3" stroke={C.border}/>
+                <XAxis dataKey="date" tick={{fill:C.muted,fontSize:9,fontFamily:"'SF Mono','Courier New',monospace"}}/>
+                <YAxis tick={{fill:C.muted,fontSize:9,fontFamily:"'SF Mono','Courier New',monospace"}}/>
+                <Tooltip contentStyle={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,fontFamily:"'SF Mono','Courier New',monospace",fontSize:11,color:C.text}}/>
+                <Line type="monotone" dataKey="weight" stroke={C.accent} strokeWidth={2} dot={{fill:C.accent,r:3}}/>
+              </LineChart>
+            </ResponsiveContainer>
+          </div>}
+          {bodyStats.slice(0,5).map(s=>(
+            <div key={s.id} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 14px",marginBottom:8}}>
+              <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:6}}>{s.date}</Mono>
+              <div style={{display:"flex",flexWrap:"wrap",gap:12}}>
+                {s.weight&&<div><Mono style={{fontSize:9,color:C.muted}}>WT </Mono><span style={{fontSize:14,fontWeight:700}}>{s.weight}<Mono style={{fontSize:10,color:C.muted}}> lbs</Mono></span></div>}
+                {s.chest&&<div><Mono style={{fontSize:9,color:C.muted}}>CH </Mono><span style={{fontSize:14,fontWeight:700}}>{s.chest}<Mono style={{fontSize:10,color:C.muted}}>"</Mono></span></div>}
+                {s.waist&&<div><Mono style={{fontSize:9,color:C.muted}}>WA </Mono><span style={{fontSize:14,fontWeight:700}}>{s.waist}<Mono style={{fontSize:10,color:C.muted}}>"</Mono></span></div>}
+                {s.arms&&<div><Mono style={{fontSize:9,color:C.muted}}>AR </Mono><span style={{fontSize:14,fontWeight:700}}>{s.arms}<Mono style={{fontSize:10,color:C.muted}}>"</Mono></span></div>}
+              </div>
+            </div>
+          ))}
+        </div>}
+      </div>}
+
+      {/* AI TRAINER */}
+      {statsView==="trainer"&&<div>
+        <div style={{background:`linear-gradient(135deg,${C.accent}18,${C.neon}10)`,border:`1px solid ${C.accent}33`,borderRadius:12,padding:"18px",marginBottom:16}}>
+          <div style={{fontSize:16,fontWeight:700,marginBottom:6}}>✦ Personal Trainer AI</div>
+          <div style={{fontSize:13,color:C.muted,lineHeight:1.6,marginBottom:14}}>Weekly insight based on your actual training data.</div>
+          {loadingInsight?<div style={{textAlign:"center",padding:"20px 0",color:C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:12}}>Analyzing your training...</div>
+            :<div>
+              {trainerInsight&&<div style={{fontSize:13,lineHeight:1.8,color:C.text,marginBottom:14,padding:"12px",background:C.card,borderRadius:8}}>{trainerInsight}</div>}
+              <Btn size="sm" variant="ghost" C={C} onClick={loadTrainerInsight} style={{width:"100%"}}>
+                {trainerInsight?"↺ Refresh Insight":"✦ Get My Insight"}
+              </Btn>
+            </div>}
+        </div>
+        {/* Session ratings history */}
+        {sessions.filter(s=>s.rating).length>0&&<div>
+          <SectionLabel C={C}>Session Energy Ratings</SectionLabel>
+          {sessions.filter(s=>s.rating).slice(0,8).map(s=>(
+            <div key={s.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
+              <div>
+                <div style={{fontSize:13}}>{s.dayLabel||"Workout"}</div>
+                <Mono style={{fontSize:10,color:C.muted}}>{s.completedAt?.split("T")[0]}</Mono>
+              </div>
+              <div style={{fontSize:20}}>{["😴","😐","🙂","💪","🔥"][s.rating-1]}</div>
+            </div>
+          ))}
+        </div>}
+      </div>}
+
     </div>
   </div>;
 }
@@ -2135,7 +2530,7 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
       <div style={{marginTop:24,padding:"14px 0",borderTop:`1px solid ${C.border}`}}>
         <SectionLabel C={C}>About</SectionLabel>
         <Mono style={{fontSize:12,color:C.muted,lineHeight:1.9,display:"block"}}>
-          FORGE Workout Tracker{"\n"}
+          IRON Workout Tracker{"\n"}
           <span style={{color:C.muted}}>v2.0 . Supabase connected</span>
         </Mono>
       </div>
@@ -2155,14 +2550,14 @@ function AIModal({exercise,day,onClose,C}){
     const isEx=!!exercise&&!day;
     const prompt=isEx
       ?`You are a personal trainer specializing in hypertrophy and joint-safe training for a 49-year-old male with sensitive knees.
-Program: Plan B Antagonist Split, started May 2 2026, currently week ${programWeek()}.
+Program: Plan B Antagonist Split, started May 2 2026, currently week ${programWeek(sessions)}.
 Exercise: "${exercise.name}" -- ${exercise.muscle||"unknown"}, ${exercise.sets} sets × ${exercise.reps}.
 Provide:
 1. THREE alternative exercises for the same muscle group (joint-friendly, brief reason each)
 2. ONE form or progression tip for the current exercise
 Plain text, no markdown, be concise and direct.`
       :`You are a personal trainer analyzing a workout day for a 49-year-old male focused on hypertrophy. Sensitive knees.
-Program: Plan B Antagonist Split, started May 2 2026, currently week ${programWeek()}.
+Program: Plan B Antagonist Split, started May 2 2026, currently week ${programWeek(sessions)}.
 Day: "${day?.label}" (${day?.tag})
 Exercises: ${(day?.exercises||[]).map(e=>`${e.name} (${e.sets}×${e.reps})`).join(", ")}.
 Provide:
