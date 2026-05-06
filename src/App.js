@@ -575,6 +575,7 @@ export default function ForgeApp(){
   const [authChecked,setAuthChecked]=useState(false);
   const [isOnline,setIsOnline]=useState(navigator.onLine);
   const [offlineQueue,setOfflineQueue]=useState([]);
+  const [bodyStatsGlobal,setBodyStatsGlobal]=useState([]);
   const [tab,setTab]=useState("today");
   const [activeWorkout,setActiveWorkout]=useState(null);
   const [deloadDismissed,setDeloadDismissed]=useState(null);
@@ -582,20 +583,22 @@ export default function ForgeApp(){
 
   const savePlans=async(p)=>{
     setPlans(p);
-    const {data:{user:u}}=await supabase.auth.getUser();
-    if(!u)return;
-    // Upsert each plan
-    for(const[key,plan]of Object.entries(p)){
-      await supabase.from("plans").upsert({
-        id:plan.supabaseId||undefined,
-        user_id:u.id, plan_key:key, name:plan.name,
-        subtitle:plan.subtitle, description:plan.description
-      },{onConflict:"user_id,plan_key"});
-    }
+    try{
+      const {data:{user:u}}=await supabase.auth.getUser();
+      if(!u)return;
+      for(const[key,plan]of Object.entries(p)){
+        await supabase.from("plans").upsert({
+          id:plan.supabaseId||undefined,
+          user_id:u.id, plan_key:key, name:plan.name,
+          subtitle:plan.subtitle, description:plan.description
+        },{onConflict:"user_id,plan_key"});
+      }
+    }catch(e){ console.error("savePlans:",e); }
   };
 
   const saveSettings=async(s)=>{
     setSettings(s);
+    try{
     const {data:{user:u}}=await supabase.auth.getUser();
     if(!u)return;
     await supabase.from("user_settings").upsert({
@@ -606,11 +609,13 @@ export default function ForgeApp(){
       plate_calc:s.plateCalc, workout_notes:s.workoutNotes,
       ai_recs:s.aiRecs, start_day:s.startDay, theme_mode:themeMode
     },{onConflict:"user_id"});
+    }catch(e){ console.error("saveSettings:",e); }
   };
 
   const saveSessions=async(s)=>{
     if(!Array.isArray(s))return;
     setSessions(s);
+    try{
     const {data:{user:u}}=await supabase.auth.getUser();
     if(!u)return;
     // Save the most recent session (last in array)
@@ -619,7 +624,8 @@ export default function ForgeApp(){
       const {data}=await supabase.from("workout_sessions").insert({
         user_id:u.id, day_label:latest.dayLabel,
         started_at:latest.startedAt, completed_at:latest.completedAt,
-        notes:latest.notes, sets_data:latest.sets||{}
+        notes:latest.notes, sets_data:latest.sets||{},
+        rating:latest.rating||null
       }).select().single();
       if(data){
         // Save individual sets
@@ -634,18 +640,21 @@ export default function ForgeApp(){
         if(setRows.length>0)await supabase.from("logged_sets").insert(setRows);
       }
     }
+    }catch(e){ console.error("saveSessions:",e); }
   };
 
   const savePRs=async(p)=>{
     setPrs(p);
-    const {data:{user:u}}=await supabase.auth.getUser();
-    if(!u)return;
-    for(const[name,pr]of Object.entries(p)){
-      await supabase.from("personal_records").upsert({
-        user_id:u.id, exercise_name:name,
-        max_weight:pr.weight, achieved_at:pr.date
-      },{onConflict:"user_id,exercise_name"});
-    }
+    try{
+      const {data:{user:u}}=await supabase.auth.getUser();
+      if(!u)return;
+      for(const[name,pr]of Object.entries(p)){
+        await supabase.from("personal_records").upsert({
+          user_id:u.id, exercise_name:name,
+          max_weight:pr.weight, achieved_at:pr.date
+        },{onConflict:"user_id,exercise_name"});
+      }
+    }catch(e){ console.error("savePRs:",e); }
   };
 
   const toggleTheme=(n)=>{
@@ -700,6 +709,10 @@ export default function ForgeApp(){
         prData.forEach(r=>{prMap[r.exercise_name]={weight:r.max_weight,date:r.achieved_at};});
         setPrs(prMap);
       }
+      // Load body stats from profile metadata
+      if(prof?.raw_user_meta_data?.body_stats){
+        try{ setBodyStatsGlobal(JSON.parse(prof.raw_user_meta_data.body_stats||"[]")); }catch{}
+      }
       // Load active plan key from profile
       const {data:prof}=await supabase.from("profiles").select("*").eq("id",u.id).single();
       if(prof?.active_plan_key)setActivePlanKey(prof.active_plan_key);
@@ -723,13 +736,6 @@ export default function ForgeApp(){
   useEffect(()=>{
     const goOnline=()=>{
       setIsOnline(true);
-      // Flush offline queue when back online
-      setOfflineQueue(q=>{
-        q.forEach(async(item)=>{
-          try{ await supabase.from(item.table).insert(item.data); }catch{}
-        });
-        return [];
-      });
     };
     const goOffline=()=>setIsOnline(false);
     window.addEventListener("online",goOnline);
@@ -862,7 +868,7 @@ export default function ForgeApp(){
       settings={settings} sessions={sessions} streak={streak} scheduledStreak={scheduledStreak} calendarStreak={calendarStreak} deloadDue={deloadDue&&deloadDismissed!==new Date().toISOString().slice(0,7)}
       onDeloadDismiss={()=>{setDeloadDismissed(new Date().toISOString().slice(0,7));}}
       onStart={day=>setActiveWorkout(day)} C={C} getOrderedDays={getOrderedDays} toggleTheme={toggleTheme} themeMode={themeMode}
-      authUser={authUser} todayDay={(plan?.days||[]).find(d=>d.name===DOW[new Date().getDay()]&&!d.isRest)}/>}
+      authUser={authUser} todayDay={(activePlan?.days||[]).find(d=>d.name===DOW[new Date().getDay()]&&!d.isRest)}/>}
     {tab==="plan"&&<PlanTab plans={plans} activePlanKey={activePlanKey}
       setActivePlanKey={k=>{setActivePlanKey(k);}}
       savePlans={savePlans} settings={settings} C={C}/>}
@@ -871,7 +877,11 @@ export default function ForgeApp(){
       setActiveWorkout({...day,_rerunSets:sess.sets});
       setTab("today");
     }}/>}
-    {tab==="stats"&&<StatsTab sessions={sessions} prs={prs} settings={settings} C={C}/>}
+    {tab==="stats"&&<StatsTab sessions={sessions} prs={prs} settings={settings} C={C} bodyStatsInit={bodyStatsGlobal} onBodyStatsChange={async(stats)=>{
+      setBodyStatsGlobal(stats);
+      const {data:{user:u}}=await supabase.auth.getUser().catch(()=>({data:{user:null}}));
+      if(u)await supabase.auth.updateUser({data:{body_stats:JSON.stringify(stats)}}).catch(()=>{});
+    }}/>}
     {tab==="more"&&<MoreTab settings={settings} saveSettings={saveSettings} plans={plans} sessions={sessions} prs={prs} C={C} toggleTheme={toggleTheme} themeMode={themeMode}/>}
     <nav style={{position:"fixed",bottom:0,left:0,right:0,background:C.navBg,borderTop:`1px solid ${C.border}`,display:"flex",zIndex:100,paddingBottom:"env(safe-area-inset-bottom)"}}>
       {tabs.map(t=>(
@@ -1026,7 +1036,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   const [editExModal,setEditExModal]=useState(null);
   const topRef=useRef(null);
 
-  useEffect(()=>{const t=setInterval(()=>setElapsed(e=>e+1),1000);return()=>clearInterval(t);},[]);
+  useEffect(()=>{const t=setInterval(()=>setElapsed(e=>e+1),1000);return()=>clearInterval(t);},[]);// eslint-disable-line
 
   const lastSessionForDay=sessions.filter(s=>s.dayId===workout.id&&s.completedAt).sort((a,b)=>new Date(b.completedAt)-new Date(a.completedAt))[0];
   const lastSets=lastSessionForDay?.sets||{};
@@ -1138,8 +1148,11 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
 
   const inputStyle={padding:"9px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:7,color:C.text,fontSize:14,fontFamily:"'SF Mono','Courier New',monospace",width:"100%",boxSizing:"border-box"};
 
-  // Auto-start timer on mount
-  useEffect(()=>{setTimerRunning(true);},[]);// eslint-disable-line react-hooks/exhaustive-deps
+  // Auto-start timer on mount - elapsed increments every second
+  useEffect(()=>{
+    const t=setInterval(()=>setElapsed(e=>e+1),1000);
+    return()=>clearInterval(t);
+  },[]);// eslint-disable-line
 
   return <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:C.serif,paddingBottom:100,scrollBehavior:"smooth"}}>
     <div style={{background:C.surface,borderBottom:`2px solid ${C.neon}`,padding:"14px 18px",position:"sticky",top:0,zIndex:50,marginTop:0}}>
@@ -1398,7 +1411,7 @@ function PlanTab({plans,activePlanKey,setActivePlanKey,savePlans,settings,C}){
 
   async function aiSequenceDay(day){
     setSequencingDay(day.id);
-    const prompt=`You are an expert personal trainer working with a 49-year-old male on Plan B Antagonist Split (started May 2 2026, week 1). Reorder these exercises for optimal workout sequencing -- compound lifts first, isolation second, abs and cardio last. Consider muscle fatigue, joint stress, and training science.
+    const prompt=`You are an expert personal trainer. Reorder these exercises for optimal workout sequencing -- compound lifts first, isolation second, abs and cardio last. Consider muscle fatigue, joint stress, and training science.
 Exercises: ${day.exercises.map((e,i)=>`${i+1}. ${e.name} (${e.muscle||"unknown"})`).join(", ")}
 Return ONLY a JSON array of exercise names in the optimal order. Example: ["Bench Press","Incline Press","Cable Fly","Machine Crunch"]
 No explanation, no markdown, just the JSON array.`;
@@ -2140,11 +2153,11 @@ function getStrengthScore(exName, maxWeight){
   return Math.min(level, 4);
 }
 
-function StatsTab({sessions,prs,settings,C}){
+function StatsTab({sessions,prs,settings,C,bodyStatsInit=[],onBodyStatsChange}){
   const [selEx,setSelEx]=useState(null);
   const [chartData,setChartData]=useState([]);
   const [statsView,setStatsView]=useState("overview"); // overview | progress | muscles | body | trainer
-  const [bodyStats,setBodyStats]=useState([]);
+  const [bodyStats,setBodyStats]=useState(bodyStatsInit||[]);
   const [newBodyStat,setNewBodyStat]=useState({weight:"",chest:"",waist:"",hips:"",arms:"",date:new Date().toISOString().split("T")[0]});
   const [addingBody,setAddingBody]=useState(false);
   const [trainerInsight,setTrainerInsight]=useState("");
@@ -2389,7 +2402,9 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
           <div style={{display:"flex",gap:8,marginTop:10}}>
             <Btn size="sm" C={C} style={{flex:1}} onClick={()=>{
               if(newBodyStat.weight||newBodyStat.chest||newBodyStat.waist){
-                setBodyStats(prev=>[{...newBodyStat,id:Date.now()},...prev]);
+                const updated=[{...newBodyStat,id:Date.now()},...bodyStats];
+                setBodyStats(updated);
+                if(onBodyStatsChange)onBodyStatsChange(updated);
                 setNewBodyStat({weight:"",chest:"",waist:"",hips:"",arms:"",date:new Date().toISOString().split("T")[0]});
                 setAddingBody(false);
               }
@@ -2489,7 +2504,7 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
           <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,cursor:"pointer",padding:"7px 12px",fontSize:13}}>
             {themeMode==="dark"?"☀️":"🌙"}
           </button>
-          <button onClick={async()=>{await supabase.auth.signOut();}} style={{background:"transparent",border:`1px solid ${C.danger}44`,borderRadius:8,color:C.danger,cursor:"pointer",padding:"7px 12px",fontSize:11,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.04em"}}>
+          <button onClick={async()=>{try{await supabase.auth.signOut();}catch(e){console.error("signOut:",e);}}} style={{background:"transparent",border:`1px solid ${C.danger}44`,borderRadius:8,color:C.danger,cursor:"pointer",padding:"7px 12px",fontSize:11,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.04em"}}>
             Sign Out
           </button>
         </div>
@@ -2549,15 +2564,15 @@ function AIModal({exercise,day,onClose,C}){
     setLoading(true);
     const isEx=!!exercise&&!day;
     const prompt=isEx
-      ?`You are a personal trainer specializing in hypertrophy and joint-safe training for a 49-year-old male with sensitive knees.
-Program: Plan B Antagonist Split, started May 2 2026, currently week ${programWeek(sessions)}.
+      ?`You are a personal trainer specializing in hypertrophy and joint-safe training.
+Program: ${exercise?.programNote||"Strength training program"}, currently week ${programWeek([])}.
 Exercise: "${exercise.name}" -- ${exercise.muscle||"unknown"}, ${exercise.sets} sets × ${exercise.reps}.
 Provide:
 1. THREE alternative exercises for the same muscle group (joint-friendly, brief reason each)
 2. ONE form or progression tip for the current exercise
 Plain text, no markdown, be concise and direct.`
-      :`You are a personal trainer analyzing a workout day for a 49-year-old male focused on hypertrophy. Sensitive knees.
-Program: Plan B Antagonist Split, started May 2 2026, currently week ${programWeek(sessions)}.
+      :`You are a personal trainer analyzing a workout day for someone focused on hypertrophy.
+Program: ${day?.programNote||"Strength training program"}, currently week ${programWeek([])}.
 Day: "${day?.label}" (${day?.tag})
 Exercises: ${(day?.exercises||[]).map(e=>`${e.name} (${e.sets}×${e.reps})`).join(", ")}.
 Provide:
