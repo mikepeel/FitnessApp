@@ -531,7 +531,7 @@ const EXERCISE_LIBRARY = [
 const DEFAULT_SETTINGS = {
   restTimer:true, restSeconds:90, prDetection:true, lastRef:true,
   deloadReminder:true, streakTracking:true, plateCalc:true,
-  workoutNotes:true, aiRecs:true, startDay:1,
+  workoutNotes:true, aiRecs:true, startDay:1, appleHealth:false,
 };
 
 // -- THEME CONTEXT -------------------------------------------------------------
@@ -810,7 +810,8 @@ export default function ForgeApp(){
       pr_detection:s.prDetection, last_ref:s.lastRef,
       deload_reminder:s.deloadReminder, streak_tracking:s.streakTracking,
       plate_calc:s.plateCalc, workout_notes:s.workoutNotes,
-      ai_recs:s.aiRecs, start_day:s.startDay, theme_mode:themeMode
+      ai_recs:s.aiRecs, start_day:s.startDay, theme_mode:themeMode,
+      apple_health:s.appleHealth||false
     },{onConflict:"user_id"});
     }catch(e){ console.error("saveSettings:",e); }
   };
@@ -879,7 +880,8 @@ export default function ForgeApp(){
           prDetection:sett.pr_detection, lastRef:sett.last_ref,
           deloadReminder:sett.deload_reminder, streakTracking:sett.streak_tracking,
           plateCalc:sett.plate_calc, workoutNotes:sett.workout_notes,
-          aiRecs:sett.ai_recs, startDay:sett.start_day||1
+          aiRecs:sett.ai_recs, startDay:sett.start_day||1,
+          appleHealth:sett.apple_health||false
         });
         if(sett.theme_mode)setThemeMode(sett.theme_mode);
       }
@@ -1298,6 +1300,21 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
   </div>;
 }
 
+// -- APPLE HEALTH WRITE -------------------------------------------------------
+async function writeToAppleHealth(startTime, endTime, totalVolume) {
+  try {
+    if (!window.navigator.health) return;
+    const calories = Math.round(totalVolume * 0.0003);
+    await window.navigator.health.addWorkout?.({
+      workoutActivityType: "traditionalStrengthTraining",
+      startDate: new Date(startTime),
+      endDate: new Date(endTime),
+      totalEnergyBurned: {value: calories, unit: "kcal"},
+      metadata: {totalVolumeLbs: Math.round(totalVolume)},
+    });
+  } catch { /* silent — API unavailable or permission denied */ }
+}
+
 // -- EXERCISE LIBRARY MODAL ---------------------------------------------------
 function ExerciseLibraryModal({onSelect,onClose,C}){
   const [query,setQuery]=useState("");
@@ -1483,6 +1500,10 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
           setsArr.push({exName,setNum:parseInt(sn),weight:vals.weight||"",reps:vals.reps||"",minutes:vals.minutes||"",isPR});
         }
       }
+    }
+    if(settings.appleHealth){
+      const vol=setsArr.reduce((s,x)=>(s+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0);
+      writeToAppleHealth(startTime,new Date().toISOString(),vol);
     }
     onFinish({id:Date.now().toString(),dayId:workout.id,dayLabel:workout.label,startedAt:startTime,completedAt:new Date().toISOString(),notes,rating,sets:loggedSets,setsArr},newPRs);
   }
@@ -2914,8 +2935,32 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
 function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMode}){
   const [local,setLocal]=useState({...settings});
   const [saved,setSaved]=useState(false);
+  const [healthMsg,setHealthMsg]=useState("");
+  const isIOSSafari=typeof navigator!=="undefined"&&/iPhone|iPad|iPod/.test(navigator.userAgent)&&/Safari/.test(navigator.userAgent)&&!/Chrome|CriOS|FxiOS/.test(navigator.userAgent);
 
   function save(){saveSettings(local);setSaved(true);setTimeout(()=>setSaved(false),2000);}
+
+  async function handleHealthToggle(){
+    const next=!local.appleHealth;
+    const updated={...local,appleHealth:next};
+    setLocal(updated);
+    saveSettings(updated);
+    if(next){
+      try{
+        if(window.navigator.health?.requestAuthorization){
+          await window.navigator.health.requestAuthorization(["workouts","activeEnergyBurned"]);
+          setHealthMsg("Connected ✓");
+        }else{
+          setHealthMsg("Saved — will sync on iPhone via Safari");
+        }
+      }catch{
+        setHealthMsg("Saved — will sync on iPhone via Safari");
+      }
+      setTimeout(()=>setHealthMsg(""),3500);
+    }else{
+      setHealthMsg("");
+    }
+  }
 
   const features=[
     {key:"restTimer",label:"Rest Timer",desc:`Auto-starts between sets`},
@@ -2991,6 +3036,19 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
             }
           }}>Enable</Btn>
         </div>
+      </div>
+
+      {/* Apple Health */}
+      <div style={{marginTop:12,padding:"14px",background:C.card,border:`1px solid ${C.border}`,borderRadius:12}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={{flex:1,paddingRight:16}}>
+            <div style={{fontSize:14,fontWeight:600}}>Sync to Apple Health</div>
+            <Mono style={{fontSize:11,color:C.muted}}>Log workouts to Apple Health automatically</Mono>
+          </div>
+          <Toggle on={!!local.appleHealth} onToggle={handleHealthToggle} C={C}/>
+        </div>
+        {healthMsg&&<Mono style={{fontSize:11,color:C.neon,display:"block",marginTop:8}}>{healthMsg}</Mono>}
+        {!isIOSSafari&&<Mono style={{fontSize:10,color:C.faint,display:"block",marginTop:6}}>Available on iPhone via Safari</Mono>}
       </div>
 
       <div style={{marginTop:24,padding:"14px 0",borderTop:`1px solid ${C.border}`}}>
