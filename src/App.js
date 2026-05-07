@@ -839,7 +839,8 @@ export default function ForgeApp(){
           weight:parseFloat(x.weight)||null,
           reps:parseInt(x.reps)||null,
           minutes:parseFloat(x.minutes)||null,
-          is_pr:x.isPR||false
+          is_pr:x.isPR||false,
+          set_type:x.type||"working"
         }));
         if(setRows.length>0)await supabase.from("logged_sets").insert(setRows);
       }
@@ -902,7 +903,8 @@ export default function ForgeApp(){
             weight:x.weight?.toString()||"",
             reps:x.reps?.toString()||"",
             minutes:x.minutes?.toString()||"",
-            isPR:x.is_pr
+            isPR:x.is_pr,
+            type:x.set_type||"working"
           }))
         }));
         setSessions(mapped);
@@ -1386,6 +1388,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   const [swapModal,setSwapModal]=useState(null);
   const [addExModal,setAddExModal]=useState(false);
   const [editExModal,setEditExModal]=useState(null);
+  const [setTypes,setSetTypes]=useState({});
   const topRef=useRef(null);
 
   useEffect(()=>{const t=setInterval(()=>setElapsed(e=>e+1),1000);return()=>clearInterval(t);},[]);// eslint-disable-line
@@ -1395,6 +1398,14 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
 
   function logSet(exName,setNum,field,value){
     setLoggedSets(prev=>({...prev,[exName]:{...(prev[exName]||{}),[setNum]:{...(prev[exName]?.[setNum]||{}),[field]:value}}}));
+  }
+
+  function cycleSetType(exName,setNum){
+    setSetTypes(prev=>{
+      const cur=(prev[exName]?.[setNum])||"working";
+      const next=cur==="working"?"warmup":cur==="warmup"?"drop":cur==="drop"?"failure":"working";
+      return {...prev,[exName]:{...(prev[exName]||{}),[setNum]:next}};
+    });
   }
 
   // When all sets for an exercise are ticked, move it to the bottom
@@ -1489,14 +1500,15 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
       for(const[sn,vals]of Object.entries(sets)){
         if(vals.weight||vals.reps||vals.minutes){
           const w=parseFloat(vals.weight)||0;
-          const isPR=!vals.minutes&&settings.prDetection&&w>0&&(!prs[exName]||w>prs[exName].weight);
+          const typ=(setTypes[exName]?.[parseInt(sn)])||"working";
+          const isPR=!vals.minutes&&settings.prDetection&&w>0&&typ!=="warmup"&&(!prs[exName]||w>prs[exName].weight);
           if(isPR)newPRs[exName]={weight:w,date:new Date().toISOString()};
-          setsArr.push({exName,setNum:parseInt(sn),weight:vals.weight||"",reps:vals.reps||"",minutes:vals.minutes||"",isPR});
+          setsArr.push({exName,setNum:parseInt(sn),weight:vals.weight||"",reps:vals.reps||"",minutes:vals.minutes||"",isPR,type:typ});
         }
       }
     }
     if(settings.appleHealth){
-      const vol=setsArr.reduce((s,x)=>(s+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0);
+      const vol=setsArr.filter(x=>x.type!=="warmup").reduce((s,x)=>(s+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0);
       writeToAppleHealth(startTime,new Date().toISOString(),vol);
     }
     onFinish({id:Date.now().toString(),dayId:workout.id,dayLabel:workout.label,startedAt:startTime,completedAt:new Date().toISOString(),notes,rating,sets:loggedSets,setsArr},newPRs);
@@ -1575,22 +1587,29 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
           </div>}
 
           {/* STRENGTH: sets × weight × reps */}
-          {!isCardio&&<div style={{display:"grid",gridTemplateColumns:"24px 1fr 1fr 34px",gap:"4px 8px",alignItems:"center"}}>
+          {!isCardio&&<div style={{display:"grid",gridTemplateColumns:"28px 24px 1fr 1fr 34px",gap:"4px 8px",alignItems:"center"}}>
+            <div/>
             <Mono style={{fontSize:9,color:C.muted}}>#</Mono>
             <Mono style={{fontSize:9,color:C.muted}}>WEIGHT</Mono>
             <Mono style={{fontSize:9,color:C.muted}}>REPS</Mono>
             <div/>
-            {Array.from({length:parseInt(ex.sets)||3},(_,i)=>i+1).map(n=>[
-              <Mono key={`n${n}`} style={{fontSize:12,color:C.muted,textAlign:"center"}}>{n}</Mono>,
-              <input key={`w${n}`} type="number" placeholder={last?.[n]?.weight||"lbs"} value={myLog[n]?.weight||""} onChange={e=>logSet(ex.name,n,"weight",e.target.value)} style={inputStyle}/>,
-              <input key={`r${n}`} type="number" placeholder={last?.[n]?.reps||"reps"} value={myLog[n]?.reps||""} onChange={e=>logSet(ex.name,n,"reps",e.target.value)} style={inputStyle}/>,
-              <button key={`d${n}`} onClick={()=>{
-                const numS=parseInt(ex.sets)||3;
-                const myL=loggedSets[ex.name]||{};
-                const allFilled=Array.from({length:numS},(_,i)=>i+1).every(s=>myL[s]?.weight||myL[s]?.reps);
-                if(allFilled&&n===numS){markExerciseDone(ex.id,ex.name);}else{setShowRest(true);}
-              }} style={{padding:"9px 4px",background:completedExIds.has(ex.id)&&n===parseInt(ex.sets)?C.neon+"44":"transparent",border:`1px solid ${C.neon}44`,borderRadius:7,color:C.neon,cursor:"pointer",fontSize:14,fontWeight:700}}>✓</button>
-            ])}
+            {Array.from({length:parseInt(ex.sets)||3},(_,i)=>i+1).map(n=>{
+              const typ=(setTypes[ex.name]?.[n])||"working";
+              const typeLabel=typ==="warmup"?"W":typ==="working"?"S":typ==="drop"?"D":"F";
+              const typeColor=typ==="warmup"?C.muted:typ==="working"?C.accent:typ==="drop"?C.gold:C.red;
+              return [
+                <button key={`t${n}`} onClick={()=>cycleSetType(ex.name,n)} style={{padding:"3px 0",background:typeColor+"22",border:"none",borderRadius:4,color:typeColor,fontSize:9,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"center",letterSpacing:"0.05em"}}>{typeLabel}</button>,
+                <Mono key={`n${n}`} style={{fontSize:12,color:C.muted,textAlign:"center"}}>{n}</Mono>,
+                <input key={`w${n}`} type="number" placeholder={last?.[n]?.weight||"lbs"} value={myLog[n]?.weight||""} onChange={e=>logSet(ex.name,n,"weight",e.target.value)} style={inputStyle}/>,
+                <input key={`r${n}`} type="number" placeholder={last?.[n]?.reps||"reps"} value={myLog[n]?.reps||""} onChange={e=>logSet(ex.name,n,"reps",e.target.value)} style={inputStyle}/>,
+                <button key={`d${n}`} onClick={()=>{
+                  const numS=parseInt(ex.sets)||3;
+                  const myL=loggedSets[ex.name]||{};
+                  const allFilled=Array.from({length:numS},(_,i)=>i+1).every(s=>myL[s]?.weight||myL[s]?.reps);
+                  if(allFilled&&n===numS){markExerciseDone(ex.id,ex.name);}else{setShowRest(true);}
+                }} style={{padding:"9px 4px",background:completedExIds.has(ex.id)&&n===parseInt(ex.sets)?C.neon+"44":"transparent",border:`1px solid ${C.neon}44`,borderRadius:7,color:C.neon,cursor:"pointer",fontSize:14,fontWeight:700}}>✓</button>
+              ];
+            })}
           </div>}
         </div>;
       })}
@@ -2359,7 +2378,7 @@ ${raw.slice(0,500)}...`:"No sessions found");
           {msess.map((s,i)=>{
             const idx=`${month}-${i}`;
             const allSets=s.setsArr||[];
-            const vol=allSets.reduce((a,x)=>(a+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0);
+            const vol=allSets.filter(x=>x.type!=="warmup").reduce((a,x)=>(a+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0);
             const dur=s.completedAt&&s.startedAt?Math.round((new Date(s.completedAt)-new Date(s.startedAt))/60000):null;
             const newPRs=allSets.filter(x=>x.isPR);
             const isExp=expanded===idx;
@@ -2395,8 +2414,8 @@ ${raw.slice(0,500)}...`:"No sessions found");
                     <div style={{fontSize:13,fontWeight:600,marginBottom:4}}>{name}</div>
                     <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
                       {exSets.map((x,j)=>(
-                        <Mono key={j} style={{fontSize:11,background:C.surface,padding:"3px 8px",borderRadius:5,color:x.isPR?C.red:x.minutes?C.green:C.muted}}>
-                          {x.minutes?`${x.minutes} min`:""}{!x.minutes&&x.weight?`${x.weight}lbs`:""}{!x.minutes&&x.weight&&x.reps?" × ":""}{!x.minutes&&x.reps?`${x.reps}r`:""}{x.isPR?" ★":""}
+                        <Mono key={j} style={{fontSize:11,background:C.surface,padding:"3px 8px",borderRadius:5,color:x.isPR?C.red:x.minutes?C.green:C.muted,opacity:x.type==="warmup"?0.6:1}}>
+                          {x.type==="warmup"?"W ":""}{x.minutes?`${x.minutes} min`:""}{!x.minutes&&x.weight?`${x.weight}lbs`:""}{!x.minutes&&x.weight&&x.reps?" × ":""}{!x.minutes&&x.reps?`${x.reps}r`:""}{x.isPR?" ★":""}
                         </Mono>
                       ))}
                     </div>
@@ -2408,7 +2427,7 @@ ${raw.slice(0,500)}...`:"No sessions found");
                   <Btn size="sm" variant="subtle" C={C} onClick={()=>setEditingSession({...s})}>✎ Edit</Btn>
                   <Btn size="sm" variant="ghost" C={C} style={{color:C.neon,borderColor:C.neon+"44"}} onClick={()=>onRerun&&onRerun(s)}>↺ Re-run</Btn>
                   <Btn size="sm" variant="ghost" C={C} style={{color:C.blue,borderColor:C.blue+"44"}} onClick={()=>{
-                    const vol=allSets.reduce((a,x)=>(a+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0);
+                    const vol=allSets.filter(x=>x.type!=="warmup").reduce((a,x)=>(a+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0);
                     const prCount=allSets.filter(x=>x.isPR).length;
                     const text=`💪 Just crushed ${s.dayLabel||"a workout"} on IRON!
 ${allSets.length} sets · ${vol>0?Math.round(vol).toLocaleString()+" lbs total volume":""}
@@ -2612,22 +2631,22 @@ function StatsTab({sessions,prs,settings,C,bodyStatsInit=[],onBodyStatsChange}){
 
   const allExNames=[...new Set(sessions.flatMap(s=>(s.setsArr||[]).map(x=>x.exName)))].sort();
   const prList=Object.entries(prs).sort((a,b)=>b[1].weight-a[1].weight);
-  const totalVol=sessions.reduce((a,s)=>(a+(s.setsArr||[]).reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
+  const totalVol=sessions.reduce((a,s)=>(a+(s.setsArr||[]).filter(x=>x.type!=="warmup").reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
 
   // Month over month
   const now = new Date();
   const thisMonth = now.toISOString().slice(0,7);
   const lastMonthDate = new Date(now.getFullYear(), now.getMonth()-1, 1);
   const lastMonth = lastMonthDate.toISOString().slice(0,7);
-  const thisMonthVol = sessions.filter(s=>s.completedAt?.startsWith(thisMonth)).reduce((a,s)=>(a+(s.setsArr||[]).reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
-  const lastMonthVol = sessions.filter(s=>s.completedAt?.startsWith(lastMonth)).reduce((a,s)=>(a+(s.setsArr||[]).reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
+  const thisMonthVol = sessions.filter(s=>s.completedAt?.startsWith(thisMonth)).reduce((a,s)=>(a+(s.setsArr||[]).filter(x=>x.type!=="warmup").reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
+  const lastMonthVol = sessions.filter(s=>s.completedAt?.startsWith(lastMonth)).reduce((a,s)=>(a+(s.setsArr||[]).filter(x=>x.type!=="warmup").reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
   const momChange = lastMonthVol>0 ? Math.round(((thisMonthVol-lastMonthVol)/lastMonthVol)*100) : null;
 
   // Weekly volume summary
   const weekStart = new Date(); weekStart.setDate(weekStart.getDate()-weekStart.getDay());
   const weekStr = weekStart.toISOString().split("T")[0];
   const weekSessions = sessions.filter(s=>s.completedAt>=weekStr);
-  const weekVol = weekSessions.reduce((a,s)=>(a+(s.setsArr||[]).reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
+  const weekVol = weekSessions.reduce((a,s)=>(a+(s.setsArr||[]).filter(x=>x.type!=="warmup").reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
 
   // Muscle volume by group (last 7 days)
   const muscleVol = {};
@@ -2645,7 +2664,7 @@ function StatsTab({sessions,prs,settings,C,bodyStatsInit=[],onBodyStatsChange}){
   const muscleMap={"Bench Press":"Chest","Incline Press (DB)":"Chest","Cable Fly":"Chest","Pec Deck / Cable Fly":"Chest","T-Bar Row":"Back","Reverse Grip Lat Pulldown":"Back","Seated Cable Row":"Back","Reverse Grip Pulldown":"Back","Machine Shoulder Press":"Shoulders","Cable Lateral Raise":"Shoulders","Rear Delt Machine":"Shoulders","DB / Cable Lateral Raises":"Shoulders","Front Delt Raise":"Shoulders","Cable Rope Pressdown":"Triceps","Incline Tricep Extension":"Triceps","Cable Overhead Extension":"Triceps","Cable Curl":"Biceps","Concentration Curl":"Biceps","Barbell / Cable Curl":"Biceps","Goblet Squat":"Legs","DB Romanian Deadlift":"Legs","Box Step-Ups (DB)":"Legs","DB Lunges (optional)":"Legs","Decline Sit-Ups":"Abs","Machine Crunch":"Abs","Russian Twist":"Abs","Stair Stepper":"Cardio"};
   const muscleVolMapped={};
   sessions.filter(s=>s.completedAt&&new Date(s.completedAt)>sevenDaysAgo).forEach(s=>{
-    (s.setsArr||[]).forEach(x=>{
+    (s.setsArr||[]).filter(x=>x.type!=="warmup").forEach(x=>{
       const m=muscleMap[x.exName]||"Other";
       if(!muscleVolMapped[m])muscleVolMapped[m]=0;
       muscleVolMapped[m]+=(parseFloat(x.weight)||1)*(parseInt(x.reps)||1);
@@ -2658,7 +2677,7 @@ function StatsTab({sessions,prs,settings,C,bodyStatsInit=[],onBodyStatsChange}){
     if(!selEx){if(allExNames.length)setSelEx(allExNames[0]);return;}
     const rel=sessions.filter(s=>s.completedAt&&(s.setsArr||[]).some(x=>x.exName===selEx));
     const grouped={};
-    rel.forEach(s=>{const d=s.completedAt.split("T")[0];const best=(s.setsArr||[]).filter(x=>x.exName===selEx).reduce((m,x)=>Math.max(m,parseFloat(x.weight)||0),0);if(!grouped[d]||best>grouped[d])grouped[d]=best;});
+    rel.forEach(s=>{const d=s.completedAt.split("T")[0];const best=(s.setsArr||[]).filter(x=>x.exName===selEx&&x.type!=="warmup").reduce((m,x)=>Math.max(m,parseFloat(x.weight)||0),0);if(!grouped[d]||best>grouped[d])grouped[d]=best;});
     setChartData(Object.entries(grouped).sort(([a],[b])=>a>b?1:-1).map(([d,w])=>({date:d.slice(5),weight:w,orm:Math.round(w*1.0333*1)})));
   },[selEx,sessions]);// eslint-disable-line react-hooks/exhaustive-deps
 
