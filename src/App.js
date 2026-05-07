@@ -1092,20 +1092,14 @@ export default function ForgeApp(){
       {tabs.map(t=>(
         <button key={t.key} onClick={()=>setTab(t.key)} style={{flex:1,padding:"10px 4px 8px",background:"none",border:"none",color:tab===t.key?C.accent:C.muted,cursor:"pointer",fontSize:9,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.06em",textTransform:"uppercase",display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
           {t.icon==="dumbbell"
-            ?<svg width="28" height="14" viewBox="0 0 120 60" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
-              <defs>
-                <linearGradient id="dbn" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#fde878"/><stop offset="50%" stopColor="#e8b030"/><stop offset="100%" stopColor="#a06008"/></linearGradient>
-                <linearGradient id="dbr" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f9e07a"/><stop offset="50%" stopColor="#c8860a"/><stop offset="100%" stopColor="#e8a820"/></linearGradient>
-              </defs>
-              <rect x="28" y="27" width="64" height="6" rx="3" fill="url(#dbr)"/>
-              <rect x="20" y="24" width="10" height="12" rx="2" fill="#d4a020"/>
-              <rect x="90" y="24" width="10" height="12" rx="2" fill="#d4a020"/>
-              <ellipse cx="10" cy="30" rx="5" ry="18" fill="#906000"/>
-              <ellipse cx="10" cy="30" rx="4.2" ry="16" fill="url(#dbn)"/>
-              <ellipse cx="14" cy="30" rx="3.5" ry="13" fill="#c88010"/>
-              <ellipse cx="110" cy="30" rx="5" ry="18" fill="#906000"/>
-              <ellipse cx="110" cy="30" rx="4.2" ry="16" fill="url(#dbn)"/>
-              <ellipse cx="106" cy="30" rx="3.5" ry="13" fill="#c88010"/>
+            ?<svg width="28" height="14" viewBox="0 0 36 18" fill="none" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
+              <rect x="10" y="8" width="16" height="2" rx="1" fill="#f7c948"/>
+              <rect x="7.5" y="6" width="2.5" height="6" rx="0.8" fill="#f7c948"/>
+              <rect x="3.5" y="4.5" width="3.5" height="9" rx="1" fill="#f7c948"/>
+              <rect x="0" y="3" width="3" height="12" rx="1" fill="#f7c948"/>
+              <rect x="26" y="6" width="2.5" height="6" rx="0.8" fill="#f7c948"/>
+              <rect x="29" y="4.5" width="3.5" height="9" rx="1" fill="#f7c948"/>
+              <rect x="33" y="3" width="3" height="12" rx="1" fill="#f7c948"/>
             </svg>
             :t.icon==="clock"
             ?<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
