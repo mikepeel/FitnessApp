@@ -1023,7 +1023,15 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
       <SectionLabel C={C}>This Week</SectionLabel>
       {orderedDays.map((day,i)=>{
         const isToday=day.name===todayName;
-        const doneSess=sessions.some(s=>s.dayId===day.id&&s.completedAt?.startsWith(new Date().toISOString().split("T")[0]));
+        // Find this day's date in the current week
+        const todayDate=new Date();
+        const todayDOW=todayDate.getDay(); // 0=Sun
+        const dayDOW=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].indexOf(day.name);
+        const diffDays=dayDOW-todayDOW;
+        const dayDate=new Date(todayDate);
+        dayDate.setDate(todayDate.getDate()+diffDays);
+        const dayDateStr=dayDate.toISOString().split("T")[0];
+        const doneSess=sessions.some(s=>s.completedAt?.startsWith(dayDateStr));
         const quotes=["The body achieves what the mind believes.","Rest is not quitting — it's the fuel for your comeback.","Champions are built in moments they want to quit.","Progress is progress, no matter how small.","Every rep is a promise kept to yourself.","Strong is earned, not given.","Your only competition is who you were yesterday.","The pain you feel today is the strength you feel tomorrow.","Discipline is choosing between what you want now and what you want most.","It never gets easier — you just get stronger.","One more rep. One more set. One more day.","The gym is proof that effort always pays off.","Show up. Do the work. Trust the process.","What you do today can improve all of your tomorrows.","Strive for progress, not perfection.","Push yourself because no one else is going to do it for you.","Small steps every day lead to big results.","Recovery is where the gains are made.","Rest today. Dominate tomorrow.","Your body can do it. It's your mind you have to convince.","Fall in love with the process and the results will come.","You don't find the will to win. You build it.","The only bad workout is the one that didn't happen.","Make yourself proud.","Earn it.","Sore today, strong tomorrow.","Suffer the pain of discipline or suffer the pain of regret.","Your future self is watching you right now.","Consistency over intensity. Every time.","One rep at a time. One day at a time.","Do something today your future self will thank you for.","Be stronger than your excuses.","The hardest lift is lifting yourself off the couch.","Train insane or remain the same.","Success starts with self-discipline.","You are one workout away from a good mood.","Sweat is just fat crying.","Wake up. Work out. Kick ass. Repeat.","Your health is an investment, not an expense.","The difference between try and triumph is a little umph.","Strength does not come from the body. It comes from the will.","Don't stop when you're tired. Stop when you're done.","When your legs get tired, run with your heart.","You didn't come this far to only come this far.","The clock is ticking. Are you becoming the person you want to be?","Motivation gets you started. Habit keeps you going.","Greatness is earned, never given.","You have to believe in yourself when no one else does.","Work hard in silence. Let success make the noise.","The body is capable of almost anything. Train the mind first.","Every champion was once a contender that refused to give up.","Believe you can and you're halfway there.","Results happen over time, not overnight. Stay consistent.","You are stronger than you think.","Set goals. Smash them. Repeat.","Take care of your body. It's the only place you have to live.","Train like a beast. Look like a beauty.","The best project you'll ever work on is you.","Doubt kills more dreams than failure ever will.","Excuses don't burn calories.","It always seems impossible until it's done.","Hard work beats talent when talent doesn't work hard.","If it doesn't challenge you, it doesn't change you.","Your only limit is your mind.","Becoming takes time. Give it time.","Hustle for that muscle.","You're not tired. You're uninspired. Find your why.","No shortcuts. No excuses. No regrets.","Show up every day and you will get better. That's a promise.","Commit to being uncomfortable.","Tough times never last. Tough people do.","Pain is temporary. Pride is forever.","You are what you do, not what you say you'll do.","Mental strength is just as important as physical strength.","Fitness is not about being better than someone else. It's about being better than you used to be.","Don't limit your challenges. Challenge your limits.","Do it now. Sometimes 'later' becomes 'never'.","Don't wish for it. Work for it.","Champions keep going when they don't have anything left.","Nothing worth having comes easy.","The hardest step is always the first one. Take it.","Strength is built in the moments you want to stop.","Eat clean. Train mean. Stay lean.","You don't have to be extreme. Just consistent.","A little progress each day adds up to big results.","Rest is part of the plan. So is showing back up.","Iron sharpens iron.","The grind never lies.","When in doubt, work out.","Your body hears everything your mind says. Be kind and be strong.","Legs are the foundation of everything. Never skip them.","The mirror doesn't lie. Neither does the gym.","Put in the reps. The results will follow.","Today is another chance to get stronger.","Every workout builds the person you're becoming.","Sleep. Eat. Train. Repeat.","Rest hard so you can train hard.","You are a work in progress, and that is something to be proud of.","One day or day one. You decide.","Prove yourself to yourself."];
         const dayOfYear=(d=>Math.floor((d-new Date(d.getFullYear(),0,0))/86400000))(new Date());
         const cycleSize=100;
@@ -1033,9 +1041,9 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
         const quote=shuffled[posInCycle%shuffled.length];
         // Calculate volume for completed sessions on this day
         const dayVol=doneSess?(()=>{
-          const todaySess=sessions.filter(s=>s.dayId===day.id&&s.completedAt?.startsWith(new Date().toISOString().split("T")[0]));
-          const vol=todaySess.reduce((a,s)=>(a+(s.setsArr||[]).reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
-          const sets=todaySess.reduce((a,s)=>(a+(s.setsArr||[]).length),0);
+          const daySess=sessions.filter(s=>s.completedAt?.startsWith(dayDateStr));
+          const vol=daySess.reduce((a,s)=>(a+(s.setsArr||[]).reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
+          const sets=daySess.reduce((a,s)=>(a+(s.setsArr||[]).length),0);
           return {vol,sets};
         })():null;
         const isPast=!isToday&&(()=>{const days=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];const todayIdx=days.indexOf(todayName);const dayIdx=days.indexOf(day.name);return dayIdx<todayIdx;})();
@@ -2056,7 +2064,10 @@ ${raw.slice(0,500)}...`:"No sessions found");
               {/* Header row */}
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",cursor:"pointer"}} onClick={()=>setExpanded(isExp?null:idx)}>
                 <div style={{flex:1}}>
-                  <div style={{fontSize:14,fontWeight:700}}>{s.dayLabel||"Workout"}</div>
+                  <div style={{display:"flex",alignItems:"center",gap:7,flexWrap:"wrap"}}>
+                    <div style={{fontSize:14,fontWeight:700}}>{s.dayLabel||"Workout"}</div>
+                    {newPRs.length>0&&<Pill color={C.red}>★ {newPRs.length} PR{newPRs.length>1?"s":""}</Pill>}
+                  </div>
                   <Mono style={{fontSize:11,color:C.muted}}>
                     {(()=>{
                       const d=s.completedAt.split("T")[0];
@@ -2066,7 +2077,6 @@ ${raw.slice(0,500)}...`:"No sessions found");
                     {dur?` . ${dur}min`:""}
                     {vol>0?` . ${Math.round(vol).toLocaleString()} lbs`:""}
                   </Mono>
-                  {newPRs.length>0&&<Pill color={C.red} style={{marginTop:4}}>★ {newPRs.length} PR{newPRs.length>1?"s":""}</Pill>}
                 </div>
                 <Mono style={{color:C.muted,fontSize:12,marginLeft:8}}>{isExp?"▲":"▼"}</Mono>
               </div>
