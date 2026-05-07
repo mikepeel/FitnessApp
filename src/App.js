@@ -1056,7 +1056,7 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
           return {vol,sets};
         })():null;
         const isPast=!isToday&&dayDOW>=0&&dayDOW<todayDOW;
-        return <div key={day.id} style={{background:isToday?C.neon+"0d":C.card,border:`2px solid ${isToday?C.neon:C.border}`,borderRadius:10,padding:"13px 14px",marginBottom:8,opacity:day.isRest&&!isToday?.65:isPast&&!doneSess?.5:1,boxShadow:isToday?`0 0 12px ${C.neon}33`:"none",transition:"all .2s"}}>
+        return <div key={day.id} style={{background:isToday?C.neon+"0d":C.card,border:`2px solid ${isToday?C.neon:C.border}`,borderRadius:10,padding:"13px 14px",marginBottom:8,opacity:isToday?1:day.isRest?.65:isPast?.7:1,boxShadow:isToday?`0 0 12px ${C.neon}33`:"none",transition:"all .2s"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <div style={{flex:1}}>
               <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:2}}>
