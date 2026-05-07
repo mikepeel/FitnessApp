@@ -1094,12 +1094,12 @@ export default function ForgeApp(){
           {t.icon==="dumbbell"
             ?<svg width="28" height="14" viewBox="0 0 36 18" fill="none" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
               <rect x="10" y="8" width="16" height="2" rx="1" fill="#f7c948"/>
-              <rect x="7.5" y="6" width="2.5" height="6" rx="0.8" fill="#f7c948"/>
-              <rect x="3.5" y="4.5" width="3.5" height="9" rx="1" fill="#f7c948"/>
-              <rect x="0" y="3" width="3" height="12" rx="1" fill="#f7c948"/>
-              <rect x="26" y="6" width="2.5" height="6" rx="0.8" fill="#f7c948"/>
-              <rect x="29" y="4.5" width="3.5" height="9" rx="1" fill="#f7c948"/>
-              <rect x="33" y="3" width="3" height="12" rx="1" fill="#f7c948"/>
+              <rect x="7.5" y="6.5" width="2.5" height="5" rx="0.8" fill="#f7c948"/>
+              <rect x="3.5" y="3" width="3.5" height="12" rx="1" fill="#f7c948"/>
+              <rect x="0.5" y="5.5" width="2.5" height="7" rx="1" fill="#f7c948"/>
+              <rect x="26" y="6.5" width="2.5" height="5" rx="0.8" fill="#f7c948"/>
+              <rect x="29" y="3" width="3.5" height="12" rx="1" fill="#f7c948"/>
+              <rect x="33" y="5.5" width="2.5" height="7" rx="1" fill="#f7c948"/>
             </svg>
             :t.icon==="clock"
             ?<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
