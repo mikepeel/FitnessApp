@@ -1023,23 +1023,25 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
       <SectionLabel C={C}>This Week</SectionLabel>
       {orderedDays.map((day,i)=>{
         const isToday=day.name===todayName;
-        // Find sessions completed this week for this specific day
-        const weekStart=new Date();
-        weekStart.setDate(weekStart.getDate()-weekStart.getDay()); // Sunday
-        weekStart.setHours(0,0,0,0);
-        const weekEnd=new Date(weekStart);
-        weekEnd.setDate(weekStart.getDate()+7);
-        const dayDateStr=weekStart.toISOString().split("T")[0]; // for isPast calc
-        const dayDOW=DOW.indexOf(day.name);
-        const doneSess=sessions.some(s=>{
-          if(!s.completedAt)return false;
-          const d=new Date(s.completedAt);
-          const inThisWeek=d>=weekStart&&d<weekEnd;
-          // Match by dayId OR by day name matching the session's day label
-          const matchesDay=s.dayId===day.id||s.dayLabel===day.label||
-            (s.completedAt&&DOW[d.getDay()]===day.name);
-          return inThisWeek&&matchesDay;
-        });
+
+        // ── Step 1: Calculate this day's exact calendar date this week ──
+        const todayMidnight=new Date();
+        todayMidnight.setHours(0,0,0,0);
+        const todayDOW=todayMidnight.getDay(); // 0=Sun
+        const dayDOW=DOW.indexOf(day.name);   // 0=Sun..6=Sat, full names match DOW[]
+        const calDate=new Date(todayMidnight);
+        calDate.setDate(todayMidnight.getDate()+(dayDOW-todayDOW));
+        const calDateStr=calDate.toISOString().split("T")[0]; // "2026-05-05"
+        const calDateDisplay=calDate.toLocaleDateString("en",{month:"short",day:"numeric"}); // "May 5"
+
+        // ── Step 2: Match history sessions on BOTH date AND workout label ──
+        // This mirrors exactly what History tab shows: completedAt date + dayLabel
+        const matchedSessions=sessions.filter(s=>
+          s.completedAt&&
+          s.completedAt.split("T")[0]===calDateStr&&
+          s.dayLabel===day.label
+        );
+        const doneSess=matchedSessions.length>0;
         const quotes=["The body achieves what the mind believes.","Rest is not quitting — it's the fuel for your comeback.","Champions are built in moments they want to quit.","Progress is progress, no matter how small.","Every rep is a promise kept to yourself.","Strong is earned, not given.","Your only competition is who you were yesterday.","The pain you feel today is the strength you feel tomorrow.","Discipline is choosing between what you want now and what you want most.","It never gets easier — you just get stronger.","One more rep. One more set. One more day.","The gym is proof that effort always pays off.","Show up. Do the work. Trust the process.","What you do today can improve all of your tomorrows.","Strive for progress, not perfection.","Push yourself because no one else is going to do it for you.","Small steps every day lead to big results.","Recovery is where the gains are made.","Rest today. Dominate tomorrow.","Your body can do it. It's your mind you have to convince.","Fall in love with the process and the results will come.","You don't find the will to win. You build it.","The only bad workout is the one that didn't happen.","Make yourself proud.","Earn it.","Sore today, strong tomorrow.","Suffer the pain of discipline or suffer the pain of regret.","Your future self is watching you right now.","Consistency over intensity. Every time.","One rep at a time. One day at a time.","Do something today your future self will thank you for.","Be stronger than your excuses.","The hardest lift is lifting yourself off the couch.","Train insane or remain the same.","Success starts with self-discipline.","You are one workout away from a good mood.","Sweat is just fat crying.","Wake up. Work out. Kick ass. Repeat.","Your health is an investment, not an expense.","The difference between try and triumph is a little umph.","Strength does not come from the body. It comes from the will.","Don't stop when you're tired. Stop when you're done.","When your legs get tired, run with your heart.","You didn't come this far to only come this far.","The clock is ticking. Are you becoming the person you want to be?","Motivation gets you started. Habit keeps you going.","Greatness is earned, never given.","You have to believe in yourself when no one else does.","Work hard in silence. Let success make the noise.","The body is capable of almost anything. Train the mind first.","Every champion was once a contender that refused to give up.","Believe you can and you're halfway there.","Results happen over time, not overnight. Stay consistent.","You are stronger than you think.","Set goals. Smash them. Repeat.","Take care of your body. It's the only place you have to live.","Train like a beast. Look like a beauty.","The best project you'll ever work on is you.","Doubt kills more dreams than failure ever will.","Excuses don't burn calories.","It always seems impossible until it's done.","Hard work beats talent when talent doesn't work hard.","If it doesn't challenge you, it doesn't change you.","Your only limit is your mind.","Becoming takes time. Give it time.","Hustle for that muscle.","You're not tired. You're uninspired. Find your why.","No shortcuts. No excuses. No regrets.","Show up every day and you will get better. That's a promise.","Commit to being uncomfortable.","Tough times never last. Tough people do.","Pain is temporary. Pride is forever.","You are what you do, not what you say you'll do.","Mental strength is just as important as physical strength.","Fitness is not about being better than someone else. It's about being better than you used to be.","Don't limit your challenges. Challenge your limits.","Do it now. Sometimes 'later' becomes 'never'.","Don't wish for it. Work for it.","Champions keep going when they don't have anything left.","Nothing worth having comes easy.","The hardest step is always the first one. Take it.","Strength is built in the moments you want to stop.","Eat clean. Train mean. Stay lean.","You don't have to be extreme. Just consistent.","A little progress each day adds up to big results.","Rest is part of the plan. So is showing back up.","Iron sharpens iron.","The grind never lies.","When in doubt, work out.","Your body hears everything your mind says. Be kind and be strong.","Legs are the foundation of everything. Never skip them.","The mirror doesn't lie. Neither does the gym.","Put in the reps. The results will follow.","Today is another chance to get stronger.","Every workout builds the person you're becoming.","Sleep. Eat. Train. Repeat.","Rest hard so you can train hard.","You are a work in progress, and that is something to be proud of.","One day or day one. You decide.","Prove yourself to yourself."];
         const dayOfYear=(d=>Math.floor((d-new Date(d.getFullYear(),0,0))/86400000))(new Date());
         const cycleSize=100;
@@ -1047,20 +1049,13 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
         const posInCycle=dayOfYear%cycleSize;
         const shuffled=[...quotes].sort((a,b)=>{const h=(s,n)=>{let v=n;for(let i=0;i<s.length;i++)v=((v<<5)-v)+s.charCodeAt(i);return v&v;};return h(a,cycleNum)-h(b,cycleNum);});
         const quote=shuffled[posInCycle%shuffled.length];
-        // Calculate volume for completed sessions on this day
+        // ── Step 3: Calculate volume from matched sessions ──
         const dayVol=doneSess?(()=>{
-          const daySess=sessions.filter(s=>{
-            if(!s.completedAt)return false;
-            const d=new Date(s.completedAt);
-            const inThisWeek=d>=weekStart&&d<weekEnd;
-            const matchesDay=s.dayId===day.id||s.dayLabel===day.label||DOW[d.getDay()]===day.name;
-            return inThisWeek&&matchesDay;
-          });
-          const vol=daySess.reduce((a,s)=>(a+(s.setsArr||[]).reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
-          const sets=daySess.reduce((a,s)=>(a+(s.setsArr||[]).length),0);
+          const vol=matchedSessions.reduce((a,s)=>(a+(s.setsArr||[]).reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
+          const sets=matchedSessions.reduce((a,s)=>(a+(s.setsArr||[]).length),0);
           return {vol,sets};
         })():null;
-        const isPast=!isToday&&dayDOW>=0&&dayDOW<new Date().getDay();
+        const isPast=!isToday&&dayDOW>=0&&dayDOW<todayDOW;
         return <div key={day.id} style={{background:isToday?C.neon+"0d":C.card,border:`2px solid ${isToday?C.neon:doneSess?C.neon+"55":C.border}`,borderRadius:10,padding:"13px 14px",marginBottom:8,opacity:day.isRest&&!isToday?.65:isPast&&!doneSess?.5:1,boxShadow:isToday?`0 0 12px ${C.neon}33`:"none",transition:"all .2s"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <div style={{flex:1}}>
@@ -1069,7 +1064,7 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
                 {isToday&&<Pill color={C.neon}>Today</Pill>}
                 {doneSess&&!isToday&&<Pill color={C.neon}>✓ Done</Pill>}
               </div>
-              <Mono style={{fontSize:11,color:C.muted}}>{day.name} . {day.tag}</Mono>
+              <Mono style={{fontSize:11,color:C.muted}}>{day.name} {calDateDisplay} · {day.tag}</Mono>
               {!day.isRest&&!doneSess&&<Mono style={{fontSize:11,color:C.muted,display:"block",marginTop:1}}>{day.exercises.length} exercises</Mono>}
               {doneSess&&dayVol&&dayVol.sets>0&&<Mono style={{fontSize:11,color:C.neon+"bb",display:"block",marginTop:4}}>{dayVol.sets} sets · {dayVol.vol>0?`${Math.round(dayVol.vol).toLocaleString()} lbs`:"logged"}</Mono>}
               {day.isRest&&isToday&&<div style={{fontSize:12,color:C.neon,fontStyle:"italic",marginTop:6,lineHeight:1.5}}>"{quote}"</div>}
