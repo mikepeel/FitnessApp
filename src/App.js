@@ -316,6 +316,218 @@ const PRESET_TEMPLATES = [
   }
 ];
 
+// -- EXERCISE LIBRARY (200 exercises) -----------------------------------------
+const EXERCISE_LIBRARY = [
+  // CHEST
+  {name:"Barbell Bench Press",muscle:"Chest",equipment:"Barbell",cue:"Tuck elbows 45°, touch chest, drive through full range"},
+  {name:"Incline Barbell Press",muscle:"Chest",equipment:"Barbell",cue:"Set bench 30-45°, same form as flat, upper chest focus"},
+  {name:"Decline Barbell Press",muscle:"Chest",equipment:"Barbell",cue:"Feet secured, natural arch, lower to lower chest"},
+  {name:"Reverse Grip Bench Press",muscle:"Chest",equipment:"Barbell",cue:"Supinated grip targets upper chest, use lighter load"},
+  {name:"Landmine Press",muscle:"Chest",equipment:"Barbell",cue:"Arc motion upward, shoulder-friendly chest activation"},
+  {name:"Dumbbell Bench Press",muscle:"Chest",equipment:"Dumbbell",cue:"Neutral grip at bottom, rotate to pronated at top"},
+  {name:"Incline Dumbbell Press",muscle:"Chest",equipment:"Dumbbell",cue:"30-45° bench, control descent, slight elbow flare"},
+  {name:"Decline Dumbbell Press",muscle:"Chest",equipment:"Dumbbell",cue:"Keep wrists stacked over elbows, pause at chest"},
+  {name:"Dumbbell Flye",muscle:"Chest",equipment:"Dumbbell",cue:"Maintain slight elbow bend, feel the stretch at bottom"},
+  {name:"Incline Dumbbell Flye",muscle:"Chest",equipment:"Dumbbell",cue:"Stretch upper pecs fully, squeeze hard at top"},
+  {name:"Dumbbell Squeeze Press",muscle:"Chest",equipment:"Dumbbell",cue:"Press DBs together throughout, maximizes peak contraction"},
+  {name:"Hex Press",muscle:"Chest",equipment:"Dumbbell",cue:"Keep DBs pressed together, squeeze throughout every rep"},
+  {name:"Cable Crossover",muscle:"Chest",equipment:"Cable",cue:"Lean slightly forward, bring hands together at hip level"},
+  {name:"Low-to-High Cable Fly",muscle:"Chest",equipment:"Cable",cue:"Cables set low, drive hands up and together for upper chest"},
+  {name:"High-to-Low Cable Fly",muscle:"Chest",equipment:"Cable",cue:"Cables overhead, sweep hands down and together"},
+  {name:"Cable Flye",muscle:"Chest",equipment:"Cable",cue:"Constant tension, slight elbow bend, slow negative"},
+  {name:"Cable Upper Chest Press",muscle:"Chest",equipment:"Cable",cue:"Cables set low, press at upward angle targeting upper chest"},
+  {name:"Pec Deck",muscle:"Chest",equipment:"Machine",cue:"Don't go past 90° at elbows, squeeze hard at center"},
+  {name:"Machine Chest Press",muscle:"Chest",equipment:"Machine",cue:"Seat at mid-chest height, full extension without locking"},
+  {name:"Incline Machine Press",muscle:"Chest",equipment:"Machine",cue:"Upper chest focus, keep elbows at 45° from body"},
+  {name:"Smith Machine Bench Press",muscle:"Chest",equipment:"Machine",cue:"Control the bar path precisely, pause at chest"},
+  {name:"Push-Up",muscle:"Chest",equipment:"Bodyweight",cue:"Hands slightly wider than shoulders, keep core braced"},
+  {name:"Wide-Grip Push-Up",muscle:"Chest",equipment:"Bodyweight",cue:"Extra chest stretch at bottom, slow the eccentric"},
+  {name:"Decline Push-Up",muscle:"Chest",equipment:"Bodyweight",cue:"Feet elevated on bench, targets upper chest more"},
+  {name:"Chest Dip",muscle:"Chest",equipment:"Bodyweight",cue:"Lean forward significantly, elbows flare slightly outward"},
+  {name:"Svend Press",muscle:"Chest",equipment:"Bodyweight",cue:"Squeeze plate together while pressing out, pure contraction"},
+  {name:"Resistance Band Press",muscle:"Chest",equipment:"Bodyweight",cue:"Band around back, variable resistance through full range"},
+  {name:"Diamond Push-Up",muscle:"Chest",equipment:"Bodyweight",cue:"Hands form diamond shape, inner chest and tricep emphasis"},
+  // BACK
+  {name:"Barbell Deadlift",muscle:"Back",equipment:"Barbell",cue:"Hip hinge, neutral spine, drive through floor explosively"},
+  {name:"Romanian Deadlift",muscle:"Back",equipment:"Barbell",cue:"Hips back, soft knees, bar stays close to the legs"},
+  {name:"Bent Over Barbell Row",muscle:"Back",equipment:"Barbell",cue:"Overhand grip, row to lower chest, squeeze shoulder blades"},
+  {name:"T-Bar Row",muscle:"Back",equipment:"Barbell",cue:"Neutral grip, chest on pad, drive elbows back hard"},
+  {name:"Rack Pull",muscle:"Back",equipment:"Barbell",cue:"Partial deadlift from knee height, overloads upper back"},
+  {name:"Seal Row",muscle:"Back",equipment:"Barbell",cue:"Chest on elevated bench, pure pull without body English"},
+  {name:"Meadows Row",muscle:"Back",equipment:"Barbell",cue:"Landmine attachment, single arm, excellent for thickness"},
+  {name:"Reverse Grip Barbell Row",muscle:"Back",equipment:"Barbell",cue:"Supinated grip shifts emphasis to lower lats"},
+  {name:"Single Arm Dumbbell Row",muscle:"Back",equipment:"Dumbbell",cue:"Brace on bench, pull elbow straight toward ceiling"},
+  {name:"Gorilla Row",muscle:"Back",equipment:"Dumbbell",cue:"Both DBs on floor, alternate rows, maintain hip hinge"},
+  {name:"Dumbbell Pullover",muscle:"Back",equipment:"Dumbbell",cue:"Arms nearly straight, feel the full lat stretch overhead"},
+  {name:"Wide-Grip Lat Pulldown",muscle:"Back",equipment:"Cable",cue:"Lean back slightly, pull bar to upper chest"},
+  {name:"Reverse Grip Lat Pulldown",muscle:"Back",equipment:"Cable",cue:"Supinated grip reduces elbow strain, better lat engagement"},
+  {name:"Close-Grip Lat Pulldown",muscle:"Back",equipment:"Cable",cue:"V-bar attachment, elbows track alongside the body"},
+  {name:"Seated Cable Row",muscle:"Back",equipment:"Cable",cue:"Drive elbows behind torso, hold 1-second squeeze at peak"},
+  {name:"Single Arm Cable Row",muscle:"Back",equipment:"Cable",cue:"Rotate torso slightly for full lat engagement"},
+  {name:"Cable Pullover",muscle:"Back",equipment:"Cable",cue:"Kneeling or standing, same lat stretch as dumbbell version"},
+  {name:"Face Pull",muscle:"Back",equipment:"Cable",cue:"High cable, rope attachment, pull to forehead with rotation"},
+  {name:"Straight Arm Pulldown",muscle:"Back",equipment:"Cable",cue:"Hinge forward, arms nearly straight, engage lats throughout"},
+  {name:"Rope Straight Arm Pulldown",muscle:"Back",equipment:"Cable",cue:"Same as bar version but rope allows more wrist freedom"},
+  {name:"Wide Grip Seated Row",muscle:"Back",equipment:"Cable",cue:"Bar attachment, wider grip targets upper back more"},
+  {name:"Kneeling Single Arm Pulldown",muscle:"Back",equipment:"Cable",cue:"Kneeling keeps body honest, isolates one side at a time"},
+  {name:"Pull-Up",muscle:"Back",equipment:"Bodyweight",cue:"Dead hang to chest at bar, full scapular retraction"},
+  {name:"Chin-Up",muscle:"Back",equipment:"Bodyweight",cue:"Supinated grip, biceps assist, full hang at bottom"},
+  {name:"Inverted Row",muscle:"Back",equipment:"Bodyweight",cue:"Bar at hip height, body straight, pull chest to bar"},
+  {name:"Hyperextension",muscle:"Back",equipment:"Bodyweight",cue:"Squeeze glutes at top, avoid hyperextending lower back"},
+  {name:"Back Extension (Weighted)",muscle:"Back",equipment:"Bodyweight",cue:"Hold plate at chest, smooth movement throughout range"},
+  {name:"Band Assisted Pull-Up",muscle:"Back",equipment:"Bodyweight",cue:"Band provides assistance at bottom, builds pull-up strength"},
+  {name:"Machine Row",muscle:"Back",equipment:"Machine",cue:"Chest pad for stability, drive elbows back fully"},
+  {name:"Assisted Pull-Up",muscle:"Back",equipment:"Machine",cue:"Use minimal assistance, full range dead hang to chin over"},
+  // SHOULDERS
+  {name:"Barbell Overhead Press",muscle:"Shoulders",equipment:"Barbell",cue:"Bar path in front of face, full lockout overhead"},
+  {name:"Seated Dumbbell Press",muscle:"Shoulders",equipment:"Dumbbell",cue:"Neutral or pronated grip, don't let shoulders shrug"},
+  {name:"Arnold Press",muscle:"Shoulders",equipment:"Dumbbell",cue:"Rotate from neutral to pronated as you press upward"},
+  {name:"Push Press",muscle:"Shoulders",equipment:"Barbell",cue:"Slight knee dip to initiate drive, lock out overhead"},
+  {name:"Dumbbell Lateral Raise",muscle:"Shoulders",equipment:"Dumbbell",cue:"Slight forward lean, lead with elbow, avoid momentum"},
+  {name:"Leaning Lateral Raise",muscle:"Shoulders",equipment:"Dumbbell",cue:"Hold rack and lean away, full stretch at bottom position"},
+  {name:"Dumbbell Front Raise",muscle:"Shoulders",equipment:"Dumbbell",cue:"Alternate arms, control descent, slight elbow bend"},
+  {name:"Plate Front Raise",muscle:"Shoulders",equipment:"Bodyweight",cue:"Hold plate by edges, raise to eye level, arms nearly straight"},
+  {name:"Rear Delt Flye",muscle:"Shoulders",equipment:"Dumbbell",cue:"Hinge forward, thumbs pointing down, lead with elbows"},
+  {name:"Band Pull-Apart",muscle:"Shoulders",equipment:"Bodyweight",cue:"Arms straight, pull band to chest level, rear delt focus"},
+  {name:"Cable Lateral Raise",muscle:"Shoulders",equipment:"Cable",cue:"Cross-body cable, constant tension through full range"},
+  {name:"Rear Delt Cable Fly",muscle:"Shoulders",equipment:"Cable",cue:"High pulley, cross-body pull, finish at temple level"},
+  {name:"Cable Face Pull",muscle:"Shoulders",equipment:"Cable",cue:"High cable, rope attachment, pull to forehead with rotation"},
+  {name:"Upright Row (Cable)",muscle:"Shoulders",equipment:"Cable",cue:"Narrow grip, elbows flare up past wrists to ear height"},
+  {name:"Y-Raise (Cable)",muscle:"Shoulders",equipment:"Cable",cue:"Low pulley, raise arms in Y shape, lower traps engaged"},
+  {name:"Machine Shoulder Press",muscle:"Shoulders",equipment:"Machine",cue:"Adjust seat so handles start at ear level"},
+  {name:"Machine Lateral Raise",muscle:"Shoulders",equipment:"Machine",cue:"Pause at top, slow 3-second negative for best results"},
+  {name:"Rear Delt Machine",muscle:"Shoulders",equipment:"Machine",cue:"Face down or seated, never skip for shoulder health"},
+  {name:"Smith Machine Shoulder Press",muscle:"Shoulders",equipment:"Machine",cue:"Controlled bar path, great for drop sets and volume"},
+  {name:"Barbell Shrug",muscle:"Shoulders",equipment:"Barbell",cue:"Straight up and down, no rolling, hold squeeze at top"},
+  {name:"Dumbbell Shrug",muscle:"Shoulders",equipment:"Dumbbell",cue:"Same principle as barbell, easier wrist position"},
+  {name:"Upright Row (Dumbbell)",muscle:"Shoulders",equipment:"Dumbbell",cue:"Same as barbell upright row, slightly easier on wrists"},
+  {name:"Bradford Press",muscle:"Shoulders",equipment:"Barbell",cue:"Alternate front and behind neck, shoulder mobility work"},
+  // BICEPS
+  {name:"Barbell Curl",muscle:"Biceps",equipment:"Barbell",cue:"Elbows pinned to sides, squeeze hard at top"},
+  {name:"EZ-Bar Curl",muscle:"Biceps",equipment:"Barbell",cue:"Angled grip reduces wrist strain, great for volume work"},
+  {name:"Preacher Curl",muscle:"Biceps",equipment:"Barbell",cue:"Don't lock out at bottom, keep constant tension on bicep"},
+  {name:"Reverse Curl",muscle:"Biceps",equipment:"Barbell",cue:"Pronated grip, forearm and brachialis emphasis"},
+  {name:"21s Curl",muscle:"Biceps",equipment:"Barbell",cue:"7 bottom-half, 7 top-half, 7 full reps for pump"},
+  {name:"Drag Curl",muscle:"Biceps",equipment:"Barbell",cue:"Drag bar up torso, elbows travel behind body at top"},
+  {name:"Wide-Grip Barbell Curl",muscle:"Biceps",equipment:"Barbell",cue:"Wider grip hits short head, full supination at top"},
+  {name:"Dumbbell Curl",muscle:"Biceps",equipment:"Dumbbell",cue:"Supinate wrist at top, control the negative fully"},
+  {name:"Hammer Curl",muscle:"Biceps",equipment:"Dumbbell",cue:"Neutral grip targets brachialis, builds arm thickness"},
+  {name:"Incline Dumbbell Curl",muscle:"Biceps",equipment:"Dumbbell",cue:"Greater stretch at bottom, excellent for developing peak"},
+  {name:"Concentration Curl",muscle:"Biceps",equipment:"Dumbbell",cue:"Elbow on inner thigh, no swinging, full squeeze at top"},
+  {name:"Spider Curl",muscle:"Biceps",equipment:"Dumbbell",cue:"Chest on incline bench, arms hang down, curl straight up"},
+  {name:"Cross-Body Hammer Curl",muscle:"Biceps",equipment:"Dumbbell",cue:"Curl across body, hits brachialis and brachioradialis"},
+  {name:"Zottman Curl",muscle:"Biceps",equipment:"Dumbbell",cue:"Curl supinated, lower pronated, works entire arm chain"},
+  {name:"Seated Alternating Curl",muscle:"Biceps",equipment:"Dumbbell",cue:"Full supination with each rep, keep upper arms still"},
+  {name:"Waiter Curl",muscle:"Biceps",equipment:"Dumbbell",cue:"Hold one DB vertically, elbows close together, curl up"},
+  {name:"Cable Curl",muscle:"Biceps",equipment:"Cable",cue:"Constant tension through full range, slow eccentric"},
+  {name:"Rope Hammer Curl",muscle:"Biceps",equipment:"Cable",cue:"Neutral grip on rope, keep elbows pinned to sides"},
+  {name:"High Cable Curl",muscle:"Biceps",equipment:"Cable",cue:"Cable at head height, focus on peak contraction"},
+  {name:"Bayesian Curl",muscle:"Biceps",equipment:"Cable",cue:"Cable behind body, full stretch at bottom position"},
+  {name:"Machine Curl",muscle:"Biceps",equipment:"Machine",cue:"Strict form, fully isolates bicep, excellent mind-muscle"},
+  {name:"Chin-Up (Bicep Focus)",muscle:"Biceps",equipment:"Bodyweight",cue:"Supinated grip, drive elbows down to lats, squeeze at top"},
+  {name:"Band Curl",muscle:"Biceps",equipment:"Bodyweight",cue:"Band under foot, constant tension from start to finish"},
+  // TRICEPS
+  {name:"Close-Grip Bench Press",muscle:"Triceps",equipment:"Barbell",cue:"Hands shoulder-width, elbows track close to body"},
+  {name:"Skull Crusher",muscle:"Triceps",equipment:"Barbell",cue:"Lower EZ-bar to forehead, elbows fixed, press back up"},
+  {name:"JM Press",muscle:"Triceps",equipment:"Barbell",cue:"Cross between skull crusher and close-grip, elbows angled"},
+  {name:"Overhead Tricep Extension (DB)",muscle:"Triceps",equipment:"Dumbbell",cue:"Both hands on DB, lower behind head, feel full stretch"},
+  {name:"Incline Tricep Extension",muscle:"Triceps",equipment:"Dumbbell",cue:"Elbow-friendly angle, emphasizes long head stretch"},
+  {name:"Tate Press",muscle:"Triceps",equipment:"Dumbbell",cue:"Lower DBs to chest with elbows pointing upward"},
+  {name:"Dumbbell Kickback",muscle:"Triceps",equipment:"Dumbbell",cue:"Elbow stays at hip height, fully extend arm behind body"},
+  {name:"Floor Press",muscle:"Triceps",equipment:"Dumbbell",cue:"Floor limits range of motion, targets lockout strength"},
+  {name:"Lying Tricep Extension",muscle:"Triceps",equipment:"Dumbbell",cue:"Arms perpendicular to floor, lower to temple level"},
+  {name:"Cable Rope Pressdown",muscle:"Triceps",equipment:"Cable",cue:"Flare rope at bottom, full extension, elbows at sides"},
+  {name:"Cable Bar Pressdown",muscle:"Triceps",equipment:"Cable",cue:"Overhand grip, lock elbows at sides throughout"},
+  {name:"Reverse Grip Pressdown",muscle:"Triceps",equipment:"Cable",cue:"Underhand grip, hits lateral head from a different angle"},
+  {name:"Overhead Cable Extension",muscle:"Triceps",equipment:"Cable",cue:"Face away from cable, extend fully overhead, full stretch"},
+  {name:"Single Arm Overhead Extension",muscle:"Triceps",equipment:"Cable",cue:"Elbow by ear, extend fully up, feel stretch at bottom"},
+  {name:"V-Bar Pressdown",muscle:"Triceps",equipment:"Cable",cue:"Fixed V-bar, elbows locked at sides, squeeze at bottom"},
+  {name:"Tricep Pushdown (Straight Bar)",muscle:"Triceps",equipment:"Cable",cue:"Pronated grip, lock elbows at sides, full extension"},
+  {name:"Cable Kickback",muscle:"Triceps",equipment:"Cable",cue:"Single arm, elbow pinned to side, extend fully behind"},
+  {name:"Tricep Dip",muscle:"Triceps",equipment:"Bodyweight",cue:"Stay upright, elbows close to body, don't flare forward"},
+  {name:"Bench Dip",muscle:"Triceps",equipment:"Bodyweight",cue:"Hands on bench, lower hips, elbows track straight back"},
+  {name:"Close-Grip Push-Up",muscle:"Triceps",equipment:"Bodyweight",cue:"Hands 6-8 inches apart, elbows track backward not outward"},
+  {name:"Diamond Push-Up",muscle:"Triceps",equipment:"Bodyweight",cue:"Hands form diamond, elbows flare back, tricep isolation"},
+  {name:"Machine Tricep Extension",muscle:"Triceps",equipment:"Machine",cue:"Consistent arc path, excellent for high-rep pump sets"},
+  // LEGS
+  {name:"Barbell Back Squat",muscle:"Legs",equipment:"Barbell",cue:"Bar on traps, depth to parallel or below, knees track toes"},
+  {name:"Front Squat",muscle:"Legs",equipment:"Barbell",cue:"Bar on front delts, upright torso, quad dominant pattern"},
+  {name:"Romanian Deadlift (Barbell)",muscle:"Legs",equipment:"Barbell",cue:"Hip hinge, bar stays close to body throughout movement"},
+  {name:"Good Morning",muscle:"Legs",equipment:"Barbell",cue:"Slight knee bend, hinge at hips, keep back flat throughout"},
+  {name:"Trap Bar Deadlift",muscle:"Legs",equipment:"Barbell",cue:"Neutral grip, center of gravity over heels and midfoot"},
+  {name:"Hip Thrust",muscle:"Legs",equipment:"Barbell",cue:"Shoulder blades on bench, drive hips up, squeeze glutes"},
+  {name:"Goblet Squat",muscle:"Legs",equipment:"Dumbbell",cue:"DB or KB at chest, heels slightly elevated if needed"},
+  {name:"Bulgarian Split Squat",muscle:"Legs",equipment:"Dumbbell",cue:"Rear foot elevated, forward knee tracks toe, stay upright"},
+  {name:"DB Romanian Deadlift",muscle:"Legs",equipment:"Dumbbell",cue:"Hips back, soft knees, DBs track down along quads"},
+  {name:"Box Step-Up",muscle:"Legs",equipment:"Dumbbell",cue:"Drive through the heel, controlled step-down movement"},
+  {name:"Dumbbell Lunge",muscle:"Legs",equipment:"Dumbbell",cue:"Step long enough so front shin stays vertical"},
+  {name:"Walking Lunge",muscle:"Legs",equipment:"Dumbbell",cue:"Continuous motion, keep posture upright, step through"},
+  {name:"Sumo Goblet Squat",muscle:"Legs",equipment:"Dumbbell",cue:"Wide stance, toes angled, inner thigh and glute emphasis"},
+  {name:"Side Lunge",muscle:"Legs",equipment:"Dumbbell",cue:"Wide lateral step, push hips back, drive through heel"},
+  {name:"Curtsy Lunge",muscle:"Legs",equipment:"Dumbbell",cue:"Cross rear leg behind, targets glutes from a new angle"},
+  {name:"Cable Pull-Through",muscle:"Legs",equipment:"Cable",cue:"Low pulley between legs, hip hinge, drive hips forward"},
+  {name:"Cable Glute Kickback",muscle:"Legs",equipment:"Cable",cue:"Ankle attachment, slow controlled extension, squeeze at top"},
+  {name:"Leg Press",muscle:"Legs",equipment:"Machine",cue:"High foot placement for glutes, don't lock knees fully"},
+  {name:"Hack Squat",muscle:"Legs",equipment:"Machine",cue:"Keeps torso more upright than free squat, quad focused"},
+  {name:"Leg Extension",muscle:"Legs",equipment:"Machine",cue:"Pause at top, don't use momentum, slow 3-second negative"},
+  {name:"Lying Leg Curl",muscle:"Legs",equipment:"Machine",cue:"Don't lift hips, curl heel toward glutes smoothly"},
+  {name:"Seated Leg Curl",muscle:"Legs",equipment:"Machine",cue:"Better hamstring stretch than lying version"},
+  {name:"Standing Calf Raise",muscle:"Legs",equipment:"Machine",cue:"Full range, pause at top and stretch at bottom position"},
+  {name:"Seated Calf Raise",muscle:"Legs",equipment:"Machine",cue:"Soleus emphasis, same pause principle, heavier loading"},
+  {name:"Smith Machine Squat",muscle:"Legs",equipment:"Machine",cue:"Feet slightly forward, great for controlled technique work"},
+  {name:"Pendulum Squat",muscle:"Legs",equipment:"Machine",cue:"Knees track perfectly, excellent for knee-sensitive trainees"},
+  {name:"Glute Bridge",muscle:"Legs",equipment:"Bodyweight",cue:"Feet flat, push through heels, hold squeeze at top"},
+  {name:"Donkey Kick",muscle:"Legs",equipment:"Bodyweight",cue:"Kick heel toward ceiling, squeeze glute fully at top"},
+  {name:"Nordic Curl",muscle:"Legs",equipment:"Bodyweight",cue:"Feet anchored, lower torso slowly, pure eccentric work"},
+  {name:"Sissy Squat",muscle:"Legs",equipment:"Bodyweight",cue:"Knees travel forward, deep stretch, hold support if needed"},
+  {name:"Cossack Squat",muscle:"Legs",equipment:"Bodyweight",cue:"Lateral squat, great for mobility and inner thigh strength"},
+  {name:"Box Jump",muscle:"Legs",equipment:"Bodyweight",cue:"Land softly with bent knees and hips, always step down"},
+  // ABS
+  {name:"Crunch",muscle:"Abs",equipment:"Bodyweight",cue:"Curl upper back off floor, exhale at top, don't pull neck"},
+  {name:"Decline Sit-Up",muscle:"Abs",equipment:"Bodyweight",cue:"Control descent, don't hyperextend at the bottom"},
+  {name:"Russian Twist",muscle:"Abs",equipment:"Bodyweight",cue:"Rotate torso not just arms, add plate for progression"},
+  {name:"Bicycle Crunch",muscle:"Abs",equipment:"Bodyweight",cue:"Slow and controlled beats fast and sloppy for obliques"},
+  {name:"Hanging Leg Raise",muscle:"Abs",equipment:"Bodyweight",cue:"No swinging, raise legs to 90°, lower very slowly"},
+  {name:"Hanging Knee Raise",muscle:"Abs",equipment:"Bodyweight",cue:"Round lower back at top for maximum lower ab engagement"},
+  {name:"Plank",muscle:"Abs",equipment:"Bodyweight",cue:"Neutral spine, squeeze glutes and abs, breathe normally"},
+  {name:"Side Plank",muscle:"Abs",equipment:"Bodyweight",cue:"Hips up, straight line from feet to head, oblique focus"},
+  {name:"Ab Wheel Rollout",muscle:"Abs",equipment:"Bodyweight",cue:"Brace abs before rolling out, don't let lower back sag"},
+  {name:"Hollow Hold",muscle:"Abs",equipment:"Bodyweight",cue:"Lower back pressed to floor, legs and shoulders off ground"},
+  {name:"V-Up",muscle:"Abs",equipment:"Bodyweight",cue:"Full body crunch, touch toes at top, control the descent"},
+  {name:"Flutter Kick",muscle:"Abs",equipment:"Bodyweight",cue:"Lower back pressed down, alternate leg raises, stay controlled"},
+  {name:"Dead Bug",muscle:"Abs",equipment:"Bodyweight",cue:"Opposite arm and leg extends, lower back stays flat throughout"},
+  {name:"Dragon Flag",muscle:"Abs",equipment:"Bodyweight",cue:"Advanced: whole body parallel to bench, slow negative"},
+  {name:"Side Crunch",muscle:"Abs",equipment:"Bodyweight",cue:"Lie on side, crunch elbow toward hip, oblique isolation"},
+  {name:"Toe-to-Bar",muscle:"Abs",equipment:"Bodyweight",cue:"From dead hang, raise straight legs to touch the bar"},
+  {name:"Machine Crunch",muscle:"Abs",equipment:"Machine",cue:"Cable stack enables progressive overload on abs"},
+  {name:"Captain's Chair Leg Raise",muscle:"Abs",equipment:"Machine",cue:"Supported version, press lower back into pad throughout"},
+  {name:"Cable Crunch",muscle:"Abs",equipment:"Cable",cue:"Round spine downward, contract abs not hip flexors"},
+  {name:"Wood Chop",muscle:"Abs",equipment:"Cable",cue:"Rotational movement, core drives the motion not the arms"},
+  {name:"Pallof Press",muscle:"Abs",equipment:"Cable",cue:"Anti-rotation press, resist cable pulling you sideways"},
+  {name:"Landmine Twist",muscle:"Abs",equipment:"Barbell",cue:"Arc bar side to side, rotate from hips and core"},
+  // CARDIO
+  {name:"Stair Stepper",muscle:"Cardio",equipment:"Machine",cue:"Upright posture, don't lean on rails, steady Zone 2 pace"},
+  {name:"Treadmill Walk",muscle:"Cardio",equipment:"Machine",cue:"3-4% incline, brisk pace, arms relaxed at sides"},
+  {name:"Treadmill Run",muscle:"Cardio",equipment:"Machine",cue:"Midfoot strike, relaxed shoulders, breathe rhythmically"},
+  {name:"Stationary Bike",muscle:"Cardio",equipment:"Machine",cue:"Seat height so knee has slight bend at bottom position"},
+  {name:"Rowing Machine",muscle:"Cardio",equipment:"Machine",cue:"Legs first, then lean, then pull — reverse on recovery"},
+  {name:"Elliptical",muscle:"Cardio",equipment:"Machine",cue:"Light grip on handles, upright posture, push with legs"},
+  {name:"Incline Treadmill Walk",muscle:"Cardio",equipment:"Machine",cue:"Hands-free, high incline, steady Zone 2 pace for fat burn"},
+  {name:"Battle Rope",muscle:"Cardio",equipment:"Machine",cue:"Hinge at hips slightly, create alternating waves"},
+  {name:"Sled Push",muscle:"Cardio",equipment:"Machine",cue:"Drive from hips, stay low, push through full leg extension"},
+  {name:"Assault Bike",muscle:"Cardio",equipment:"Machine",cue:"Max effort intervals or steady state, arms and legs work"},
+  {name:"Jump Rope",muscle:"Cardio",equipment:"Bodyweight",cue:"Land on balls of feet, arms close to body, small jumps"},
+  {name:"Burpee",muscle:"Cardio",equipment:"Bodyweight",cue:"Jump up explosively, land in plank position, controlled"},
+  {name:"Mountain Climber",muscle:"Cardio",equipment:"Bodyweight",cue:"Hips level, drive knees under chest, alternate rapidly"},
+  {name:"High Knees",muscle:"Cardio",equipment:"Bodyweight",cue:"Drive knees to hip height, arms pumping, stay on toes"},
+  {name:"Jumping Jack",muscle:"Cardio",equipment:"Bodyweight",cue:"Full arm extension overhead, legs wide at peak position"},
+  {name:"Sprint Intervals",muscle:"Cardio",equipment:"Bodyweight",cue:"Max effort 10-30 sec, full rest between, quality over quantity"},
+  {name:"Jump Squat",muscle:"Cardio",equipment:"Bodyweight",cue:"Squat down then explode upward, land softly and repeat"},
+  {name:"Step-Up Cardio",muscle:"Cardio",equipment:"Bodyweight",cue:"Fast-paced alternating step-ups for heart rate elevation"},
+  {name:"Bear Crawl",muscle:"Cardio",equipment:"Bodyweight",cue:"Knees off ground, opposite arm and leg move together"},
+  {name:"Kettlebell Swing",muscle:"Cardio",equipment:"Kettlebell",cue:"Hip hinge not squat, drive hips forward to propel bell"},
+];
+
 const DEFAULT_SETTINGS = {
   restTimer:true, restSeconds:90, prDetection:true, lastRef:true,
   deloadReminder:true, streakTracking:true, plateCalc:true,
@@ -1086,6 +1298,69 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
   </div>;
 }
 
+// -- EXERCISE LIBRARY MODAL ---------------------------------------------------
+function ExerciseLibraryModal({onSelect,onClose,C}){
+  const [query,setQuery]=useState("");
+  const [muscleFilter,setMuscleFilter]=useState(null);
+  const [tab,setTab]=useState("library");
+  const [custom,setCustom]=useState({name:"",sets:"3",reps:"10-12",note:"",muscle:""});
+  const muscles=["Chest","Back","Shoulders","Biceps","Triceps","Legs","Abs","Cardio"];
+  const equipColor={"Barbell":C.accent,"Dumbbell":C.neon,"Cable":C.gold,"Machine":C.muted,"Bodyweight":C.green,"Kettlebell":C.red};
+  const filtered=EXERCISE_LIBRARY.filter(e=>
+    (!muscleFilter||e.muscle===muscleFilter)&&
+    (!query||e.name.toLowerCase().includes(query.toLowerCase()))
+  );
+  return <Modal onClose={onClose} C={C}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+      <div style={{fontSize:16,fontWeight:700}}>Add Exercise</div>
+      <Btn variant="ghost" size="sm" onClick={onClose} C={C}>✕</Btn>
+    </div>
+    <div style={{display:"flex",gap:4,background:C.card,padding:3,borderRadius:8,marginBottom:12}}>
+      {[["library","Browse Library"],["custom","Custom"]].map(([k,label])=>(
+        <button key={k} onClick={()=>setTab(k)} style={{flex:1,padding:"7px",borderRadius:6,border:"none",background:tab===k?C.accent:"transparent",color:tab===k?"#fff":C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:11,cursor:"pointer",letterSpacing:"0.04em"}}>{label}</button>
+      ))}
+    </div>
+    {tab==="library"&&<div>
+      <input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search 200+ exercises..."
+        autoFocus
+        style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box",marginBottom:10,outline:"none"}}/>
+      <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:10}}>
+        <button onClick={()=>setMuscleFilter(null)} style={{padding:"5px 9px",borderRadius:5,border:`1px solid ${muscleFilter===null?C.accent+"66":C.border}`,background:muscleFilter===null?C.accent+"20":"transparent",color:muscleFilter===null?C.accent:C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:9,cursor:"pointer",letterSpacing:"0.06em"}}>ALL</button>
+        {muscles.map(m=>(
+          <button key={m} onClick={()=>setMuscleFilter(muscleFilter===m?null:m)} style={{padding:"5px 9px",borderRadius:5,border:`1px solid ${muscleFilter===m?C.accent+"66":C.border}`,background:muscleFilter===m?C.accent+"20":"transparent",color:muscleFilter===m?C.accent:C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:9,cursor:"pointer",letterSpacing:"0.06em"}}>{m.toUpperCase()}</button>
+        ))}
+      </div>
+      <Mono style={{fontSize:9,color:C.faint,display:"block",marginBottom:8,letterSpacing:"0.08em"}}>{filtered.length} EXERCISES</Mono>
+      {filtered.map((ex,i)=>(
+        <div key={i} onClick={()=>onSelect({name:ex.name,muscle:ex.muscle,sets:"3",reps:"10-12",note:ex.cue})}
+          style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",marginBottom:6,cursor:"pointer"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:13,fontWeight:600,marginBottom:3}}>{ex.name}</div>
+              <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:5,lineHeight:1.4}}>{ex.cue}</Mono>
+              <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                <Pill color={C.accent}>{ex.muscle}</Pill>
+                <Pill color={equipColor[ex.equipment]||C.faint}>{ex.equipment}</Pill>
+              </div>
+            </div>
+            <div style={{color:C.neon,fontSize:20,fontWeight:300,flexShrink:0,paddingTop:2}}>+</div>
+          </div>
+        </div>
+      ))}
+    </div>}
+    {tab==="custom"&&<div>
+      {[["Exercise Name","name"],["Sets","sets"],["Reps","reps"],["Muscle Group","muscle"],["Note / Cue","note"]].map(([label,key])=>(
+        <div key={key} style={{marginBottom:10}}>
+          <SectionLabel C={C}>{label}</SectionLabel>
+          <input value={custom[key]||""} onChange={e=>setCustom(p=>({...p,[key]:e.target.value}))}
+            style={{width:"100%",padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:14,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
+        </div>
+      ))}
+      <Btn style={{width:"100%",marginTop:6}} C={C} onClick={()=>{if(custom.name.trim())onSelect(custom);}} disabled={!custom.name.trim()}>Add Exercise</Btn>
+    </div>}
+  </Modal>;
+}
+
 // -- WORKOUT SESSION -----------------------------------------------------------
 function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,savePlans,onFinish,onCancel,C}){
   const [exercises,setExercises]=useState(workout.exercises||[]);
@@ -1334,11 +1609,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
     {swapModal&&<SwapExerciseModal exercise={swapModal} onSwap={(newData)=>swapExercise(swapModal,newData)} onClose={()=>setSwapModal(null)} C={C}/>}
 
     {/* Add exercise modal */}
-    {addExModal&&<Modal onClose={()=>setAddExModal(false)} C={C}>
-      <div style={{fontSize:16,fontWeight:700,marginBottom:16}}>Add Exercise</div>
-      <ExerciseForm title="" initial={{name:"",sets:"3",reps:"10-12",note:"",muscle:""}}
-        onSave={addExercise} onClose={()=>setAddExModal(false)} isNew C={C}/>
-    </Modal>}
+    {addExModal&&<ExerciseLibraryModal onSelect={addExercise} onClose={()=>setAddExModal(false)} C={C}/>}
 
     {/* Edit exercise modal */}
     {editExModal&&<Modal onClose={()=>setEditExModal(null)} C={C}>
@@ -1660,7 +1931,7 @@ No explanation, no markdown, just the JSON array.`;
 
     {/* MODALS */}
     {editEx&&<Modal onClose={()=>setEditEx(null)} C={C}><ExerciseForm title="Edit Exercise" initial={editEx.ex} onSave={ex=>{saveExercise(editEx.dayId,ex);setEditEx(null);}} onClose={()=>setEditEx(null)} C={C}/></Modal>}
-    {addExDay&&<Modal onClose={()=>setAddExDay(null)} C={C}><ExerciseForm title="Add Exercise" initial={{name:"",sets:"3",reps:"10-12",note:"",muscle:""}} onSave={ex=>{addExercise(addExDay,ex);setAddExDay(null);}} onClose={()=>setAddExDay(null)} isNew C={C}/></Modal>}
+    {addExDay&&<ExerciseLibraryModal onSelect={ex=>{addExercise(addExDay,ex);setAddExDay(null);}} onClose={()=>setAddExDay(null)} C={C}/>}
     {addDayModal&&<Modal onClose={()=>setAddDayModal(false)} C={C}><DayForm onSave={addDay} onClose={()=>setAddDayModal(false)} C={C}/></Modal>}
     {deletingDay&&<Modal onClose={()=>setDeletingDay(null)} C={C}>
       <div style={{textAlign:"center",padding:"10px 0"}}>
