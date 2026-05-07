@@ -822,7 +822,7 @@ export default function ForgeApp(){
   const tabs=[
     {key:"today",icon:"dumbbell",label:"Workout"},
     {key:"plan",icon:"▦",label:"Plan"},
-    {key:"log",icon:"◈",label:"History"},
+    {key:"log",icon:"clock",label:"History"},
     {key:"stats",icon:"↗",label:"Stats"},
     {key:"more",icon:"⊙",label:"More"},
   ];
@@ -892,6 +892,12 @@ export default function ForgeApp(){
               <ellipse cx="110" cy="30" rx="5" ry="18" fill="#906000"/>
               <ellipse cx="110" cy="30" rx="4.2" ry="16" fill="url(#dbn)"/>
               <ellipse cx="106" cy="30" rx="3.5" ry="13" fill="#c88010"/>
+            </svg>
+            :t.icon==="clock"
+            ?<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
+              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" fill="none"/>
+              <line x1="12" y1="7" x2="12" y2="12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+              <line x1="12" y1="12" x2="15.5" y2="14.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
             </svg>
             :<span style={{fontSize:18,lineHeight:1}}>{t.icon}</span>}
           {t.label}
@@ -1013,8 +1019,9 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
       {orderedDays.map((day,i)=>{
         const isToday=day.name===todayName;
         const doneSess=sessions.some(s=>s.dayId===day.id&&s.completedAt?.startsWith(new Date().toISOString().split("T")[0]));
-        const quotes=["The body achieves what the mind believes.","Rest is not quitting — it's the fuel for your comeback.","Champions are built in moments they want to quit.","Progress is progress, no matter how small.","Every rep is a promise kept to yourself.","Strong is earned, not given.","Your only competition is who you were yesterday."];
-        const quote=quotes[(new Date().getDate()+i)%quotes.length];
+        const quotes=["The body achieves what the mind believes.","Rest is not quitting — it's the fuel for your comeback.","Champions are built in moments they want to quit.","Progress is progress, no matter how small.","Every rep is a promise kept to yourself.","Strong is earned, not given.","Your only competition is who you were yesterday.","The pain you feel today is the strength you feel tomorrow.","Discipline is choosing between what you want now and what you want most.","It never gets easier — you just get stronger.","One more rep. One more set. One more day.","The gym is proof that effort always pays off.","Show up. Do the work. Trust the process.","What you do today can improve all of your tomorrows.","Strive for progress, not perfection.","Push yourself because no one else is going to do it for you.","Small steps every day lead to big results.","Recovery is where the gains are made.","Rest today. Dominate tomorrow.","Your body can do it. It's your mind you have to convince."];
+        const dayOfYear=(d=>Math.floor((d-new Date(d.getFullYear(),0,0))/86400000))(new Date());
+        const quote=quotes[dayOfYear%quotes.length];
         return <div key={day.id} style={{background:isToday?C.neon+"0d":C.card,border:`2px solid ${isToday?C.neon:C.border}`,borderRadius:10,padding:"13px 14px",marginBottom:8,opacity:day.isRest&&!isToday?.65:1,boxShadow:isToday?`0 0 12px ${C.neon}33`:"none",transition:"all .2s"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <div style={{flex:1}}>
@@ -1848,6 +1855,45 @@ function HistoryTab({sessions,saveSessions,savePRs,prs,C,onRerun}){
   const [editingSession,setEditingSession]=useState(null);
   const [confirmDelete,setConfirmDelete]=useState(null);
   const [showDebug,setShowDebug]=useState(false);
+  const [addingSession,setAddingSession]=useState(false);
+  const [manualSession,setManualSession]=useState({
+    dayLabel:"",date:new Date().toISOString().split("T")[0],
+    duration:"",notes:"",
+    exercises:[{name:"",sets:"3",reps:"10",weight:""}]
+  });
+
+  function saveManualSession(){
+    if(!manualSession.dayLabel){return;}
+    const dt=manualSession.date+"T12:00:00.000Z";
+    const setsArr=manualSession.exercises
+      .filter(e=>e.name)
+      .flatMap(e=>Array.from({length:parseInt(e.sets)||1},(_,si)=>({
+        exName:e.name, setNum:si+1,
+        weight:parseFloat(e.weight)||0,
+        reps:parseInt(e.reps)||0,
+        muscle:"", isPR:false
+      })));
+    const setsMap={};
+    manualSession.exercises.filter(e=>e.name).forEach(e=>{
+      setsMap[e.name]=Array.from({length:parseInt(e.sets)||1},(_,si)=>({
+        setNum:si+1, weight:e.weight, reps:e.reps, done:true
+      }));
+    });
+    const newSess={
+      id:Date.now().toString(),
+      dayId:"manual_"+Date.now(),
+      dayLabel:manualSession.dayLabel,
+      startedAt:dt, completedAt:dt,
+      notes:manualSession.notes,
+      rating:0, sets:setsMap, setsArr,
+      manual:true
+    };
+    const updated=[newSess,...sessions].sort((a,b)=>new Date(b.completedAt)-new Date(a.completedAt));
+    saveSessions(updated);
+    recalcPRs(updated);
+    setAddingSession(false);
+    setManualSession({dayLabel:"",date:new Date().toISOString().split("T")[0],duration:"",notes:"",exercises:[{name:"",sets:"3",reps:"10",weight:""}]});
+  }
 
   function recalcPRs(updatedSessions){
     const newPRs={};
@@ -1893,9 +1939,10 @@ function HistoryTab({sessions,saveSessions,savePRs,prs,C,onRerun}){
           <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>Workout History</div>
           <Mono style={{fontSize:11,color:C.muted}}>{sorted.length} sessions . {Object.keys(grouped).length} months</Mono>
         </div>
-        <Btn size="sm" variant="ghost" C={C} onClick={()=>setShowDebug(d=>!d)} style={{fontSize:10}}>
-          {showDebug?"Hide":"Debug"}
-        </Btn>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          <Btn size="sm" C={C} onClick={()=>setAddingSession(a=>!a)} style={{background:C.neon,color:"#fff",fontWeight:700}}>+ Log Session</Btn>
+          <Btn size="sm" variant="ghost" C={C} onClick={()=>setShowDebug(d=>!d)} style={{fontSize:10}}>{showDebug?"Hide":"Debug"}</Btn>
+        </div>
       </div>
       {showDebug&&<div style={{marginTop:12,background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"12px"}}>
         <SectionLabel C={C}>Storage Diagnostic</SectionLabel>
@@ -1921,6 +1968,59 @@ ${raw.slice(0,500)}...`:"No sessions found");
         </Btn>
       </div>}
     </div>
+
+    {/* Manual Session Logger Modal */}
+    {addingSession&&<div style={{margin:"12px 18px 0",background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"16px"}}>
+      <div style={{fontSize:15,fontWeight:700,marginBottom:14}}>Log a Workout</div>
+      <div style={{marginBottom:10}}>
+        <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:4}}>WORKOUT NAME</Mono>
+        <input value={manualSession.dayLabel} onChange={e=>setManualSession(p=>({...p,dayLabel:e.target.value}))}
+          placeholder="e.g. Chest & Triceps"
+          style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
+      </div>
+      <div style={{marginBottom:10}}>
+        <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:4}}>DATE</Mono>
+        <input type="date" value={manualSession.date} onChange={e=>setManualSession(p=>({...p,date:e.target.value}))}
+          style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
+      </div>
+      <div style={{marginBottom:12}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+          <Mono style={{fontSize:10,color:C.muted}}>EXERCISES (optional)</Mono>
+          <button onClick={()=>setManualSession(p=>({...p,exercises:[...p.exercises,{name:"",sets:"3",reps:"10",weight:""}]}))}
+            style={{background:"transparent",border:"none",color:C.neon,cursor:"pointer",fontSize:12,fontFamily:"'SF Mono','Courier New',monospace"}}>+ Add Exercise</button>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr auto",gap:5,marginBottom:4}}>
+          {["Exercise","Sets","Reps","lbs",""].map(h=><Mono key={h} style={{fontSize:9,color:C.faint,textAlign:"center"}}>{h}</Mono>)}
+        </div>
+        {manualSession.exercises.map((ex,ei)=>(
+          <div key={ei} style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr auto",gap:5,marginBottom:6,alignItems:"center"}}>
+            <input value={ex.name} onChange={e=>setManualSession(p=>({...p,exercises:p.exercises.map((x,i)=>i===ei?{...x,name:e.target.value}:x)}))}
+              placeholder="Exercise name" style={{padding:"7px 8px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,color:C.text,fontSize:12,fontFamily:"'SF Mono','Courier New',monospace"}}/>
+            <input value={ex.sets} onChange={e=>setManualSession(p=>({...p,exercises:p.exercises.map((x,i)=>i===ei?{...x,sets:e.target.value}:x)}))}
+              style={{padding:"7px 4px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,color:C.text,fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"center"}}/>
+            <input value={ex.reps} onChange={e=>setManualSession(p=>({...p,exercises:p.exercises.map((x,i)=>i===ei?{...x,reps:e.target.value}:x)}))}
+              style={{padding:"7px 4px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,color:C.text,fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"center"}}/>
+            <input value={ex.weight} onChange={e=>setManualSession(p=>({...p,exercises:p.exercises.map((x,i)=>i===ei?{...x,weight:e.target.value}:x)}))}
+              style={{padding:"7px 4px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,color:C.text,fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"center"}}/>
+            {manualSession.exercises.length>1
+              ?<button onClick={()=>setManualSession(p=>({...p,exercises:p.exercises.filter((_,i)=>i!==ei)}))}
+                style={{background:"transparent",border:"none",color:C.red,cursor:"pointer",fontSize:14,padding:"0 2px"}}>✕</button>
+              :<span/>}
+          </div>
+        ))}
+      </div>
+      <div style={{marginBottom:14}}>
+        <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:4}}>NOTES (optional)</Mono>
+        <textarea value={manualSession.notes} onChange={e=>setManualSession(p=>({...p,notes:e.target.value}))}
+          placeholder="How did it go?"
+          style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box",resize:"none",height:56}}/>
+      </div>
+      <div style={{display:"flex",gap:8}}>
+        <Btn C={C} style={{flex:1,background:C.neon,color:"#fff",fontWeight:700}} onClick={saveManualSession}>Save Session</Btn>
+        <Btn C={C} variant="ghost" style={{flex:1}} onClick={()=>setAddingSession(false)}>Cancel</Btn>
+      </div>
+    </div>}
+
     <div style={{padding:"14px 18px"}}>
       {sorted.length===0&&<div style={{textAlign:"center",padding:"40px 20px"}}><div style={{color:C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:13,marginBottom:12}}>No sessions found in your log.</div><div style={{fontSize:12,color:C.faint,fontFamily:"'SF Mono','Courier New',monospace",lineHeight:1.7}}>If you completed a workout and don't see it here,<br/>tap Debug above to inspect your storage.</div></div>}
       {Object.entries(grouped).map(([month,msess])=>(
