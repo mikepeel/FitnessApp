@@ -335,7 +335,7 @@ function Toggle({on,onToggle,C}){
 }
 
 function Pill({children,color,style={}}){
-  return <span style={{fontSize:9,fontFamily:"'SF Mono','Courier New',monospace",background:color+"20",color,padding:"2px 8px",borderRadius:3,letterSpacing:"0.1em",textTransform:"uppercase",fontWeight:700,border:`1px solid ${color}40`,...style}}>{children}</span>;
+  return <span style={{fontSize:9,fontFamily:"'SF Mono','Courier New',monospace",background:color+"20",color,padding:"2px 10px 2px 8px",borderRadius:3,letterSpacing:"0.1em",textTransform:"uppercase",fontWeight:700,border:`1px solid ${color}40`,...style}}>{children}</span>;
 }
 
 function Btn({children,onClick,variant="primary",size="md",style={},disabled=false,C}){
@@ -821,7 +821,7 @@ export default function ForgeApp(){
 
   const tabs=[
     {key:"today",icon:"dumbbell",label:"Workout"},
-    {key:"plan",icon:"▦",label:"Plan"},
+    {key:"plan",icon:"notebook",label:"Plan"},
     {key:"log",icon:"clock",label:"History"},
     {key:"stats",icon:"↗",label:"Stats"},
     {key:"more",icon:"gear",label:"Settings"},
@@ -903,6 +903,14 @@ export default function ForgeApp(){
             ?<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
               <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" fill="none"/>
               <path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+            </svg>
+            :t.icon==="notebook"
+            ?<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
+              <rect x="4" y="2" width="14" height="20" rx="2" stroke="currentColor" strokeWidth="1.8" fill="none"/>
+              <line x1="8" y1="2" x2="8" y2="22" stroke="currentColor" strokeWidth="1.8"/>
+              <line x1="11" y1="7" x2="15" y2="7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              <line x1="11" y1="11" x2="15" y2="11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              <line x1="11" y1="15" x2="15" y2="15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
             :<span style={{fontSize:18,lineHeight:1}}>{t.icon}</span>}
           {t.label}
@@ -1975,9 +1983,9 @@ function HistoryTab({sessions,saveSessions,savePRs,prs,C,onRerun}){
           <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>Workout History</div>
           <Mono style={{fontSize:11,color:C.muted}}>{sorted.length} sessions . {Object.keys(grouped).length} months</Mono>
         </div>
-        <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          <Btn size="sm" C={C} onClick={()=>setAddingSession(a=>!a)} style={{background:C.neon,color:"#fff",fontWeight:700}}>+ Log Session</Btn>
+        <div style={{display:"flex",gap:6,alignItems:"center",marginTop:2}}>
           <Btn size="sm" variant="ghost" C={C} onClick={()=>setShowDebug(d=>!d)} style={{fontSize:10}}>{showDebug?"Hide":"Debug"}</Btn>
+          <Btn size="sm" C={C} onClick={()=>setAddingSession(a=>!a)} style={{background:C.neon,color:"#fff",fontWeight:700,padding:"6px 10px",fontSize:11}}>+ Log</Btn>
         </div>
       </div>
       {showDebug&&<div style={{marginTop:12,background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"12px"}}>
