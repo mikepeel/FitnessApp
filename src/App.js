@@ -43,7 +43,7 @@ const THEMES = {
     bg:"#161b22", surface:"#1e2530", card:"#252d3a", border:"#3a4456",
     accent:"#4f8ef7", neon:"#3ecf8e", red:"#f06584", gold:"#f7c948",
     blue:"#4f8ef7", green:"#3ecf8e", danger:"#f06584",
-    text:"#e8edf4", muted:"#8a96a8", faint:"#4a5568", cardText:"#f2f5fa",
+    text:"#e8edf4", muted:"#b0bac8", faint:"#6a7585", cardText:"#f2f5fa",
     mono:"'SF Mono','Courier New',monospace",
     serif:"'Georgia','Times New Roman',serif",
     navBg:"#1a2130", gradTop:"linear-gradient(135deg,#4f8ef715 0%,#3ecf8e08 100%)",
@@ -52,7 +52,7 @@ const THEMES = {
     bg:"#f7f9fc", surface:"#ffffff", card:"#ffffff", border:"#e2e8f0",
     accent:"#4f8ef7", neon:"#0ea66e", red:"#e53e6a", gold:"#d4a017",
     blue:"#4f8ef7", green:"#0ea66e", danger:"#e53e6a",
-    text:"#1a202c", muted:"#64748b", faint:"#94a3b8", cardText:"#0d1117",
+    text:"#1a202c", muted:"#3d4f63", faint:"#7a8fa8", cardText:"#0d1117",
     mono:"'SF Mono','Courier New',monospace",
     serif:"'Georgia','Times New Roman',serif",
     navBg:"#ffffff", gradTop:"linear-gradient(135deg,#4f8ef710 0%,#0ea66e08 100%)",
@@ -824,7 +824,7 @@ export default function ForgeApp(){
     {key:"plan",icon:"▦",label:"Plan"},
     {key:"log",icon:"clock",label:"History"},
     {key:"stats",icon:"↗",label:"Stats"},
-    {key:"more",icon:"⊙",label:"More"},
+    {key:"more",icon:"gear",label:"Settings"},
   ];
 
   // Show loading spinner while checking auth
@@ -898,6 +898,11 @@ export default function ForgeApp(){
               <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" fill="none"/>
               <line x1="12" y1="7" x2="12" y2="12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
               <line x1="12" y1="12" x2="15.5" y2="14.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+            </svg>
+            :t.icon==="gear"
+            ?<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
+              <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" fill="none"/>
+              <path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
             </svg>
             :<span style={{fontSize:18,lineHeight:1}}>{t.icon}</span>}
           {t.label}
@@ -1019,22 +1024,36 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
       {orderedDays.map((day,i)=>{
         const isToday=day.name===todayName;
         const doneSess=sessions.some(s=>s.dayId===day.id&&s.completedAt?.startsWith(new Date().toISOString().split("T")[0]));
-        const quotes=["The body achieves what the mind believes.","Rest is not quitting — it's the fuel for your comeback.","Champions are built in moments they want to quit.","Progress is progress, no matter how small.","Every rep is a promise kept to yourself.","Strong is earned, not given.","Your only competition is who you were yesterday.","The pain you feel today is the strength you feel tomorrow.","Discipline is choosing between what you want now and what you want most.","It never gets easier — you just get stronger.","One more rep. One more set. One more day.","The gym is proof that effort always pays off.","Show up. Do the work. Trust the process.","What you do today can improve all of your tomorrows.","Strive for progress, not perfection.","Push yourself because no one else is going to do it for you.","Small steps every day lead to big results.","Recovery is where the gains are made.","Rest today. Dominate tomorrow.","Your body can do it. It's your mind you have to convince."];
+        const quotes=["The body achieves what the mind believes.","Rest is not quitting — it's the fuel for your comeback.","Champions are built in moments they want to quit.","Progress is progress, no matter how small.","Every rep is a promise kept to yourself.","Strong is earned, not given.","Your only competition is who you were yesterday.","The pain you feel today is the strength you feel tomorrow.","Discipline is choosing between what you want now and what you want most.","It never gets easier — you just get stronger.","One more rep. One more set. One more day.","The gym is proof that effort always pays off.","Show up. Do the work. Trust the process.","What you do today can improve all of your tomorrows.","Strive for progress, not perfection.","Push yourself because no one else is going to do it for you.","Small steps every day lead to big results.","Recovery is where the gains are made.","Rest today. Dominate tomorrow.","Your body can do it. It's your mind you have to convince.","Fall in love with the process and the results will come.","You don't find the will to win. You build it.","The only bad workout is the one that didn't happen.","Make yourself proud.","Earn it.","Sore today, strong tomorrow.","Suffer the pain of discipline or suffer the pain of regret.","Your future self is watching you right now.","Consistency over intensity. Every time.","One rep at a time. One day at a time.","Do something today your future self will thank you for.","Be stronger than your excuses.","The hardest lift is lifting yourself off the couch.","Train insane or remain the same.","Success starts with self-discipline.","You are one workout away from a good mood.","Sweat is just fat crying.","Wake up. Work out. Kick ass. Repeat.","Your health is an investment, not an expense.","The difference between try and triumph is a little umph.","Strength does not come from the body. It comes from the will.","Don't stop when you're tired. Stop when you're done.","When your legs get tired, run with your heart.","You didn't come this far to only come this far.","The clock is ticking. Are you becoming the person you want to be?","Motivation gets you started. Habit keeps you going.","Greatness is earned, never given.","You have to believe in yourself when no one else does.","Work hard in silence. Let success make the noise.","The body is capable of almost anything. Train the mind first.","Every champion was once a contender that refused to give up.","Believe you can and you're halfway there.","Results happen over time, not overnight. Stay consistent.","You are stronger than you think.","Set goals. Smash them. Repeat.","Take care of your body. It's the only place you have to live.","Train like a beast. Look like a beauty.","The best project you'll ever work on is you.","Doubt kills more dreams than failure ever will.","Excuses don't burn calories.","It always seems impossible until it's done.","Hard work beats talent when talent doesn't work hard.","If it doesn't challenge you, it doesn't change you.","Your only limit is your mind.","Becoming takes time. Give it time.","Hustle for that muscle.","You're not tired. You're uninspired. Find your why.","No shortcuts. No excuses. No regrets.","Show up every day and you will get better. That's a promise.","Commit to being uncomfortable.","Tough times never last. Tough people do.","Pain is temporary. Pride is forever.","You are what you do, not what you say you'll do.","Mental strength is just as important as physical strength.","Fitness is not about being better than someone else. It's about being better than you used to be.","Don't limit your challenges. Challenge your limits.","Do it now. Sometimes 'later' becomes 'never'.","Don't wish for it. Work for it.","Champions keep going when they don't have anything left.","Nothing worth having comes easy.","The hardest step is always the first one. Take it.","Strength is built in the moments you want to stop.","Eat clean. Train mean. Stay lean.","You don't have to be extreme. Just consistent.","A little progress each day adds up to big results.","Rest is part of the plan. So is showing back up.","Iron sharpens iron.","The grind never lies.","When in doubt, work out.","Your body hears everything your mind says. Be kind and be strong.","Legs are the foundation of everything. Never skip them.","The mirror doesn't lie. Neither does the gym.","Put in the reps. The results will follow.","Today is another chance to get stronger.","Every workout builds the person you're becoming.","Sleep. Eat. Train. Repeat.","Rest hard so you can train hard.","You are a work in progress, and that is something to be proud of.","One day or day one. You decide.","Prove yourself to yourself."];
         const dayOfYear=(d=>Math.floor((d-new Date(d.getFullYear(),0,0))/86400000))(new Date());
-        const quote=quotes[dayOfYear%quotes.length];
-        return <div key={day.id} style={{background:isToday?C.neon+"0d":C.card,border:`2px solid ${isToday?C.neon:C.border}`,borderRadius:10,padding:"13px 14px",marginBottom:8,opacity:day.isRest&&!isToday?.65:1,boxShadow:isToday?`0 0 12px ${C.neon}33`:"none",transition:"all .2s"}}>
+        const cycleSize=100;
+        const cycleNum=Math.floor(dayOfYear/cycleSize);
+        const posInCycle=dayOfYear%cycleSize;
+        const shuffled=[...quotes].sort((a,b)=>{const h=(s,n)=>{let v=n;for(let i=0;i<s.length;i++)v=((v<<5)-v)+s.charCodeAt(i);return v&v;};return h(a,cycleNum)-h(b,cycleNum);});
+        const quote=shuffled[posInCycle%shuffled.length];
+        // Calculate volume for completed sessions on this day
+        const dayVol=doneSess?(()=>{
+          const todaySess=sessions.filter(s=>s.dayId===day.id&&s.completedAt?.startsWith(new Date().toISOString().split("T")[0]));
+          const vol=todaySess.reduce((a,s)=>(a+(s.setsArr||[]).reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
+          const sets=todaySess.reduce((a,s)=>(a+(s.setsArr||[]).length),0);
+          return {vol,sets};
+        })():null;
+        const isPast=!isToday&&(()=>{const days=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];const todayIdx=days.indexOf(todayName);const dayIdx=days.indexOf(day.name);return dayIdx<todayIdx;})();
+        return <div key={day.id} style={{background:isToday?C.neon+"0d":C.card,border:`2px solid ${isToday?C.neon:doneSess?C.neon+"55":C.border}`,borderRadius:10,padding:"13px 14px",marginBottom:8,opacity:day.isRest&&!isToday?.65:isPast&&!doneSess?.5:1,boxShadow:isToday?`0 0 12px ${C.neon}33`:"none",transition:"all .2s"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <div style={{flex:1}}>
               <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:2}}>
                 <span style={{fontSize:15,fontWeight:600,color:C.cardText||C.text}}>{day.label}</span>
                 {isToday&&<Pill color={C.neon}>Today</Pill>}
-                {doneSess&&<Pill color={C.neon}>✓</Pill>}
+                {doneSess&&!isToday&&<Pill color={C.neon}>✓ Done</Pill>}
               </div>
-              <Mono style={{fontSize:11,color:C.cardText||C.text,opacity:0.7}}>{day.name} . {day.tag}</Mono>
-              {!day.isRest&&<Mono style={{fontSize:11,color:C.cardText||C.text,opacity:0.6,display:"block",marginTop:1}}>{day.exercises.length} exercises</Mono>}
+              <Mono style={{fontSize:11,color:C.muted}}>{day.name} . {day.tag}</Mono>
+              {!day.isRest&&!doneSess&&<Mono style={{fontSize:11,color:C.muted,display:"block",marginTop:1}}>{day.exercises.length} exercises</Mono>}
+              {doneSess&&dayVol&&dayVol.sets>0&&<Mono style={{fontSize:11,color:C.neon+"bb",display:"block",marginTop:4}}>{dayVol.sets} sets · {dayVol.vol>0?`${Math.round(dayVol.vol).toLocaleString()} lbs`:"logged"}</Mono>}
               {day.isRest&&isToday&&<div style={{fontSize:12,color:C.neon,fontStyle:"italic",marginTop:6,lineHeight:1.5}}>"{quote}"</div>}
             </div>
-            {!day.isRest&&<Btn onClick={()=>onStart(day)} size="sm" C={C} style={{marginLeft:10,background:C.neon,color:"#fff",fontWeight:700,letterSpacing:"0.1em"}}>START</Btn>}
+            {!day.isRest&&!doneSess&&<Btn onClick={()=>onStart(day)} size="sm" C={C} style={{marginLeft:10,background:C.neon,color:"#fff",fontWeight:700,letterSpacing:"0.1em"}}>START</Btn>}
+            {!day.isRest&&doneSess&&!isToday&&<Btn onClick={()=>onStart(day)} size="sm" variant="ghost" C={C} style={{marginLeft:10,fontSize:10,color:C.muted,borderColor:C.border}}>↺ Again</Btn>}
           </div>
         </div>;
       })}
