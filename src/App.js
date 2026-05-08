@@ -917,12 +917,11 @@ export default function ForgeApp(){
         prData.forEach(r=>{prMap[r.exercise_name]={weight:r.max_weight,date:r.achieved_at};});
         setPrs(prMap);
       }
-      // Load body stats from profile metadata
+      // Load profile (body stats + active plan key)
+      const {data:prof}=await supabase.from("profiles").select("*").eq("id",u.id).single();
       if(prof?.raw_user_meta_data?.body_stats){
         try{ setBodyStatsGlobal(JSON.parse(prof.raw_user_meta_data.body_stats||"[]")); }catch{}
       }
-      // Load active plan key from profile
-      const {data:prof}=await supabase.from("profiles").select("*").eq("id",u.id).single();
       if(prof?.active_plan_key)setActivePlanKey(prof.active_plan_key);
       setLoading(false);
     };
@@ -1005,8 +1004,9 @@ export default function ForgeApp(){
   // Calendar streak -- consecutive calendar days with any workout (classic definition)
   const calendarStreak=(()=>{
     if(!settings.streakTracking)return 0;
-    const todayStr=new Date().toISOString().split("T")[0];
-    const yesterdayStr=(()=>{const d=new Date();d.setDate(d.getDate()-1);return d.toISOString().split("T")[0];})();
+    const toLocalStr2=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    const todayStr=toLocalStr2(new Date());
+    const yesterdayStr=(()=>{const d=new Date();d.setDate(d.getDate()-1);return toLocalStr2(d);})();
     const dates=[...new Set(
       sessions.filter(s=>s.completedAt&&(s.setsArr||[]).some(x=>x.weight||x.reps||x.minutes))
         .map(s=>s.completedAt.split("T")[0])
@@ -1231,7 +1231,7 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
         const weekStart=new Date(today);weekStart.setDate(today.getDate()-today.getDay());
         const weekStr=weekStart.toISOString().split("T")[0];
         const weekSess=sessions.filter(s=>s.completedAt>=weekStr);
-        const weekVol=weekSess.reduce((a,s)=>(a+(s.setsArr||[]).reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
+        const weekVol=weekSess.reduce((a,s)=>(a+(s.setsArr||[]).filter(x=>x.type!=="warmup").reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
         if(weekSess.length===0)return null;
         return <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"12px 14px",marginBottom:12,display:"flex",gap:16,alignItems:"center"}}>
           <div style={{flex:1}}>
@@ -1272,8 +1272,8 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
         const quote=shuffled[posInCycle%shuffled.length];
         // ── Step 3: Calculate volume from matched sessions ──
         const dayVol=doneSess?(()=>{
-          const vol=matchedSessions.reduce((a,s)=>(a+(s.setsArr||[]).reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
-          const sets=matchedSessions.reduce((a,s)=>(a+(s.setsArr||[]).length),0);
+          const vol=matchedSessions.reduce((a,s)=>(a+(s.setsArr||[]).filter(x=>x.type!=="warmup").reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
+          const sets=matchedSessions.reduce((a,s)=>(a+(s.setsArr||[]).filter(x=>x.type!=="warmup").length),0);
           return {vol,sets};
         })():null;
         const isPast=!isToday&&dayDOW>=0&&dayDOW<todayDOW;
