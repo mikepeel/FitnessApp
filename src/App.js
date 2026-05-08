@@ -828,7 +828,7 @@ export default function ForgeApp(){
         const {data,error}=await supabase.from("workout_sessions").insert({
           user_id:u.id, day_label:latest.dayLabel,
           started_at:latest.startedAt, completed_at:latest.completedAt,
-          notes:latest.notes, sets_data:latest.sets||{},
+          notes:latest.notes||"", sets_data:latest.sets||{},
           rating:latest.rating||null
         }).select().single();
         if(error){ console.error("saveSessions insert error:",error); return; }
@@ -894,26 +894,26 @@ export default function ForgeApp(){
         if(sett.theme_mode)setThemeMode(sett.theme_mode);
       }
       // Load sessions
-      const {data:sessData}=await supabase.from("workout_sessions")
+      const {data:sessData,error:sessErr}=await supabase.from("workout_sessions")
         .select("*, logged_sets(*)")
         .eq("user_id",u.id)
         .order("completed_at",{ascending:false})
         .limit(100);
+      if(sessErr) console.error("loadUserData sessions error:",sessErr);
       if(sessData){
         const mapped=sessData.map(s=>({
           id:s.id, supabaseId:s.id,
           dayLabel:s.day_label, dayId:s.day_id,
           startedAt:s.started_at, completedAt:s.completed_at,
-          notes:s.notes, sets:s.sets_data||{},
-          setsArr:(s.logged_sets||[]).map(x=>({
-            exName:x.exercise_name, setNum:x.set_number,
-            weight:x.weight?.toString()||"",
-            reps:x.minutes?"":x.reps?.toString()||"",
-            minutes:x.minutes?.toString()||"",
-            level:x.minutes?x.reps?.toString()||"":"",
-            isPR:x.is_pr,
-            type:x.set_type||"working"
-          }))
+          notes:s.notes, rating:s.rating||0, sets:s.sets_data||{},
+          setsArr:Object.entries(s.sets_data||{}).flatMap(([exName,sets])=>
+            Object.entries(sets).map(([setNum,x])=>({
+              exName, setNum:parseInt(setNum),
+              weight:parseFloat(x.weight)||0,
+              reps:parseInt(x.reps)||0,
+              muscle:"", isPR:false
+            }))
+          )
         }));
         setSessions(mapped);
       }
@@ -1153,7 +1153,8 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
     const pastDays=rawDays.slice(0,todayIdx);
     return [...todayAndFuture,...pastDays];
   })();
-  const todaySessions=sessions.filter(s=>s.completedAt?.startsWith(new Date().toISOString().split("T")[0]));
+  const toLocalDateStr=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  const todaySessions=sessions.filter(s=>s.completedAt&&toLocalDateStr(new Date(s.completedAt))===toLocalDateStr(new Date()));
 
   const userName = authUser?.user_metadata?.display_name || authUser?.email?.split("@")[0] || "there";
 
@@ -1259,14 +1260,14 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
         const dayDOW=DOW.indexOf(day.name);   // 0=Sun..6=Sat, full names match DOW[]
         const calDate=new Date(todayMidnight);
         calDate.setDate(todayMidnight.getDate()+(dayDOW-todayDOW));
-        const calDateStr=calDate.toISOString().split("T")[0]; // "2026-05-05"
+        const calDateStr=toLocalDateStr(calDate); // "2026-05-05" in local time
         const calDateDisplay=calDate.toLocaleDateString("en",{month:"short",day:"numeric"}); // "May 5"
 
         // ── Step 2: Match history sessions on BOTH date AND workout label ──
-        // This mirrors exactly what History tab shows: completedAt date + dayLabel
+        // Use local date strings to avoid UTC midnight mismatch after ~7pm in US timezones
         const matchedSessions=sessions.filter(s=>
           s.completedAt&&
-          s.completedAt.split("T")[0]===calDateStr&&
+          toLocalDateStr(new Date(s.completedAt))===calDateStr&&
           s.dayLabel===day.label
         );
         const doneSess=matchedSessions.length>0;
