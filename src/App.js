@@ -820,32 +820,38 @@ export default function ForgeApp(){
     if(!Array.isArray(s))return;
     setSessions(s);
     try{
-    const {data:{user:u}}=await supabase.auth.getUser();
-    if(!u)return;
-    // Save the most recent session (last in array)
-    const latest=s[s.length-1];
-    if(latest&&!latest.supabaseId){
-      const {data}=await supabase.from("workout_sessions").insert({
-        user_id:u.id, day_label:latest.dayLabel,
-        started_at:latest.startedAt, completed_at:latest.completedAt,
-        notes:latest.notes, sets_data:latest.sets||{},
-        rating:latest.rating||null
-      }).select().single();
-      if(data){
-        // Save individual sets
-        const setRows=(latest.setsArr||[]).map(x=>({
-          session_id:data.id, user_id:u.id,
-          exercise_name:x.exName, set_number:x.setNum,
-          weight:parseFloat(x.weight)||null,
-          reps:x.minutes?(parseInt(x.level)||null):(parseInt(x.reps)||null),
-          minutes:parseFloat(x.minutes)||null,
-          is_pr:x.isPR||false,
-          set_type:x.type||"working"
-        }));
-        if(setRows.length>0)await supabase.from("logged_sets").insert(setRows);
+      const {data:{user:u}}=await supabase.auth.getUser();
+      if(!u)return;
+      // Save the most recent session (last in array)
+      const latest=s[s.length-1];
+      if(latest&&!latest.supabaseId){
+        const {data,error}=await supabase.from("workout_sessions").insert({
+          user_id:u.id, day_label:latest.dayLabel,
+          started_at:latest.startedAt, completed_at:latest.completedAt,
+          notes:latest.notes, sets_data:latest.sets||{},
+          rating:latest.rating||null
+        }).select().single();
+        if(error){ console.error("saveSessions insert error:",error); return; }
+        if(data){
+          // Mark session as persisted so it is not re-inserted on next save
+          setSessions(prev=>prev.map(sess=>sess===latest?{...sess,supabaseId:data.id}:sess));
+          // Save individual sets
+          const setRows=(latest.setsArr||[]).map(x=>({
+            session_id:data.id, user_id:u.id,
+            exercise_name:x.exName, set_number:x.setNum,
+            weight:parseFloat(x.weight)||null,
+            reps:x.minutes?(parseInt(x.level)||null):(parseInt(x.reps)||null),
+            minutes:parseFloat(x.minutes)||null,
+            is_pr:x.isPR||false,
+            set_type:x.type||"working"
+          }));
+          if(setRows.length>0){
+            const {error:setsErr}=await supabase.from("logged_sets").insert(setRows);
+            if(setsErr) console.error("saveSessions logged_sets error:",setsErr);
+          }
+        }
       }
-    }
-    }catch(e){ console.error("saveSessions:",e); }
+    }catch(e){ console.error("saveSessions exception:",e); }
   };
 
   const savePRs=async(p)=>{
@@ -854,12 +860,13 @@ export default function ForgeApp(){
       const {data:{user:u}}=await supabase.auth.getUser();
       if(!u)return;
       for(const[name,pr]of Object.entries(p)){
-        await supabase.from("personal_records").upsert({
+        const {error}=await supabase.from("personal_records").upsert({
           user_id:u.id, exercise_name:name,
           max_weight:pr.weight, achieved_at:pr.date
         },{onConflict:"user_id,exercise_name"});
+        if(error) console.error("savePRs error:",name,error);
       }
-    }catch(e){ console.error("savePRs:",e); }
+    }catch(e){ console.error("savePRs exception:",e); }
   };
 
   const toggleTheme=(n)=>{
