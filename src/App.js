@@ -2487,16 +2487,20 @@ function SessionEditModal({session,onSave,onClose,C}){
   const [newExName,setNewExName]=useState("");
   const [addingEx,setAddingEx]=useState(false);
 
+  const CARDIO_NAMES=["stair stepper","treadmill","bike","elliptical","rowing machine","rowing"];
+  const isCardioName=name=>CARDIO_NAMES.some(c=>name.toLowerCase().includes(c));
+
   const exNames=Object.keys(editData.sets||{});
 
   function updateSet(exName,setNum,field,val){
     setEditData(prev=>({...prev,sets:{...prev.sets,[exName]:{...prev.sets[exName],[setNum]:{...(prev.sets[exName]?.[setNum]||{}),[field]:val}}}}));
   }
 
-  function addSet(exName){
+  function addSet(exName,isCardio){
     const existing=Object.keys(editData.sets[exName]||{}).map(Number);
     const nextNum=(existing.length?Math.max(...existing):0)+1;
-    setEditData(prev=>({...prev,sets:{...prev.sets,[exName]:{...prev.sets[exName],[nextNum]:{weight:"",reps:"",isPR:false}}}}));
+    const defaults=isCardio?{minutes:"",level:"",isPR:false}:{weight:"",reps:"",isPR:false};
+    setEditData(prev=>({...prev,sets:{...prev.sets,[exName]:{...prev.sets[exName],[nextNum]:defaults}}}));
   }
 
   function removeSet(exName,setNum){
@@ -2561,7 +2565,7 @@ function SessionEditModal({session,onSave,onClose,C}){
     {exNames.map(exName=>{
       const sets=editData.sets[exName]||{};
       const setNums=Object.keys(sets).map(Number).sort((a,b)=>a-b);
-      const isCardioEx=Object.values(sets).some(s=>s.minutes);
+      const isCardioEx=isCardioName(exName)||Object.values(sets).some(s=>s.minutes);
       return <div key={exName} style={{marginBottom:14,paddingBottom:14,borderBottom:`1px solid ${C.border}`}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
           <div style={{fontSize:13,fontWeight:700,color:C.text}}>{exName}</div>
@@ -2584,7 +2588,7 @@ function SessionEditModal({session,onSave,onClose,C}){
             <button key={`x${n}`} onClick={()=>removeSet(exName,n)} style={{padding:"4px",background:"transparent",border:"none",color:C.danger,cursor:"pointer",fontSize:14,borderRadius:4}}>✕</button>
           ])}
         </div>
-        <Btn size="sm" variant="ghost" C={C} onClick={()=>addSet(exName)} style={{fontSize:11}}>+ Set</Btn>
+        <Btn size="sm" variant="ghost" C={C} onClick={()=>addSet(exName,isCardioEx)} style={{fontSize:11}}>+ Set</Btn>
       </div>;
     })}
 
