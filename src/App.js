@@ -909,9 +909,9 @@ export default function ForgeApp(){
           setsArr:Object.entries(s.sets_data||{}).flatMap(([exName,sets])=>
             Object.entries(sets).map(([setNum,x])=>({
               exName, setNum:parseInt(setNum),
-              weight:parseFloat(x.weight)||0,
-              reps:parseInt(x.reps)||0,
-              muscle:"", isPR:false
+              weight:x.weight||"", reps:x.reps||"",
+              minutes:x.minutes||"", level:x.level||"",
+              muscle:"", isPR:false, type:x.type||"working"
             }))
           )
         }));
