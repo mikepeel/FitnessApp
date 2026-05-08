@@ -7,7 +7,8 @@ build/
 # backup exports — never commit user data
 backups/
 
-# environment variables
+# environment variables — never commit real keys
+# SUPABASE_SERVICE_KEY goes in .env (ignored below), not in code
 .env
 .env.local
 .env.development.local
