@@ -837,7 +837,7 @@ export default function ForgeApp(){
           session_id:data.id, user_id:u.id,
           exercise_name:x.exName, set_number:x.setNum,
           weight:parseFloat(x.weight)||null,
-          reps:parseInt(x.reps)||null,
+          reps:x.minutes?(parseInt(x.level)||null):(parseInt(x.reps)||null),
           minutes:parseFloat(x.minutes)||null,
           is_pr:x.isPR||false,
           set_type:x.type||"working"
@@ -901,8 +901,9 @@ export default function ForgeApp(){
           setsArr:(s.logged_sets||[]).map(x=>({
             exName:x.exercise_name, setNum:x.set_number,
             weight:x.weight?.toString()||"",
-            reps:x.reps?.toString()||"",
+            reps:x.minutes?"":x.reps?.toString()||"",
             minutes:x.minutes?.toString()||"",
+            level:x.minutes?x.reps?.toString()||"":"",
             isPR:x.is_pr,
             type:x.set_type||"working"
           }))
@@ -976,13 +977,15 @@ export default function ForgeApp(){
     if(!workedDates.length)return 0;
     // Walk forward from program start, count consecutive scheduled days that were completed
     // Build list of all scheduled workout dates from program start up to today
-    const start=new Date(PROGRAM_START);
+    const toLocalStr=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
     const today=new Date();
+    const todayLocalStr=toLocalStr(today);
     const scheduledPast=[];
-    for(let d=new Date(start);d<=today;d.setDate(d.getDate()+1)){
+    // Use noon to avoid UTC-offset shifting getDay() to the wrong calendar date
+    for(let d=new Date(PROGRAM_START+"T12:00:00");toLocalStr(d)<=todayLocalStr;d.setDate(d.getDate()+1)){
       const dayName=DOW[d.getDay()];
       if(activePlanDays.includes(dayName)){
-        scheduledPast.push(d.toISOString().split("T")[0]);
+        scheduledPast.push(toLocalStr(d));
       }
     }
     // Walk backwards from most recent scheduled day and count how many were completed
@@ -992,7 +995,7 @@ export default function ForgeApp(){
         count++;
       } else {
         // If this scheduled day is today and no session yet, don't break -- still possible
-        if(scheduledPast[i]===today.toISOString().split("T")[0])continue;
+        if(scheduledPast[i]===todayLocalStr)continue;
         break; // Missed a scheduled day -- streak broken
       }
     }
@@ -1186,8 +1189,8 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
           </button>
         ))}
       </div>
-      {/* Smart Start Today button */}
-      {todayDay&&<div style={{padding:"12px 18px 0",position:"relative"}}>
+      {/* Smart Start Today button — hidden once today's workout is done */}
+      {todayDay&&!todaySessions.some(s=>s.dayLabel===todayDay.label)&&<div style={{padding:"12px 18px 0",position:"relative"}}>
         <button onClick={()=>onStart(todayDay)} style={{width:"100%",padding:"14px",background:`linear-gradient(135deg,${C.accent},${C.neon})`,border:"none",borderRadius:12,color:"#fff",fontSize:15,fontFamily:"'SF Mono','Courier New',monospace",fontWeight:800,letterSpacing:"0.08em",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10,boxShadow:`0 4px 16px ${C.accent}44`}}>
           <svg width="36" height="18" viewBox="0 0 120 60" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
               <defs>
@@ -1279,8 +1282,8 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
             <div style={{flex:1}}>
               <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:2}}>
                 <span style={{fontSize:15,fontWeight:600,color:C.cardText||C.text}}>{day.label}</span>
-                {isToday&&<Pill color={C.neon}>Today</Pill>}
-                {doneSess&&!isToday&&<Pill color={C.neon}>✓ Done</Pill>}
+                {isToday&&!doneSess&&<Pill color={C.neon}>Today</Pill>}
+                {(doneSess||(day.isRest&&isPast))&&<Pill color={C.neon}>✓ Done</Pill>}
               </div>
               <Mono style={{fontSize:11,color:C.muted}}>{day.name} {calDateDisplay} · {day.tag}</Mono>
               {!day.isRest&&!doneSess&&<Mono style={{fontSize:11,color:C.muted,display:"block",marginTop:1}}>{day.exercises.length} exercises</Mono>}
@@ -1345,7 +1348,7 @@ function ExerciseLibraryModal({onSelect,onClose,C}){
       </div>
       <Mono style={{fontSize:9,color:C.faint,display:"block",marginBottom:8,letterSpacing:"0.08em"}}>{filtered.length} EXERCISES</Mono>
       {filtered.map((ex,i)=>(
-        <div key={i} onClick={()=>onSelect({name:ex.name,muscle:ex.muscle,sets:"3",reps:"10-12",note:ex.cue})}
+        <div key={i} onClick={()=>onSelect({name:ex.name,muscle:ex.muscle,sets:ex.muscle==="Cardio"?"--":"3",reps:ex.muscle==="Cardio"?"30 min":"10-12",note:ex.cue})}
           style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",marginBottom:6,cursor:"pointer"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
             <div style={{flex:1,minWidth:0}}>
@@ -1383,6 +1386,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   const [notes,setNotes]=useState("");
   const [rating,setRating]=useState(0);
   const [startTime]=useState(new Date().toISOString());
+  const startMs=useRef(Date.now());
   const [aiModal,setAiModal]=useState(null);
   const [elapsed,setElapsed]=useState(0);
   const [swapModal,setSwapModal]=useState(null);
@@ -1391,7 +1395,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   const [setTypes,setSetTypes]=useState({});
   const topRef=useRef(null);
 
-  useEffect(()=>{const t=setInterval(()=>setElapsed(e=>e+1),1000);return()=>clearInterval(t);},[]);// eslint-disable-line
+  useEffect(()=>{const t=setInterval(()=>setElapsed(Math.floor((Date.now()-startMs.current)/1000)),1000);return()=>clearInterval(t);},[]);// eslint-disable-line
 
   const lastSessionForDay=sessions.filter(s=>s.dayId===workout.id&&s.completedAt).sort((a,b)=>new Date(b.completedAt)-new Date(a.completedAt))[0];
   const lastSets=lastSessionForDay?.sets||{};
@@ -1503,7 +1507,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
           const typ=(setTypes[exName]?.[parseInt(sn)])||"working";
           const isPR=!vals.minutes&&settings.prDetection&&w>0&&typ!=="warmup"&&(!prs[exName]||w>prs[exName].weight);
           if(isPR)newPRs[exName]={weight:w,date:new Date().toISOString()};
-          setsArr.push({exName,setNum:parseInt(sn),weight:vals.weight||"",reps:vals.reps||"",minutes:vals.minutes||"",isPR,type:typ});
+          setsArr.push({exName,setNum:parseInt(sn),weight:vals.weight||"",reps:vals.reps||"",minutes:vals.minutes||"",level:vals.level||"",isPR,type:typ});
         }
       }
     }
@@ -1516,11 +1520,6 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
 
   const inputStyle={padding:"9px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:7,color:C.text,fontSize:14,fontFamily:"'SF Mono','Courier New',monospace",width:"100%",boxSizing:"border-box"};
 
-  // Auto-start timer on mount - elapsed increments every second
-  useEffect(()=>{
-    const t=setInterval(()=>setElapsed(e=>e+1),1000);
-    return()=>clearInterval(t);
-  },[]);// eslint-disable-line
 
   return <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:C.serif,paddingBottom:100,scrollBehavior:"smooth"}}>
     <div style={{background:C.surface,borderBottom:`2px solid ${C.neon}`,padding:"14px 18px",position:"sticky",top:0,zIndex:50,marginTop:0}}>
@@ -1541,7 +1540,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
 
       <div ref={topRef}/>
       {exercises.map((ex,exIdx)=>{
-        const isCardio=ex.muscle==="Cardio"||ex.muscle==="Recovery"||/stair|stepper|treadmill|bike|walk|jog|run|cardio|stretch|yoga/i.test(ex.name);
+        const isCardio=ex.muscle==="Cardio"||ex.muscle==="Recovery";
         const myLog=loggedSets[ex.name]||{};
         const last=settings.lastRef?lastSets[ex.name]:null;
         const hasAnyLog=isCardio?(myLog[1]?.minutes):Object.values(myLog).some(v=>v.weight||v.reps);
@@ -1574,13 +1573,18 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
             </div>
           </div>
 
-          {/* CARDIO: single minutes input */}
-          {isCardio&&<div style={{display:"flex",gap:10,alignItems:"center"}}>
-            <input type="number" placeholder={ex.reps.replace(/[^0-9]/g,"")||"0"}
+          {/* CARDIO: minutes + optional level */}
+          {isCardio&&<div style={{display:"flex",gap:8,alignItems:"center"}}>
+            <input type="number" placeholder={(ex.reps||"").match(/\d+/)?.[0]||"0"}
               value={myLog[1]?.minutes||""}
-              onChange={e=>setLoggedSets(prev=>({...prev,[ex.name]:{1:{minutes:e.target.value}}}))}
-              style={{...inputStyle,flex:1,fontSize:20,fontWeight:700,textAlign:"center"}}/>
-            <Mono style={{fontSize:13,color:C.muted,width:32}}>min</Mono>
+              onChange={e=>logSet(ex.name,1,"minutes",e.target.value)}
+              style={{...inputStyle,flex:2,fontSize:20,fontWeight:700,textAlign:"center"}}/>
+            <Mono style={{fontSize:12,color:C.muted}}>min</Mono>
+            <input type="number" placeholder="lvl"
+              value={myLog[1]?.level||""}
+              onChange={e=>logSet(ex.name,1,"level",e.target.value)}
+              style={{...inputStyle,flex:1,fontSize:16,fontWeight:600,textAlign:"center"}}/>
+            <Mono style={{fontSize:12,color:C.muted}}>lvl</Mono>
             <button onClick={()=>{
               setLoggedSets(prev=>({...prev,[ex.name]:{1:{...prev[ex.name]?.[1],done:true}}}));
             }} style={{padding:"9px 14px",background:myLog[1]?.done?C.neon:"transparent",border:`1px solid ${C.neon}44`,borderRadius:7,color:myLog[1]?.done?"#0b0c0e":C.neon,cursor:"pointer",fontSize:14,fontWeight:700,transition:"all .2s"}}>✓</button>
@@ -2261,8 +2265,8 @@ function HistoryTab({sessions,saveSessions,savePRs,prs,C,onRerun}){
     const setsArr=[];
     for(const[exName,sets]of Object.entries(updated.sets||{})){
       for(const[sn,vals]of Object.entries(sets)){
-        if(vals.weight||vals.reps){
-          setsArr.push({exName,setNum:parseInt(sn),weight:vals.weight||"",reps:vals.reps||"",isPR:vals.isPR||false});
+        if(vals.weight||vals.reps||vals.minutes){
+          setsArr.push({exName,setNum:parseInt(sn),weight:vals.weight||"",reps:vals.reps||"",minutes:vals.minutes||"",level:vals.level||"",isPR:vals.isPR||false,type:vals.type||"working"});
         }
       }
     }
@@ -2415,7 +2419,7 @@ ${raw.slice(0,500)}...`:"No sessions found");
                     <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
                       {exSets.map((x,j)=>(
                         <Mono key={j} style={{fontSize:11,background:C.surface,padding:"3px 8px",borderRadius:5,color:x.isPR?C.red:x.minutes?C.green:C.muted,opacity:x.type==="warmup"?0.6:1}}>
-                          {x.type==="warmup"?"W ":""}{x.minutes?`${x.minutes} min`:""}{!x.minutes&&x.weight?`${x.weight}lbs`:""}{!x.minutes&&x.weight&&x.reps?" × ":""}{!x.minutes&&x.reps?`${x.reps}r`:""}{x.isPR?" ★":""}
+                          {x.type==="warmup"?"W ":""}{x.minutes?`${x.minutes} min${x.level?` · L${x.level}`:""}`:""}{!x.minutes&&x.weight?`${x.weight}lbs`:""}{!x.minutes&&x.weight&&x.reps?" × ":""}{!x.minutes&&x.reps?`${x.reps}r`:""}{x.isPR?" ★":""}
                         </Mono>
                       ))}
                     </div>
@@ -2468,7 +2472,7 @@ function SessionEditModal({session,onSave,onClose,C}){
     const sets={};
     (session.setsArr||[]).forEach(x=>{
       if(!sets[x.exName])sets[x.exName]={};
-      sets[x.exName][x.setNum]={weight:x.weight||"",reps:x.reps||"",isPR:x.isPR||false};
+      sets[x.exName][x.setNum]={weight:x.weight||"",reps:x.reps||"",minutes:x.minutes||"",level:x.level||"",isPR:x.isPR||false,type:x.type||"working"};
     });
     return {...session,sets};
   });
@@ -2549,20 +2553,26 @@ function SessionEditModal({session,onSave,onClose,C}){
     {exNames.map(exName=>{
       const sets=editData.sets[exName]||{};
       const setNums=Object.keys(sets).map(Number).sort((a,b)=>a-b);
+      const isCardioEx=Object.values(sets).some(s=>s.minutes);
       return <div key={exName} style={{marginBottom:14,paddingBottom:14,borderBottom:`1px solid ${C.border}`}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
           <div style={{fontSize:13,fontWeight:700,color:C.text}}>{exName}</div>
+          {isCardioEx&&<Pill color={C.green}>Cardio</Pill>}
         </div>
-        {/* Set rows */}
+        {/* Set rows — cardio: minutes + level, strength: weight + reps */}
         <div style={{display:"grid",gridTemplateColumns:"24px 1fr 1fr 32px",gap:"4px 8px",alignItems:"center",marginBottom:6}}>
           <Mono style={{fontSize:9,color:C.muted}}>#</Mono>
-          <Mono style={{fontSize:9,color:C.muted}}>WEIGHT (lbs)</Mono>
-          <Mono style={{fontSize:9,color:C.muted}}>REPS</Mono>
+          <Mono style={{fontSize:9,color:C.muted}}>{isCardioEx?"MINUTES":"WEIGHT (lbs)"}</Mono>
+          <Mono style={{fontSize:9,color:C.muted}}>{isCardioEx?"LEVEL":"REPS"}</Mono>
           <div/>
           {setNums.map(n=>[
             <Mono key={`n${n}`} style={{fontSize:11,color:C.muted,textAlign:"center"}}>{n}</Mono>,
-            <input key={`w${n}`} type="number" value={sets[n]?.weight||""} onChange={e=>updateSet(exName,n,"weight",e.target.value)} style={inputStyle} placeholder="lbs"/>,
-            <input key={`r${n}`} type="number" value={sets[n]?.reps||""} onChange={e=>updateSet(exName,n,"reps",e.target.value)} style={inputStyle} placeholder="reps"/>,
+            isCardioEx
+              ?<input key={`m${n}`} type="number" value={sets[n]?.minutes||""} onChange={e=>updateSet(exName,n,"minutes",e.target.value)} style={inputStyle} placeholder="min"/>
+              :<input key={`w${n}`} type="number" value={sets[n]?.weight||""} onChange={e=>updateSet(exName,n,"weight",e.target.value)} style={inputStyle} placeholder="lbs"/>,
+            isCardioEx
+              ?<input key={`l${n}`} type="number" value={sets[n]?.level||""} onChange={e=>updateSet(exName,n,"level",e.target.value)} style={inputStyle} placeholder="lvl"/>
+              :<input key={`r${n}`} type="number" value={sets[n]?.reps||""} onChange={e=>updateSet(exName,n,"reps",e.target.value)} style={inputStyle} placeholder="reps"/>,
             <button key={`x${n}`} onClick={()=>removeSet(exName,n)} style={{padding:"4px",background:"transparent",border:"none",color:C.danger,cursor:"pointer",fontSize:14,borderRadius:4}}>✕</button>
           ])}
         </div>
