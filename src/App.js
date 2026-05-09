@@ -1199,22 +1199,8 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
       </div>
       {/* Smart Start Today button — hidden once today's workout is done */}
       {todayDay&&!todaySessions.some(s=>s.dayLabel===todayDay.label)&&<div style={{padding:"12px 18px 0",position:"relative"}}>
-        <button onClick={()=>onStart(todayDay)} style={{width:"100%",padding:"14px",background:`linear-gradient(135deg,${C.accent},${C.neon})`,border:"none",borderRadius:12,color:"#fff",fontSize:15,fontFamily:"'SF Mono','Courier New',monospace",fontWeight:800,letterSpacing:"0.08em",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10,boxShadow:`0 4px 16px ${C.accent}44`}}>
-          <svg width="36" height="18" viewBox="0 0 120 60" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
-              <defs>
-                <linearGradient id="dbs" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#fff8d0"/><stop offset="50%" stopColor="#ffe090"/><stop offset="100%" stopColor="#ffc840"/></linearGradient>
-                <linearGradient id="dbsr" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#fffde0"/><stop offset="50%" stopColor="#ffe878"/><stop offset="100%" stopColor="#ffd040"/></linearGradient>
-              </defs>
-              <rect x="28" y="27" width="64" height="6" rx="3" fill="url(#dbsr)"/>
-              <rect x="20" y="24" width="10" height="12" rx="2" fill="#ffe090"/>
-              <rect x="90" y="24" width="10" height="12" rx="2" fill="#ffe090"/>
-              <ellipse cx="10" cy="30" rx="5" ry="18" fill="rgba(255,200,50,0.6)"/>
-              <ellipse cx="10" cy="30" rx="4.2" ry="16" fill="url(#dbs)"/>
-              <ellipse cx="14" cy="30" rx="3.5" ry="13" fill="rgba(255,220,100,0.8)"/>
-              <ellipse cx="110" cy="30" rx="5" ry="18" fill="rgba(255,200,50,0.6)"/>
-              <ellipse cx="110" cy="30" rx="4.2" ry="16" fill="url(#dbs)"/>
-              <ellipse cx="106" cy="30" rx="3.5" ry="13" fill="rgba(255,220,100,0.8)"/>
-            </svg> START TODAY — {todayDay.label.toUpperCase()}
+        <button onClick={()=>onStart(todayDay)} style={{width:"100%",padding:"10px",background:themeMode==="dark"?"#f7c948":"#d4a017",border:"none",borderRadius:12,color:themeMode==="dark"?"#1a202c":"#ffffff",fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",fontWeight:800,letterSpacing:"0.08em",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 8px rgba(0,0,0,0.15)"}}>
+          START {todayDay.label.toUpperCase()}
         </button>
       </div>}
     </div>
