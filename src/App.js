@@ -1387,6 +1387,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   const [addExModal,setAddExModal]=useState(false);
   const [editExModal,setEditExModal]=useState(null);
   const [setTypes,setSetTypes]=useState({});
+  const [setError,setSetError]=useState({});
   const topRef=useRef(null);
 
   useEffect(()=>{const t=setInterval(()=>setElapsed(Math.floor((Date.now()-startMs.current)/1000)),1000);return()=>clearInterval(t);},[]);// eslint-disable-line
@@ -1407,8 +1408,8 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   }
 
   // When all sets for an exercise are ticked, move it to the bottom
-  function markExerciseDone(exId, exName){
-    setShowRest(true);
+  function markExerciseDone(exId,exName,withRest=true){
+    if(withRest)setShowRest(true);
     setCompletedExIds(prev=>{
       const next=new Set(prev);
       next.add(exId);
@@ -1580,7 +1581,10 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
               style={{...inputStyle,flex:1,fontSize:16,fontWeight:600,textAlign:"center"}}/>
             <Mono style={{fontSize:12,color:C.muted}}>lvl</Mono>
             <button onClick={()=>{
+              if(!myLog[1]?.minutes){setSetError(prev=>({...prev,[ex.name]:"Enter minutes first"}));return;}
+              setSetError(prev=>({...prev,[ex.name]:""}));
               setLoggedSets(prev=>({...prev,[ex.name]:{1:{...prev[ex.name]?.[1],done:true}}}));
+              setShowRest(true);
             }} style={{padding:"9px 14px",background:myLog[1]?.done?C.neon:"transparent",border:`1px solid ${C.neon}44`,borderRadius:7,color:myLog[1]?.done?"#0b0c0e":C.neon,cursor:"pointer",fontSize:14,fontWeight:700,transition:"all .2s"}}>✓</button>
           </div>}
 
@@ -1601,14 +1605,21 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
                 <input key={`w${n}`} type="number" placeholder={last?.[n]?.weight||"lbs"} value={myLog[n]?.weight||""} onChange={e=>logSet(ex.name,n,"weight",e.target.value)} style={inputStyle}/>,
                 <input key={`r${n}`} type="number" placeholder={last?.[n]?.reps||"reps"} value={myLog[n]?.reps||""} onChange={e=>logSet(ex.name,n,"reps",e.target.value)} style={inputStyle}/>,
                 <button key={`d${n}`} onClick={()=>{
+                  const w=myLog[n]?.weight;
+                  const r=myLog[n]?.reps;
+                  if(!w||!r){setSetError(prev=>({...prev,[ex.name]:"Enter weight and reps first"}));return;}
+                  setSetError(prev=>({...prev,[ex.name]:""}));
+                  const isWarmup=typ==="warmup";
                   const numS=parseInt(ex.sets)||3;
                   const myL=loggedSets[ex.name]||{};
-                  const allFilled=Array.from({length:numS},(_,i)=>i+1).every(s=>myL[s]?.weight||myL[s]?.reps);
-                  if(allFilled&&n===numS){markExerciseDone(ex.id,ex.name);}else{setShowRest(true);}
+                  const allFilled=Array.from({length:numS},(_,i)=>i+1).every(s=>myL[s]?.weight&&myL[s]?.reps);
+                  if(n===numS&&allFilled){markExerciseDone(ex.id,ex.name,!isWarmup);}
+                  else if(!isWarmup){setShowRest(true);}
                 }} style={{padding:"9px 4px",background:completedExIds.has(ex.id)&&n===parseInt(ex.sets)?C.neon+"44":"transparent",border:`1px solid ${C.neon}44`,borderRadius:7,color:C.neon,cursor:"pointer",fontSize:14,fontWeight:700}}>✓</button>
               ];
             })}
           </div>}
+          {setError[ex.name]&&<Mono style={{fontSize:11,color:C.red,display:"block",marginTop:4}}>{setError[ex.name]}</Mono>}
         </div>;
       })}
 
