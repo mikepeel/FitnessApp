@@ -82,7 +82,8 @@ Single React component file. Key functions in order:
 
 ## Supabase Schema
 Tables: `profiles`, `user_settings`, `plans`, `plan_days`, `exercises`,
-`workout_sessions` (has `rating` column), `logged_sets`, `personal_records`, `plan_clones`
+`workout_sessions` (has `rating` column), `logged_sets`, `personal_records`, `plan_clones`,
+`workout_drafts` (one row per user, UNIQUE on user_id, stores in-progress workout state)
 
 Session object shape:
 ```js
