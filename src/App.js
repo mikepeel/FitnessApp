@@ -1071,7 +1071,7 @@ export default function ForgeApp(){
 
   if(activeWorkout){
     return <WorkoutSession workout={activeWorkout} settings={settings} prs={prs} sessions={sessions}
-      plans={plans} activePlanKey={activePlanKey} savePlans={savePlans}
+      plans={plans} activePlanKey={activePlanKey} savePlans={savePlans} authUser={authUser}
       onFinish={(sess,newPRs)=>{saveSessions([...sessions,sess]);savePRs({...prs,...newPRs});setActiveWorkout(null);}}
       onCancel={()=>setActiveWorkout(null)} C={C}/>;
   }
@@ -1372,7 +1372,7 @@ function ExerciseLibraryModal({onSelect,onClose,C}){
 }
 
 // -- WORKOUT SESSION -----------------------------------------------------------
-function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,savePlans,onFinish,onCancel,C}){
+function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,savePlans,authUser,onFinish,onCancel,C}){
   const [exercises,setExercises]=useState(workout.exercises||[]);
   const [loggedSets,setLoggedSets]=useState(()=>{
     const lastSess=sessions.filter(s=>s.dayId===workout.id&&s.completedAt).sort((a,b)=>new Date(b.completedAt)-new Date(a.completedAt))[0];
@@ -1416,6 +1416,22 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
 
   function logSet(exName,setNum,field,value){
     setLoggedSets(prev=>({...prev,[exName]:{...(prev[exName]||{}),[setNum]:{...(prev[exName]?.[setNum]||{}),[field]:value,prepop:false}}}));
+  }
+
+  async function saveDraft(setsSnapshot){
+    if(!authUser)return;
+    try{
+      const{error}=await supabase.from("workout_drafts").upsert({
+        user_id:authUser.id,
+        day_label:workout.label,
+        day_id:workout.id,
+        started_at:startTime,
+        logged_sets:setsSnapshot||loggedSets,
+        elapsed_seconds:elapsed,
+        updated_at:new Date().toISOString()
+      },{onConflict:"user_id"});
+      if(error)console.error("saveDraft:",error);
+    }catch(e){console.error("saveDraft:",e);}
   }
 
   function cycleSetType(exName,setNum){
@@ -1605,6 +1621,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
               setSetError(prev=>({...prev,[ex.name]:""}));
               setLoggedSets(prev=>({...prev,[ex.name]:{1:{...prev[ex.name]?.[1],done:true,prepop:false}}}));
               setShowRest(true);
+              saveDraft({...loggedSets,[ex.name]:{1:{...loggedSets[ex.name]?.[1],minutes:myLog[1].minutes,level:myLog[1]?.level||"",done:true,prepop:false}}});
             }} style={{padding:"9px 14px",background:myLog[1]?.done?C.neon:"transparent",border:`1px solid ${C.neon}44`,borderRadius:7,color:myLog[1]?.done?"#0b0c0e":C.neon,cursor:"pointer",fontSize:14,fontWeight:700,transition:"all .2s"}}>✓</button>
           </div>}
 
@@ -1631,6 +1648,8 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
                   if(!w||!r){setSetError(prev=>({...prev,[ex.name]:"Enter weight and reps first"}));return;}
                   setSetError(prev=>({...prev,[ex.name]:""}));
                   const isWarmup=typ==="warmup";
+                  const draftSets={...loggedSets,[ex.name]:{...loggedSets[ex.name],[n]:{weight:w,reps:r,prepop:false}}};
+                  saveDraft(draftSets);
                   setLoggedSets(prev=>{
                     const cur=prev[ex.name]||{};
                     const updated={...cur,[n]:{...cur[n],prepop:false}};
