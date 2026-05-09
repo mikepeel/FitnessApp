@@ -781,6 +781,7 @@ export default function ForgeApp(){
   const [bodyStatsGlobal,setBodyStatsGlobal]=useState([]);
   const [tab,setTab]=useState("today");
   const [activeWorkout,setActiveWorkout]=useState(null);
+  const [workoutDraft,setWorkoutDraft]=useState(null);
   const [deloadDismissed,setDeloadDismissed]=useState(null);
   const C=useTheme(themeMode);
 
@@ -930,6 +931,37 @@ export default function ForgeApp(){
         try{ setBodyStatsGlobal(JSON.parse(prof.raw_user_meta_data.body_stats||"[]")); }catch{}
       }
       if(prof?.active_plan_key)setActivePlanKey(prof.active_plan_key);
+      // Load workout draft
+      try{
+        const{data:draft,error:draftErr}=await supabase.from("workout_drafts")
+          .select("*").eq("user_id",u.id).single();
+        if(draftErr&&draftErr.code!=="PGRST116")console.error("loadUserData draft:",draftErr);
+        if(draft){
+          const ageSeconds=Math.floor((Date.now()-new Date(draft.started_at).getTime())/1000);
+          if(ageSeconds>10800){
+            // Expired — save as a session then delete
+            await supabase.from("workout_sessions").insert({
+              user_id:u.id, day_label:draft.day_label, day_id:draft.day_id||null,
+              started_at:draft.started_at,
+              completed_at:draft.updated_at||new Date().toISOString(),
+              notes:"Session auto-saved after timeout",
+              sets_data:draft.logged_sets||{}, rating:null
+            }).catch(e=>console.error("draft expired save:",e));
+            await supabase.from("workout_drafts").delete().eq("user_id",u.id).catch(()=>{});
+          }else{
+            // Within 3 hours — restore workout
+            const allDays=Object.values(plans).flatMap(p=>p.days||[]);
+            const matchDay=allDays.find(d=>d.id===draft.day_id)||allDays.find(d=>d.label===draft.day_label);
+            if(matchDay){
+              const secsSinceUpdate=Math.floor((Date.now()-new Date(draft.updated_at).getTime())/1000);
+              const restoredElapsed=(draft.elapsed_seconds||0)+secsSinceUpdate;
+              setWorkoutDraft({loggedSets:draft.logged_sets||{},elapsed:restoredElapsed,startedAt:draft.started_at,workout:matchDay});
+              setActiveWorkout(matchDay);
+              await supabase.from("workout_drafts").delete().eq("user_id",u.id).catch(()=>{});
+            }
+          }
+        }
+      }catch(e){console.error("loadUserData draft:",e);}
       setLoading(false);
     };
     supabase.auth.getSession().then(({data:{session}})=>{
@@ -1072,8 +1104,9 @@ export default function ForgeApp(){
   if(activeWorkout){
     return <WorkoutSession workout={activeWorkout} settings={settings} prs={prs} sessions={sessions}
       plans={plans} activePlanKey={activePlanKey} savePlans={savePlans} authUser={authUser}
-      onFinish={(sess,newPRs)=>{saveSessions([...sessions,sess]);savePRs({...prs,...newPRs});setActiveWorkout(null);}}
-      onCancel={()=>setActiveWorkout(null)} C={C}/>;
+      workoutDraft={workoutDraft}
+      onFinish={(sess,newPRs)=>{setWorkoutDraft(null);saveSessions([...sessions,sess]);savePRs({...prs,...newPRs});setActiveWorkout(null);}}
+      onCancel={()=>{setWorkoutDraft(null);setActiveWorkout(null);}} C={C}/>;
   }
 
   return <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:C.serif,paddingBottom:72,userSelect:"none",scrollBehavior:"smooth"}}>
@@ -1084,7 +1117,7 @@ export default function ForgeApp(){
       setActivePlanKey={k=>{setActivePlanKey(k);}}
       settings={settings} sessions={sessions} streak={streak} scheduledStreak={scheduledStreak} calendarStreak={calendarStreak} deloadDue={deloadDue&&deloadDismissed!==new Date().toISOString().slice(0,7)}
       onDeloadDismiss={()=>{setDeloadDismissed(new Date().toISOString().slice(0,7));}}
-      onStart={day=>setActiveWorkout(day)} C={C} getOrderedDays={getOrderedDays} toggleTheme={toggleTheme} themeMode={themeMode}
+      onStart={day=>{setWorkoutDraft(null);setActiveWorkout(day);}} C={C} getOrderedDays={getOrderedDays} toggleTheme={toggleTheme} themeMode={themeMode}
       authUser={authUser} todayDay={(activePlan?.days||[]).find(d=>d.name===DOW[new Date().getDay()]&&!d.isRest)}/>}
     {tab==="plan"&&<PlanTab plans={plans} activePlanKey={activePlanKey}
       setActivePlanKey={k=>{setActivePlanKey(k);}}
@@ -1372,9 +1405,21 @@ function ExerciseLibraryModal({onSelect,onClose,C}){
 }
 
 // -- WORKOUT SESSION -----------------------------------------------------------
-function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,savePlans,authUser,onFinish,onCancel,C}){
+function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,savePlans,authUser,workoutDraft,onFinish,onCancel,C}){
   const [exercises,setExercises]=useState(workout.exercises||[]);
   const [loggedSets,setLoggedSets]=useState(()=>{
+    // If restoring from a saved draft, use draft data (clear prepop flags)
+    if(workoutDraft?.loggedSets&&Object.keys(workoutDraft.loggedSets).length){
+      const restored={};
+      for(const[ex,sets] of Object.entries(workoutDraft.loggedSets)){
+        restored[ex]={};
+        for(const[n,vals] of Object.entries(sets)){
+          restored[ex][n]={...vals,prepop:false};
+        }
+      }
+      return restored;
+    }
+    // Otherwise pre-populate from last session for this day
     const lastSess=sessions.filter(s=>s.dayId===workout.id&&s.completedAt).sort((a,b)=>new Date(b.completedAt)-new Date(a.completedAt))[0];
     const last=lastSess?.sets||{};
     const init={};
@@ -1397,10 +1442,10 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   const [showRest,setShowRest]=useState(false);
   const [notes,setNotes]=useState("");
   const [rating,setRating]=useState(0);
-  const [startTime]=useState(new Date().toISOString());
-  const startMs=useRef(Date.now());
+  const [startTime]=useState(workoutDraft?.startedAt||new Date().toISOString());
+  const startMs=useRef(workoutDraft?.elapsed ? Date.now()-(workoutDraft.elapsed*1000) : Date.now());
   const [aiModal,setAiModal]=useState(null);
-  const [elapsed,setElapsed]=useState(0);
+  const [elapsed,setElapsed]=useState(workoutDraft?.elapsed||0);
   const [swapModal,setSwapModal]=useState(null);
   const [addExModal,setAddExModal]=useState(false);
   const [editExModal,setEditExModal]=useState(null);
