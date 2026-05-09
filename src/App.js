@@ -1374,7 +1374,25 @@ function ExerciseLibraryModal({onSelect,onClose,C}){
 // -- WORKOUT SESSION -----------------------------------------------------------
 function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,savePlans,onFinish,onCancel,C}){
   const [exercises,setExercises]=useState(workout.exercises||[]);
-  const [loggedSets,setLoggedSets]=useState({});
+  const [loggedSets,setLoggedSets]=useState(()=>{
+    const lastSess=sessions.filter(s=>s.dayId===workout.id&&s.completedAt).sort((a,b)=>new Date(b.completedAt)-new Date(a.completedAt))[0];
+    const last=lastSess?.sets||{};
+    const init={};
+    for(const ex of(workout.exercises||[])){
+      const prev=last[ex.name];
+      if(!prev)continue;
+      const isC=ex.muscle==="Cardio"||ex.muscle==="Recovery";
+      if(isC){
+        if(prev[1]?.minutes)init[ex.name]={1:{minutes:prev[1].minutes,level:prev[1].level||"",prepop:true}};
+      } else {
+        const ns=parseInt(ex.sets)||3;
+        const exS={};
+        for(let n=1;n<=ns;n++){if(prev[n]?.weight)exS[n]={weight:prev[n].weight,reps:prev[n].reps||"",prepop:true};}
+        if(Object.keys(exS).length)init[ex.name]=exS;
+      }
+    }
+    return init;
+  });
   const [completedExIds,setCompletedExIds]=useState(new Set());
   const [showRest,setShowRest]=useState(false);
   const [notes,setNotes]=useState("");
@@ -1388,6 +1406,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   const [editExModal,setEditExModal]=useState(null);
   const [setTypes,setSetTypes]=useState({});
   const [setError,setSetError]=useState({});
+  const [extraSets,setExtraSets]=useState({});
   const topRef=useRef(null);
 
   useEffect(()=>{const t=setInterval(()=>setElapsed(Math.floor((Date.now()-startMs.current)/1000)),1000);return()=>clearInterval(t);},[]);// eslint-disable-line
@@ -1396,7 +1415,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   const lastSets=lastSessionForDay?.sets||{};
 
   function logSet(exName,setNum,field,value){
-    setLoggedSets(prev=>({...prev,[exName]:{...(prev[exName]||{}),[setNum]:{...(prev[exName]?.[setNum]||{}),[field]:value}}}));
+    setLoggedSets(prev=>({...prev,[exName]:{...(prev[exName]||{}),[setNum]:{...(prev[exName]?.[setNum]||{}),[field]:value,prepop:false}}}));
   }
 
   function cycleSetType(exName,setNum){
@@ -1497,7 +1516,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
     const setsArr=[];
     for(const[exName,sets]of Object.entries(loggedSets)){
       for(const[sn,vals]of Object.entries(sets)){
-        if(vals.weight||vals.reps||vals.minutes){
+        if(!vals.prepop&&(vals.weight||vals.reps||vals.minutes)){
           const w=parseFloat(vals.weight)||0;
           const typ=(setTypes[exName]?.[parseInt(sn)])||"working";
           const isPR=!vals.minutes&&settings.prDetection&&w>0&&typ!=="warmup"&&(!prs[exName]||w>prs[exName].weight);
@@ -1538,12 +1557,13 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
         const isCardio=ex.muscle==="Cardio"||ex.muscle==="Recovery";
         const myLog=loggedSets[ex.name]||{};
         const last=settings.lastRef?lastSets[ex.name]:null;
-        const hasAnyLog=isCardio?(myLog[1]?.minutes):Object.values(myLog).some(v=>v.weight||v.reps);
+        const hasAnyLog=isCardio?(myLog[1]?.minutes&&!myLog[1]?.prepop):Object.values(myLog).some(v=>(v.weight||v.reps)&&!v.prepop);
         const myPR=(!isCardio&&settings.prDetection)?prs[ex.name]:null;
         const w0=myLog[1]?.weight;
         const isPRNow=myPR&&w0&&parseFloat(w0)>myPR.weight;
 
         const isDone=completedExIds.has(ex.id);
+        const numSets=(parseInt(ex.sets)||3)+(extraSets[ex.name]||0);
         return <div key={ex.id} style={{background:isDone?C.surface:C.card,border:`1px solid ${isDone?C.faint:hasAnyLog?C.neon+"44":C.border}`,borderLeft:`3px solid ${isDone?C.faint:isCardio?C.green:hasAnyLog?C.neon:C.accent}`,borderRadius:10,padding:"14px",marginBottom:10,transition:"all .3s",opacity:isDone?0.55:1}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
             <div style={{flex:1}}>
@@ -1555,8 +1575,8 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
               </div>
               <Mono style={{fontSize:11,color:C.muted}}>{isCardio?"Duration goal:":ex.sets+" sets ."} {ex.reps}{!isCardio&&ex.muscle?` . ${ex.muscle}`:""}</Mono>
               {ex.note&&<div style={{fontSize:11,color:C.muted,marginTop:2}}>{ex.note}</div>}
-              {!isCardio&&last&&<Mono style={{fontSize:11,color:C.neon,display:"block",marginTop:2}}>Last: {last[1]?.weight||"--"}lbs × {last[1]?.reps||"--"}</Mono>}
-              {isCardio&&last&&last[1]?.minutes&&<Mono style={{fontSize:11,color:C.neon,display:"block",marginTop:2}}>Last: {last[1].minutes} min</Mono>}
+              {!isCardio&&last&&<Mono style={{fontSize:11,color:C.faint,display:"block",marginTop:2}}>Last: {last[1]?.weight||"--"}lbs × {last[1]?.reps||"--"}</Mono>}
+              {isCardio&&last&&last[1]?.minutes&&<Mono style={{fontSize:11,color:C.faint,display:"block",marginTop:2}}>Last: {last[1].minutes} min</Mono>}
               {myPR&&<Mono style={{fontSize:11,color:C.red,display:"block"}}>PR: {myPR.weight}lbs</Mono>}
               {!isCardio&&settings.plateCalc&&w0&&<PlateCalc weight={w0} C={C}/>}
             </div>
@@ -1573,17 +1593,17 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
             <input type="number" placeholder={(ex.reps||"").match(/\d+/)?.[0]||"0"}
               value={myLog[1]?.minutes||""}
               onChange={e=>logSet(ex.name,1,"minutes",e.target.value)}
-              style={{...inputStyle,flex:2,fontSize:20,fontWeight:700,textAlign:"center"}}/>
+              style={{...inputStyle,flex:2,fontSize:20,fontWeight:700,textAlign:"center",color:myLog[1]?.prepop?C.muted:C.text}}/>
             <Mono style={{fontSize:12,color:C.muted}}>min</Mono>
             <input type="number" placeholder="lvl"
               value={myLog[1]?.level||""}
               onChange={e=>logSet(ex.name,1,"level",e.target.value)}
-              style={{...inputStyle,flex:1,fontSize:16,fontWeight:600,textAlign:"center"}}/>
+              style={{...inputStyle,flex:1,fontSize:16,fontWeight:600,textAlign:"center",color:myLog[1]?.prepop?C.muted:C.text}}/>
             <Mono style={{fontSize:12,color:C.muted}}>lvl</Mono>
             <button onClick={()=>{
               if(!myLog[1]?.minutes){setSetError(prev=>({...prev,[ex.name]:"Enter minutes first"}));return;}
               setSetError(prev=>({...prev,[ex.name]:""}));
-              setLoggedSets(prev=>({...prev,[ex.name]:{1:{...prev[ex.name]?.[1],done:true}}}));
+              setLoggedSets(prev=>({...prev,[ex.name]:{1:{...prev[ex.name]?.[1],done:true,prepop:false}}}));
               setShowRest(true);
             }} style={{padding:"9px 14px",background:myLog[1]?.done?C.neon:"transparent",border:`1px solid ${C.neon}44`,borderRadius:7,color:myLog[1]?.done?"#0b0c0e":C.neon,cursor:"pointer",fontSize:14,fontWeight:700,transition:"all .2s"}}>✓</button>
           </div>}
@@ -1595,30 +1615,37 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
             <Mono style={{fontSize:9,color:C.muted}}>WEIGHT</Mono>
             <Mono style={{fontSize:9,color:C.muted}}>REPS</Mono>
             <div/>
-            {Array.from({length:parseInt(ex.sets)||3},(_,i)=>i+1).map(n=>{
+            {Array.from({length:numSets},(_,i)=>i+1).map(n=>{
               const typ=(setTypes[ex.name]?.[n])||"working";
               const typeLabel=typ==="warmup"?"W":typ==="working"?"S":typ==="drop"?"D":"F";
               const typeColor=typ==="warmup"?C.muted:typ==="working"?C.accent:typ==="drop"?C.gold:C.red;
+              const isPrepop=!!myLog[n]?.prepop;
               return [
                 <button key={`t${n}`} onClick={()=>cycleSetType(ex.name,n)} style={{padding:"3px 0",background:typeColor+"22",border:"none",borderRadius:4,color:typeColor,fontSize:9,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"center",letterSpacing:"0.05em"}}>{typeLabel}</button>,
                 <Mono key={`n${n}`} style={{fontSize:12,color:C.muted,textAlign:"center"}}>{n}</Mono>,
-                <input key={`w${n}`} type="number" placeholder={last?.[n]?.weight||"lbs"} value={myLog[n]?.weight||""} onChange={e=>logSet(ex.name,n,"weight",e.target.value)} style={inputStyle}/>,
-                <input key={`r${n}`} type="number" placeholder={last?.[n]?.reps||"reps"} value={myLog[n]?.reps||""} onChange={e=>logSet(ex.name,n,"reps",e.target.value)} style={inputStyle}/>,
+                <input key={`w${n}`} type="number" placeholder={last?.[n]?.weight||"lbs"} value={myLog[n]?.weight||""} onChange={e=>logSet(ex.name,n,"weight",e.target.value)} style={{...inputStyle,color:isPrepop?C.muted:C.text}}/>,
+                <input key={`r${n}`} type="number" placeholder={last?.[n]?.reps||"reps"} value={myLog[n]?.reps||""} onChange={e=>logSet(ex.name,n,"reps",e.target.value)} style={{...inputStyle,color:isPrepop?C.muted:C.text}}/>,
                 <button key={`d${n}`} onClick={()=>{
                   const w=myLog[n]?.weight;
                   const r=myLog[n]?.reps;
                   if(!w||!r){setSetError(prev=>({...prev,[ex.name]:"Enter weight and reps first"}));return;}
                   setSetError(prev=>({...prev,[ex.name]:""}));
                   const isWarmup=typ==="warmup";
-                  const numS=parseInt(ex.sets)||3;
+                  setLoggedSets(prev=>{
+                    const cur=prev[ex.name]||{};
+                    const updated={...cur,[n]:{...cur[n],prepop:false}};
+                    for(let i=n+1;i<=numSets;i++){if(cur[i]?.prepop)updated[i]={...cur[i],weight:w};}
+                    return {...prev,[ex.name]:updated};
+                  });
                   const myL=loggedSets[ex.name]||{};
-                  const allFilled=Array.from({length:numS},(_,i)=>i+1).every(s=>myL[s]?.weight&&myL[s]?.reps);
-                  if(n===numS&&allFilled){markExerciseDone(ex.id,ex.name,!isWarmup);}
+                  const allFilled=Array.from({length:numSets},(_,i)=>i+1).every(s=>myL[s]?.weight&&myL[s]?.reps);
+                  if(n===numSets&&allFilled){markExerciseDone(ex.id,ex.name,!isWarmup);}
                   else if(!isWarmup){setShowRest(true);}
-                }} style={{padding:"9px 4px",background:completedExIds.has(ex.id)&&n===parseInt(ex.sets)?C.neon+"44":"transparent",border:`1px solid ${C.neon}44`,borderRadius:7,color:C.neon,cursor:"pointer",fontSize:14,fontWeight:700}}>✓</button>
+                }} style={{padding:"9px 4px",background:completedExIds.has(ex.id)&&n===numSets?C.neon+"44":"transparent",border:`1px solid ${C.neon}44`,borderRadius:7,color:C.neon,cursor:"pointer",fontSize:14,fontWeight:700}}>✓</button>
               ];
             })}
           </div>}
+          {!isCardio&&<button onClick={()=>setExtraSets(prev=>({...prev,[ex.name]:(prev[ex.name]||0)+1}))} style={{marginTop:6,padding:"5px 10px",background:"transparent",border:`1px dashed ${C.border}`,borderRadius:6,color:C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:11,cursor:"pointer",letterSpacing:"0.06em"}}>+ SET</button>}
           {setError[ex.name]&&<Mono style={{fontSize:11,color:C.red,display:"block",marginTop:4}}>{setError[ex.name]}</Mono>}
         </div>;
       })}
