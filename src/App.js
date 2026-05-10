@@ -782,6 +782,9 @@ export default function ForgeApp(){
   const [tab,setTab]=useState("today");
   const [activeWorkout,setActiveWorkout]=useState(null);
   const [workoutDraft,setWorkoutDraft]=useState(null);
+  const [minimizedWorkout,setMinimizedWorkout]=useState(null);
+  const [bannerElapsed,setBannerElapsed]=useState(0);
+  const minimizeTimeRef=useRef(null);
   const [deloadDismissed,setDeloadDismissed]=useState(null);
   const C=useTheme(themeMode);
 
@@ -989,6 +992,15 @@ export default function ForgeApp(){
     return()=>{window.removeEventListener("online",goOnline);window.removeEventListener("offline",goOffline);};
   },[]);// eslint-disable-line react-hooks/exhaustive-deps
 
+  // Banner timer — ticks while a workout is minimized
+  useEffect(()=>{
+    if(!minimizedWorkout)return;
+    const t=setInterval(()=>{
+      setBannerElapsed((minimizedWorkout.elapsed||0)+Math.floor((Date.now()-minimizeTimeRef.current)/1000));
+    },1000);
+    return()=>clearInterval(t);
+  },[minimizedWorkout]);// eslint-disable-line react-hooks/exhaustive-deps
+
   // Data persisted to Supabase automatically
 
   const activePlan=plans[activePlanKey];
@@ -1105,14 +1117,20 @@ export default function ForgeApp(){
     return <WorkoutSession workout={activeWorkout} settings={settings} prs={prs} sessions={sessions}
       plans={plans} activePlanKey={activePlanKey} savePlans={savePlans} authUser={authUser}
       workoutDraft={workoutDraft}
-      onFinish={(sess,newPRs)=>{setWorkoutDraft(null);saveSessions([...sessions,sess]);savePRs({...prs,...newPRs});setActiveWorkout(null);}}
-      onCancel={()=>{setWorkoutDraft(null);setActiveWorkout(null);}} C={C}/>;
+      onMinimize={(data)=>{minimizeTimeRef.current=Date.now();setBannerElapsed(data.elapsed);setMinimizedWorkout(data);setWorkoutDraft(null);setActiveWorkout(null);}}
+      onFinish={(sess,newPRs)=>{setWorkoutDraft(null);setMinimizedWorkout(null);saveSessions([...sessions,sess]);savePRs({...prs,...newPRs});setActiveWorkout(null);}}
+      onCancel={()=>{setWorkoutDraft(null);setMinimizedWorkout(null);setActiveWorkout(null);}} C={C}/>;
   }
 
   return <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:C.serif,paddingBottom:72,userSelect:"none",scrollBehavior:"smooth"}}>
     {!isOnline&&<div style={{background:"#f7c948",color:"#1a202c",padding:"8px 18px",fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"center",letterSpacing:"0.04em"}}>
       ⚠ Offline — workouts will sync when connection is restored
     </div>}
+    {minimizedWorkout&&<div onClick={()=>{setWorkoutDraft({loggedSets:minimizedWorkout.loggedSets,elapsed:bannerElapsed,startedAt:minimizedWorkout.startedAt,workout:minimizedWorkout.workout});setActiveWorkout(minimizedWorkout.workout);setMinimizedWorkout(null);}} style={{position:"fixed",top:"env(safe-area-inset-top,0px)",left:0,right:0,zIndex:100,background:C.neon,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",minHeight:44,cursor:"pointer",userSelect:"none"}}>
+      <Mono style={{fontSize:12,color:"#0b0c0e",fontWeight:700}}>🔴 {minimizedWorkout.workout.label} in progress · {Math.floor(bannerElapsed/60)}:{String(bannerElapsed%60).padStart(2,"0")}</Mono>
+      <Mono style={{fontSize:12,color:"#0b0c0e",fontWeight:700}}>View →</Mono>
+    </div>}
+    {minimizedWorkout&&<div style={{height:44}}/>}
     {tab==="today"&&<TodayTab plan={activePlan} plans={plans} activePlanKey={activePlanKey}
       setActivePlanKey={k=>{setActivePlanKey(k);}}
       settings={settings} sessions={sessions} streak={streak} scheduledStreak={scheduledStreak} calendarStreak={calendarStreak} deloadDue={deloadDue&&deloadDismissed!==new Date().toISOString().slice(0,7)}
@@ -1405,7 +1423,7 @@ function ExerciseLibraryModal({onSelect,onClose,C}){
 }
 
 // -- WORKOUT SESSION -----------------------------------------------------------
-function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,savePlans,authUser,workoutDraft,onFinish,onCancel,C}){
+function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,savePlans,authUser,workoutDraft,onMinimize,onFinish,onCancel,C}){
   const [exercises,setExercises]=useState(workout.exercises||[]);
   const [loggedSets,setLoggedSets]=useState(()=>{
     // If restoring from a saved draft, use draft data (clear prepop flags)
@@ -1606,7 +1624,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
           <Mono style={{fontSize:13,color:C.neon,fontWeight:700}}>{Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,"0")}</Mono>
           <Btn onClick={()=>setAddExModal(true)} variant="ghost" size="sm" C={C} style={{fontSize:11,color:C.neon,borderColor:C.neon+"44"}}>+ Add</Btn>
-          <Btn onClick={onCancel} variant="ghost" size="sm" C={C}>✕</Btn>
+          <Btn onClick={()=>onMinimize({workout,loggedSets,elapsed,startedAt:startTime})} variant="ghost" size="sm" C={C}>✕</Btn>
         </div>
       </div>
     </div>
