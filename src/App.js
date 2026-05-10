@@ -1472,9 +1472,20 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   const [extraSets,setExtraSets]=useState({});
   const [showEndMenu,setShowEndMenu]=useState(false);
   const [showAbandonConfirm,setShowAbandonConfirm]=useState(false);
+  const [autoSaveToast,setAutoSaveToast]=useState(false);
+  const autoSavedRef=useRef(false);
   const topRef=useRef(null);
 
   useEffect(()=>{const t=setInterval(()=>setElapsed(Math.floor((Date.now()-startMs.current)/1000)),1000);return()=>clearInterval(t);},[]);// eslint-disable-line
+
+  // Auto-save as partial session after 3 hours (10800 seconds)
+  useEffect(()=>{
+    if(elapsed<10800||autoSavedRef.current)return;
+    autoSavedRef.current=true;
+    setAutoSaveToast(true);
+    const t=setTimeout(()=>savePartialAndExit(),3000);
+    return()=>clearTimeout(t);
+  },[elapsed]);// eslint-disable-line
 
   const lastSessionForDay=sessions.filter(s=>s.dayId===workout.id&&s.completedAt).sort((a,b)=>new Date(b.completedAt)-new Date(a.completedAt))[0];
   const lastSets=lastSessionForDay?.sets||{};
@@ -1659,6 +1670,9 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
         </div>
       </div>
     </div>
+    {autoSaveToast&&<div style={{background:C.gold,padding:"10px 18px",textAlign:"center"}}>
+      <Mono style={{fontSize:12,color:"#0b0c0e",fontWeight:700}}>Workout auto-saved after 3 hours</Mono>
+    </div>}
     <div style={{padding:"14px 18px"}}>
       {showRest&&settings.restTimer&&<RestTimer seconds={settings.restSeconds||90} onDone={()=>setShowRest(false)} onSkip={()=>setShowRest(false)} C={C}/>}
 
