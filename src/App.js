@@ -1438,7 +1438,8 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
       return restored;
     }
     // Otherwise pre-populate from last session for this day
-    const lastSess=sessions.filter(s=>s.dayId===workout.id&&s.completedAt).sort((a,b)=>new Date(b.completedAt)-new Date(a.completedAt))[0];
+    // Match by dayId (post-fix sessions) OR dayLabel (pre-fix sessions where day_id was null)
+    const lastSess=sessions.filter(s=>(s.dayId===workout.id||s.dayLabel===workout.label)&&s.completedAt&&!s.partial).sort((a,b)=>new Date(b.completedAt)-new Date(a.completedAt))[0];
     const last=lastSess?.sets||{};
     const init={};
     for(const ex of(workout.exercises||[])){
