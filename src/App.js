@@ -1475,6 +1475,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   const [autoSaveToast,setAutoSaveToast]=useState(false);
   const autoSavedRef=useRef(false);
   const topRef=useRef(null);
+  const lastActiveExRef=useRef(null);
 
   useEffect(()=>{const t=setInterval(()=>setElapsed(Math.floor((Date.now()-startMs.current)/1000)),1000);return()=>clearInterval(t);},[]);// eslint-disable-line
 
@@ -1491,6 +1492,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   const lastSets=lastSessionForDay?.sets||{};
 
   function logSet(exName,setNum,field,value){
+    lastActiveExRef.current=exName;
     setLoggedSets(prev=>({...prev,[exName]:{...(prev[exName]||{}),[setNum]:{...(prev[exName]?.[setNum]||{}),[field]:value,prepop:false}}}));
   }
 
@@ -1681,7 +1683,18 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
       {showRest&&settings.restTimer&&<RestTimer seconds={settings.restSeconds||90} onDone={()=>setShowRest(false)} onSkip={()=>setShowRest(false)} C={C}/>}
 
       <div ref={topRef}/>
-      {exercises.map((ex,exIdx)=>{
+      {[...exercises].sort((a,b)=>{
+        const s=ex=>{
+          if(completedExIds.has(ex.id))return 2;
+          const ml=loggedSets[ex.name]||{};
+          const isC=ex.muscle==="Cardio"||ex.muscle==="Recovery";
+          return(isC?(ml[1]?.minutes&&!ml[1]?.prepop):Object.values(ml).some(v=>(v.weight||v.reps)&&!v.prepop))?0:1;
+        };
+        const sa=s(a),sb=s(b);
+        if(sa!==sb)return sa-sb;
+        if(sa===0){if(a.name===lastActiveExRef.current)return -1;if(b.name===lastActiveExRef.current)return 1;}
+        return 0;
+      }).map((ex,exIdx)=>{
         const isCardio=ex.muscle==="Cardio"||ex.muscle==="Recovery";
         const myLog=loggedSets[ex.name]||{};
         const last=settings.lastRef?lastSets[ex.name]:null;
@@ -1759,6 +1772,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
                   const r=myLog[n]?.reps;
                   if(!w||!r){setSetError(prev=>({...prev,[ex.name]:"Enter weight and reps first"}));return;}
                   setSetError(prev=>({...prev,[ex.name]:""}));
+                  lastActiveExRef.current=ex.name;
                   const isWarmup=typ==="warmup";
                   const draftSets={...loggedSets,[ex.name]:{...loggedSets[ex.name],[n]:{weight:w,reps:r,prepop:false}}};
                   saveDraft(draftSets);
