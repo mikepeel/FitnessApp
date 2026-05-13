@@ -1965,6 +1965,8 @@ function PlanTab({plans,activePlanKey,setActivePlanKey,savePlans,settings,C}){
   const [reorderMode,setReorderMode]=useState(null); // dayId in manual reorder mode
   const [saveSheet,setSaveSheet]=useState(null); // dayId while save options sheet is open
   const [saveToast,setSaveToast]=useState("");
+  const [newPlanSheet,setNewPlanSheet]=useState(false); // true when showing name-input step
+  const [newPlanName,setNewPlanName]=useState("");
 
   const plan=plans[activePlanKey];
   const days=plan?.days||[];
@@ -2045,6 +2047,23 @@ No explanation, no markdown, just the JSON array.`;
     setActivePlanKey(newKey);
     setView("mine");
     setGoalModal(false);
+  }
+
+  function saveAsNewPlan(){
+    const name=(newPlanName.trim())||("Custom - "+(plan?.name||"Plan")+" (modified)");
+    const newKey=`custom_${Date.now()}`;
+    const newPlan={
+      key:newKey, name, subtitle:plan?.subtitle||"", description:plan?.description||"",
+      days:days.map(d=>({...d,id:mkId(),exercises:d.exercises.map(e=>({...e,id:mkId()}))}))
+    };
+    savePlans({...plans,[newKey]:newPlan});
+    setActivePlanKey(newKey);
+    setSaveToast(`New plan "${name}" created and activated`);
+    setTimeout(()=>setSaveToast(""),3000);
+    setSaveSheet(null);
+    setNewPlanSheet(false);
+    setNewPlanName("");
+    setExpandedDay(null);
   }
 
   return <div>
@@ -2180,12 +2199,19 @@ No explanation, no markdown, just the JSON array.`;
     </div>}
 
     {/* MODALS */}
-    {saveSheet&&<div onClick={()=>setSaveSheet(null)} style={{position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,0.55)",display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
+    {saveSheet&&<div onClick={()=>{setSaveSheet(null);setNewPlanSheet(false);}} style={{position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,0.55)",display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
       <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:"16px 16px 0 0",padding:"20px 18px calc(32px + env(safe-area-inset-bottom,0px)) 18px",display:"flex",flexDirection:"column",gap:10}}>
-        <Mono style={{fontSize:11,color:C.muted,letterSpacing:"0.1em",marginBottom:4}}>SAVE DAY CHANGES</Mono>
-        <button onClick={()=>{updatePlan(days);setSaveSheet(null);setExpandedDay(null);setSaveToast("Plan updated");setTimeout(()=>setSaveToast(""),2500);}} style={{width:"100%",padding:"13px 16px",background:C.neon+"22",border:`1px solid ${C.neon}44`,borderRadius:10,color:C.neon,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}>✓ Update Current Plan</button>
-        <button onClick={()=>setSaveSheet(null)} style={{width:"100%",padding:"13px 16px",background:C.accent+"22",border:`1px solid ${C.accent}44`,borderRadius:10,color:C.accent,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}>+ Save as New Plan</button>
-        <button onClick={()=>setSaveSheet(null)} style={{width:"100%",padding:"11px 16px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",letterSpacing:"0.04em",marginTop:2}}>Cancel</button>
+        {!newPlanSheet?<>
+          <Mono style={{fontSize:11,color:C.muted,letterSpacing:"0.1em",marginBottom:4}}>SAVE DAY CHANGES</Mono>
+          <button onClick={()=>{updatePlan(days);setSaveSheet(null);setExpandedDay(null);setSaveToast("Plan updated");setTimeout(()=>setSaveToast(""),2500);}} style={{width:"100%",padding:"13px 16px",background:C.neon+"22",border:`1px solid ${C.neon}44`,borderRadius:10,color:C.neon,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}>✓ Update Current Plan</button>
+          <button onClick={()=>{setNewPlanSheet(true);setNewPlanName("Custom - "+(plan?.name||"Plan")+" (modified)");}} style={{width:"100%",padding:"13px 16px",background:C.accent+"22",border:`1px solid ${C.accent}44`,borderRadius:10,color:C.accent,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}>+ Save as New Plan</button>
+          <button onClick={()=>setSaveSheet(null)} style={{width:"100%",padding:"11px 16px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",letterSpacing:"0.04em",marginTop:2}}>Cancel</button>
+        </>:<>
+          <Mono style={{fontSize:11,color:C.muted,letterSpacing:"0.1em",marginBottom:4}}>NAME YOUR NEW PLAN</Mono>
+          <input type="text" value={newPlanName} onChange={e=>setNewPlanName(e.target.value)} autoFocus style={{padding:"11px 12px",background:C.card,border:`1px solid ${C.accent}44`,borderRadius:8,color:C.text,fontSize:14,fontFamily:"'SF Mono','Courier New',monospace",width:"100%",boxSizing:"border-box"}}/>
+          <button onClick={saveAsNewPlan} style={{width:"100%",padding:"13px 16px",background:C.neon+"22",border:`1px solid ${C.neon}44`,borderRadius:10,color:C.neon,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}>✓ Create &amp; Activate</button>
+          <button onClick={()=>setNewPlanSheet(false)} style={{width:"100%",padding:"11px 16px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",letterSpacing:"0.04em",marginTop:2}}>← Back</button>
+        </>}
       </div>
     </div>}
     {editEx&&<Modal onClose={()=>setEditEx(null)} C={C}><ExerciseForm title="Edit Exercise" initial={editEx.ex} onSave={ex=>{saveExercise(editEx.dayId,ex);setEditEx(null);}} onClose={()=>setEditEx(null)} C={C}/></Modal>}
