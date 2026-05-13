@@ -1551,6 +1551,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
 
   // When all sets for an exercise are ticked, move it to the bottom
   function markExerciseDone(exId,exName,withRest=true){
+    // REST TIMER: only triggered here, on explicit set confirmation
     if(withRest)setShowRest(true);
     setCompletedExIds(prev=>{
       const next=new Set(prev);
@@ -1745,6 +1746,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
               if(!myLog[1]?.minutes){setSetError(prev=>({...prev,[ex.name]:"Enter minutes first"}));return;}
               setSetError(prev=>({...prev,[ex.name]:""}));
               setLoggedSets(prev=>({...prev,[ex.name]:{1:{...prev[ex.name]?.[1],done:true,prepop:false}}}));
+              // REST TIMER: only triggered here, on explicit set confirmation
               setShowRest(true);
               saveDraft({...loggedSets,[ex.name]:{1:{...loggedSets[ex.name]?.[1],minutes:myLog[1].minutes,level:myLog[1]?.level||"",done:true,prepop:false}}});
             }} style={{padding:"9px 14px",background:myLog[1]?.done?C.neon:"transparent",border:`1px solid ${C.neon}44`,borderRadius:7,color:myLog[1]?.done?"#0b0c0e":C.neon,cursor:"pointer",fontSize:14,fontWeight:700,transition:"all .2s"}}>✓</button>
@@ -1785,6 +1787,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
                   const myL=loggedSets[ex.name]||{};
                   const allFilled=Array.from({length:numSets},(_,i)=>i+1).every(s=>myL[s]?.weight&&myL[s]?.reps);
                   if(n===numSets&&allFilled){markExerciseDone(ex.id,ex.name,!isWarmup);}
+                  // REST TIMER: only triggered here, on explicit set confirmation
                   else if(!isWarmup){setShowRest(true);}
                 }} style={{padding:"9px 4px",background:completedExIds.has(ex.id)&&n===numSets?C.neon+"44":"transparent",border:`1px solid ${C.neon}44`,borderRadius:7,color:C.neon,cursor:"pointer",fontSize:14,fontWeight:700}}>✓</button>
               ];
