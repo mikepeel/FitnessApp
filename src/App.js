@@ -830,7 +830,7 @@ export default function ForgeApp(){
       const latest=s[s.length-1];
       if(latest&&!latest.supabaseId){
         const {data,error}=await supabase.from("workout_sessions").insert({
-          user_id:u.id, day_label:latest.dayLabel,
+          user_id:u.id, day_label:latest.dayLabel, day_id:latest.dayId||null,
           started_at:latest.startedAt, completed_at:latest.completedAt,
           notes:latest.notes||"", sets_data:latest.sets||{},
           rating:latest.rating||null, partial:latest.partial||false
@@ -1529,7 +1529,9 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
       }
     }
     await deleteDraft();
-    onFinish({id:Date.now().toString(),dayId:workout.id,dayLabel:workout.label,startedAt:startTime,completedAt:new Date().toISOString(),notes,rating,sets:loggedSets,setsArr,partial:true},{});
+    const cleanSets={};
+    for(const[ex,exSets]of Object.entries(loggedSets)){const c={};for(const[n,v]of Object.entries(exSets)){if(!v.prepop)c[n]={weight:v.weight||"",reps:v.reps||"",minutes:v.minutes||"",level:v.level||""};}if(Object.keys(c).length)cleanSets[ex]=c;}
+    onFinish({id:Date.now().toString(),dayId:workout.id,dayLabel:workout.label,startedAt:startTime,completedAt:new Date().toISOString(),notes,rating,sets:cleanSets,setsArr,partial:true},{});
   }
 
   async function abandonWorkout(){
@@ -1649,7 +1651,9 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
       writeToAppleHealth(startTime,new Date().toISOString(),vol);
     }
     deleteDraft();
-    onFinish({id:Date.now().toString(),dayId:workout.id,dayLabel:workout.label,startedAt:startTime,completedAt:new Date().toISOString(),notes,rating,sets:loggedSets,setsArr,partial:false},newPRs);
+    const cleanSets={};
+    for(const[ex,exSets]of Object.entries(loggedSets)){const c={};for(const[n,v]of Object.entries(exSets)){if(!v.prepop)c[n]={weight:v.weight||"",reps:v.reps||"",minutes:v.minutes||"",level:v.level||""};}if(Object.keys(c).length)cleanSets[ex]=c;}
+    onFinish({id:Date.now().toString(),dayId:workout.id,dayLabel:workout.label,startedAt:startTime,completedAt:new Date().toISOString(),notes,rating,sets:cleanSets,setsArr,partial:false},newPRs);
   }
 
   const inputStyle={padding:"9px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:7,color:C.text,fontSize:14,fontFamily:"'SF Mono','Courier New',monospace",width:"100%",boxSizing:"border-box"};
