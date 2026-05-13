@@ -1476,6 +1476,8 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   const autoSavedRef=useRef(false);
   const topRef=useRef(null);
   const lastActiveExRef=useRef(null);
+  const dragStartYRef=useRef(null);
+  const [dragDelta,setDragDelta]=useState(0);
 
   useEffect(()=>{const t=setInterval(()=>setElapsed(Math.floor((Date.now()-startMs.current)/1000)),1000);return()=>clearInterval(t);},[]);// eslint-disable-line
 
@@ -1663,6 +1665,9 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
 
 
   return <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:C.serif,paddingBottom:100,scrollBehavior:"smooth"}}>
+    <div onPointerDown={e=>{dragStartYRef.current=e.clientY;setDragDelta(0);e.currentTarget.setPointerCapture(e.pointerId);}} onPointerMove={e=>{if(dragStartYRef.current===null)return;const d=e.clientY-dragStartYRef.current;setDragDelta(d>0?d:0);}} onPointerUp={e=>{const d=dragStartYRef.current!==null?e.clientY-dragStartYRef.current:0;dragStartYRef.current=null;setDragDelta(0);if(d>80)onMinimize({workout,loggedSets,elapsed,startedAt:startTime});}} onPointerCancel={()=>{dragStartYRef.current=null;setDragDelta(0);}} style={{height:28,display:"flex",alignItems:"center",justifyContent:"center",cursor:"grab",touchAction:"none",background:C.bg}}>
+      <div style={{width:40,height:4,borderRadius:2,background:dragDelta>60?C.neon:C.border,transition:"background 0.15s"}}/>
+    </div>
     <div style={{background:C.surface,borderBottom:`2px solid ${C.neon}`,padding:"14px 18px",position:"sticky",top:0,zIndex:50,marginTop:0}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div>
