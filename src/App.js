@@ -1964,6 +1964,7 @@ function PlanTab({plans,activePlanKey,setActivePlanKey,savePlans,settings,C}){
   const [sequencingDay,setSequencingDay]=useState(null); // dayId being AI-sequenced
   const [reorderMode,setReorderMode]=useState(null); // dayId in manual reorder mode
   const [saveSheet,setSaveSheet]=useState(null); // dayId while save options sheet is open
+  const [saveToast,setSaveToast]=useState("");
 
   const plan=plans[activePlanKey];
   const days=plan?.days||[];
@@ -2066,6 +2067,9 @@ No explanation, no markdown, just the JSON array.`;
       </div>}
     </div>
 
+    {saveToast&&<div style={{background:C.neon,padding:"10px 18px",textAlign:"center"}}>
+      <Mono style={{fontSize:12,color:"#0b0c0e",fontWeight:700}}>{saveToast}</Mono>
+    </div>}
     {/* MY PLANS */}
     {view==="mine"&&<div style={{padding:"14px 18px"}}>
       {days.map((day,i)=>(
@@ -2179,7 +2183,7 @@ No explanation, no markdown, just the JSON array.`;
     {saveSheet&&<div onClick={()=>setSaveSheet(null)} style={{position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,0.55)",display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
       <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:"16px 16px 0 0",padding:"20px 18px calc(32px + env(safe-area-inset-bottom,0px)) 18px",display:"flex",flexDirection:"column",gap:10}}>
         <Mono style={{fontSize:11,color:C.muted,letterSpacing:"0.1em",marginBottom:4}}>SAVE DAY CHANGES</Mono>
-        <button onClick={()=>setSaveSheet(null)} style={{width:"100%",padding:"13px 16px",background:C.neon+"22",border:`1px solid ${C.neon}44`,borderRadius:10,color:C.neon,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}>✓ Update Current Plan</button>
+        <button onClick={()=>{updatePlan(days);setSaveSheet(null);setExpandedDay(null);setSaveToast("Plan updated");setTimeout(()=>setSaveToast(""),2500);}} style={{width:"100%",padding:"13px 16px",background:C.neon+"22",border:`1px solid ${C.neon}44`,borderRadius:10,color:C.neon,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}>✓ Update Current Plan</button>
         <button onClick={()=>setSaveSheet(null)} style={{width:"100%",padding:"13px 16px",background:C.accent+"22",border:`1px solid ${C.accent}44`,borderRadius:10,color:C.accent,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}>+ Save as New Plan</button>
         <button onClick={()=>setSaveSheet(null)} style={{width:"100%",padding:"11px 16px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",letterSpacing:"0.04em",marginTop:2}}>Cancel</button>
       </div>
