@@ -1646,7 +1646,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
           const w=parseFloat(vals.weight)||0;
           const typ=(setTypes[exName]?.[parseInt(sn)])||"working";
           const isPR=!vals.minutes&&settings.prDetection&&w>0&&typ!=="warmup"&&(!prs[exName]||w>prs[exName].weight);
-          if(isPR)newPRs[exName]={weight:w,date:new Date().toISOString()};
+          if(isPR&&(!newPRs[exName]||w>newPRs[exName].weight))newPRs[exName]={weight:w,date:new Date().toISOString()};
           setsArr.push({exName,setNum:parseInt(sn),weight:vals.weight||"",reps:vals.reps||"",minutes:vals.minutes||"",level:vals.level||"",isPR,type:typ});
         }
       }
@@ -2831,15 +2831,40 @@ function getStrengthScore(exName, maxWeight){
   if(!maxWeight) return 0;
   // Rough benchmarks (lbs) per level per exercise type
   const benchmarks = {
+    // Chest
     "Bench Press":[95,135,185,225,275],
-    "T-Bar Row":[85,115,155,195,245],
     "Incline Press (DB)":[40,60,80,100,130],
-    "Goblet Squat":[35,55,75,95,115],
-    "DB Romanian Deadlift":[50,75,105,135,165],
+    "Cable Fly":[20,35,55,75,95],
+    "Cable Fly / Pec Deck":[25,40,60,80,105],
+    "Pec Deck / Cable Fly":[25,40,60,80,105],
+    // Back
+    "T-Bar Row":[85,115,155,195,245],
+    "Reverse Grip Lat Pulldown":[55,80,110,145,180],
+    "Seated Cable Row":[55,80,115,150,190],
+    "Reverse Grip Pulldown":[55,80,110,145,180],
+    "Seated Row (Close Grip)":[55,80,115,150,190],
+    // Shoulders
+    "Machine Shoulder Press":[50,80,110,140,170],
+    "Dumbbell Lateral Raises":[10,15,25,35,50],
+    "DB / Cable Lateral Raises":[10,15,25,35,50],
+    "Cable Lateral Raise":[10,15,25,35,50],
+    "Rear Delt Machine":[30,50,70,95,120],
+    "Rear Delt Cable or Machine":[25,40,60,80,105],
+    "Rear Delt Cable":[20,35,55,75,100],
+    "Front Delt Raise":[15,25,35,50,65],
+    // Triceps
+    "Cable Rope Pressdown":[30,50,70,90,110],
+    "Incline Tricep Extension":[25,40,55,75,95],
+    "Cable Overhead Extension":[25,40,60,80,105],
+    // Biceps
     "Cable Curl":[30,45,60,75,95],
     "Concentration Curl":[20,30,40,55,70],
-    "Cable Rope Pressdown":[30,50,70,90,110],
-    "Machine Shoulder Press":[50,80,110,140,170],
+    "Barbell / Cable Curl":[40,65,90,115,145],
+    // Legs
+    "Goblet Squat":[35,55,75,95,115],
+    "DB Romanian Deadlift":[50,75,105,135,165],
+    "Box Step-Ups (DB)":[20,35,50,65,85],
+    "DB Lunges (optional)":[20,35,50,65,85],
   };
   const b = benchmarks[exName];
   if(!b) return Math.min(4, Math.floor(maxWeight/50));
