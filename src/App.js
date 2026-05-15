@@ -1014,14 +1014,18 @@ export default function ForgeApp(){
     return [...days.slice(idx),...days.slice(0,idx)];
   };
 
-  // Compliance streak -- consecutive days on plan (rest days count; only missed workout days break it)
+  // Compliance streak -- consecutive WORKOUT days completed (rest days ignored, don't count toward number)
   const complianceStreak=(()=>{
     if(!settings.streakTracking)return 0;
     const completed=sessions.filter(s=>s.completedAt&&!s.partial);
     if(!completed.length)return 0;
     const planDays=(plans[activePlanKey]?.days||[]);
-    const progStart=getProgramStart(sessions);
     const toLD=d=>d.toLocaleDateString("en-CA");
+    // Use local date for progStart -- consistent with dateStr below
+    const progStart=(()=>{
+      const dates=sessions.filter(s=>s.completedAt).map(s=>toLD(new Date(s.completedAt))).sort();
+      return dates[0]||PROGRAM_START;
+    })();
     const today=new Date();
     today.setHours(12,0,0,0);
     const todayStr=toLD(today);
@@ -1036,10 +1040,10 @@ export default function ForgeApp(){
       if(dateStr<progStart)break; // don't count before program started
       const dowName=DOW[d.getDay()];
       const planDay=planDayMap[dowName];
-      // No plan day defined for this DOW or it's a rest day -- automatically compliant
-      if(!planDay||planDay.isRest){count++;continue;}
-      // Workout day -- check for matching completed session
-      const done=completed.some(s=>toLD(new Date(s.completedAt))===dateStr&&s.dayLabel===planDay.label);
+      // Rest day or no plan day defined -- skip, don't count, don't break
+      if(!planDay||planDay.isRest){continue;}
+      // Workout day -- match by dayId OR dayLabel (consistent with rest of app)
+      const done=completed.some(s=>toLD(new Date(s.completedAt))===dateStr&&(s.dayId===planDay.id||s.dayLabel===planDay.label));
       if(done){count++;}
       else if(dateStr===todayStr){continue;} // today's workout not done yet -- don't break
       else{break;} // missed workout day in the past -- streak broken
@@ -1202,8 +1206,8 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
             {settings.streakTracking&&(
               complianceStreak>=30
                 ?<div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:1}}>
-                    <Mono style={{fontSize:16,color:C.gold,fontWeight:800}}>🏆 {complianceStreak} days</Mono>
-                    <Mono style={{fontSize:9,color:C.muted}}>consecutive days on plan</Mono>
+                    <Mono style={{fontSize:16,color:C.gold,fontWeight:800}}>🏆 {complianceStreak}</Mono>
+                    <Mono style={{fontSize:9,color:C.muted}}>workouts · consecutive</Mono>
                   </div>
                 :complianceStreak>=7
                 ?<div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:1}}>
@@ -1211,7 +1215,7 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
                       <span style={{fontSize:18}}>🔥</span>
                       <Mono style={{fontSize:18,color:C.gold,fontWeight:800}}>{complianceStreak}</Mono>
                     </div>
-                    <Mono style={{fontSize:9,color:C.muted}}>DAY STREAK · consecutive days on plan</Mono>
+                    <Mono style={{fontSize:9,color:C.muted}}>WORKOUT STREAK</Mono>
                   </div>
                 :complianceStreak>0
                 ?<div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:1}}>
@@ -1219,7 +1223,7 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
                       <span style={{fontSize:18}}>🔥</span>
                       <Mono style={{fontSize:18,color:C.neon,fontWeight:800}}>{complianceStreak}</Mono>
                     </div>
-                    <Mono style={{fontSize:9,color:C.muted}}>DAY STREAK · consecutive days on plan</Mono>
+                    <Mono style={{fontSize:9,color:C.muted}}>WORKOUT STREAK</Mono>
                   </div>
                 :<Mono style={{fontSize:10,color:C.muted}}>Start your streak today</Mono>
             )}
