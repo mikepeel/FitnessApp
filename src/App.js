@@ -1014,65 +1014,40 @@ export default function ForgeApp(){
     return [...days.slice(idx),...days.slice(0,idx)];
   };
 
-  // Scheduled streak -- consecutive planned (non-rest) workout days completed
-  // A rest day in the plan does NOT break this streak
-  const scheduledStreak=(()=>{
+  // Compliance streak -- consecutive days on plan (rest days count; only missed workout days break it)
+  const complianceStreak=(()=>{
     if(!settings.streakTracking)return 0;
-    const activePlanDays=(plans[activePlanKey]?.days||[]).filter(d=>!d.isRest).map(d=>d.name); // e.g. ["Monday","Tuesday","Thursday","Friday","Saturday"]
-    // Get workout dates that have actual data, newest first
-    const workedDates=[...new Set(
-      sessions.filter(s=>s.completedAt&&(s.setsArr||[]).some(x=>x.weight||x.reps||x.minutes))
-        .map(s=>s.completedAt.split("T")[0])
-    )].sort().reverse();
-    if(!workedDates.length)return 0;
-    // Walk forward from program start, count consecutive scheduled days that were completed
-    // Build list of all scheduled workout dates from program start up to today
-    const toLocalStr=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    const completed=sessions.filter(s=>s.completedAt&&!s.partial);
+    if(!completed.length)return 0;
+    const planDays=(plans[activePlanKey]?.days||[]);
+    const progStart=getProgramStart(sessions);
+    const toLD=d=>d.toLocaleDateString("en-CA");
     const today=new Date();
-    const todayLocalStr=toLocalStr(today);
-    const scheduledPast=[];
-    // Use noon to avoid UTC-offset shifting getDay() to the wrong calendar date
-    for(let d=new Date(PROGRAM_START+"T12:00:00");toLocalStr(d)<=todayLocalStr;d.setDate(d.getDate()+1)){
-      const dayName=DOW[d.getDay()];
-      if(activePlanDays.includes(dayName)){
-        scheduledPast.push(toLocalStr(d));
-      }
-    }
-    // Walk backwards from most recent scheduled day and count how many were completed
+    today.setHours(12,0,0,0);
+    const todayStr=toLD(today);
+    // Build map: day-of-week name -> plan day object
+    const planDayMap={};
+    for(const pd of planDays){if(pd.name)planDayMap[pd.name]=pd;}
     let count=0;
-    for(let i=scheduledPast.length-1;i>=0;i--){
-      if(workedDates.includes(scheduledPast[i])){
-        count++;
-      } else {
-        // If this scheduled day is today and no session yet, don't break -- still possible
-        if(scheduledPast[i]===todayLocalStr)continue;
-        break; // Missed a scheduled day -- streak broken
-      }
+    for(let i=0;i<=730;i++){
+      const d=new Date(today);
+      d.setDate(today.getDate()-i);
+      const dateStr=toLD(d);
+      if(dateStr<progStart)break; // don't count before program started
+      const dowName=DOW[d.getDay()];
+      const planDay=planDayMap[dowName];
+      // No plan day defined for this DOW or it's a rest day -- automatically compliant
+      if(!planDay||planDay.isRest){count++;continue;}
+      // Workout day -- check for matching completed session
+      const done=completed.some(s=>toLD(new Date(s.completedAt))===dateStr&&s.dayLabel===planDay.label);
+      if(done){count++;}
+      else if(dateStr===todayStr){continue;} // today's workout not done yet -- don't break
+      else{break;} // missed workout day in the past -- streak broken
     }
     return count;
   })();
 
-  // Calendar streak -- consecutive calendar days with any workout (classic definition)
-  const calendarStreak=(()=>{
-    if(!settings.streakTracking)return 0;
-    const toLocalStr2=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-    const todayStr=toLocalStr2(new Date());
-    const yesterdayStr=(()=>{const d=new Date();d.setDate(d.getDate()-1);return toLocalStr2(d);})();
-    const dates=[...new Set(
-      sessions.filter(s=>s.completedAt&&(s.setsArr||[]).some(x=>x.weight||x.reps||x.minutes))
-        .map(s=>s.completedAt.split("T")[0])
-    )].sort().reverse();
-    if(!dates.length)return 0;
-    if(dates[0]!==todayStr&&dates[0]!==yesterdayStr)return 0;
-    let count=1;
-    for(let i=1;i<dates.length;i++){
-      const diff=Math.round((new Date(dates[i-1])-new Date(dates[i]))/86400000);
-      if(diff===1){count++;}else break;
-    }
-    return count;
-  })();
-
-  const streak=scheduledStreak; // primary streak is scheduled
+  const streak=complianceStreak;
 
   const deloadDue=(()=>{
     if(!settings.deloadReminder)return false;
@@ -1133,7 +1108,7 @@ export default function ForgeApp(){
     {minimizedWorkout&&<div style={{height:44}}/>}
     {tab==="today"&&<TodayTab plan={activePlan} plans={plans} activePlanKey={activePlanKey}
       setActivePlanKey={k=>{setActivePlanKey(k);}}
-      settings={settings} sessions={sessions} streak={streak} scheduledStreak={scheduledStreak} calendarStreak={calendarStreak} deloadDue={deloadDue&&deloadDismissed!==new Date().toISOString().slice(0,7)}
+      settings={settings} sessions={sessions} streak={streak} complianceStreak={complianceStreak} deloadDue={deloadDue&&deloadDismissed!==new Date().toISOString().slice(0,7)}
       onDeloadDismiss={()=>{setDeloadDismissed(new Date().toISOString().slice(0,7));}}
       onStart={day=>{setWorkoutDraft(null);setActiveWorkout(day);}} C={C} getOrderedDays={getOrderedDays} toggleTheme={toggleTheme} themeMode={themeMode}
       authUser={authUser} todayDay={(activePlan?.days||[]).find(d=>d.name===DOW[new Date().getDay()]&&!d.isRest)}/>}
@@ -1192,7 +1167,7 @@ export default function ForgeApp(){
 }
 
 // -- TODAY ---------------------------------------------------------------------
-function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,streak,scheduledStreak,calendarStreak,deloadDue,onDeloadDismiss,onStart,C,getOrderedDays,toggleTheme,themeMode,authUser,todayDay}){
+function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,streak,complianceStreak,deloadDue,onDeloadDismiss,onStart,C,getOrderedDays,toggleTheme,themeMode,authUser,todayDay}){
   const todayName=DOW[new Date().getDay()];
   // Smart week ordering: today first, then future days this week, then past days
   const rawDays=plan?.days||[];
@@ -1225,17 +1200,28 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
           <div style={{textAlign:"right",display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
             <Mono style={{fontSize:10,color:C.accent,letterSpacing:"0.1em"}}>WEEK {programWeek(sessions)}</Mono>
             {settings.streakTracking&&(
-              scheduledStreak>0
+              complianceStreak>=30
+                ?<div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:1}}>
+                    <Mono style={{fontSize:16,color:C.gold,fontWeight:800}}>🏆 {complianceStreak} days</Mono>
+                    <Mono style={{fontSize:9,color:C.muted}}>consecutive days on plan</Mono>
+                  </div>
+                :complianceStreak>=7
                 ?<div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:1}}>
                     <div style={{display:"flex",alignItems:"center",gap:4}}>
                       <span style={{fontSize:18}}>🔥</span>
-                      <Mono style={{fontSize:18,color:C.neon,fontWeight:800}}>{scheduledStreak}</Mono>
+                      <Mono style={{fontSize:18,color:C.gold,fontWeight:800}}>{complianceStreak}</Mono>
                     </div>
-                    <Mono style={{fontSize:9,color:C.muted}}>scheduled{calendarStreak>1?` . ${calendarStreak}d cal`:""}</Mono>
+                    <Mono style={{fontSize:9,color:C.muted}}>DAY STREAK · consecutive days on plan</Mono>
                   </div>
-                :<Mono style={{fontSize:10,color:C.muted}}>
-                    {sessions.filter(s=>s.completedAt&&(s.setsArr||[]).some(x=>x.weight||x.reps||x.minutes)).length>0?"Rest day -- streak holds":"Train to start streak"}
-                  </Mono>
+                :complianceStreak>0
+                ?<div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:1}}>
+                    <div style={{display:"flex",alignItems:"center",gap:4}}>
+                      <span style={{fontSize:18}}>🔥</span>
+                      <Mono style={{fontSize:18,color:C.neon,fontWeight:800}}>{complianceStreak}</Mono>
+                    </div>
+                    <Mono style={{fontSize:9,color:C.muted}}>DAY STREAK · consecutive days on plan</Mono>
+                  </div>
+                :<Mono style={{fontSize:10,color:C.muted}}>Start your streak today</Mono>
             )}
             {todaySessions.length>0&&<Pill color={C.neon} C={C}>Done today</Pill>}
           </div>
