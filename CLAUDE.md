@@ -147,6 +147,16 @@ Icons are SVG components rendered inline in the nav — not emojis.
     - The canonical local date helper: `const toLocalDate = (d = new Date()) => d.toLocaleDateString("en-CA");`
 19. **Supabase schema discipline** — confirm every field in an insert/update payload matches an actual column before deploying. If unsure, query `information_schema.columns` first.
 20. **Session-start backup** — run `npm run backup` at the start of every session and confirm record counts before touching any code. If `workout_sessions` count drops, stop and alert immediately.
+22. **Solve simply, completely, once** — find the exact broken line, fix it, verify it works. Do not rewrite surrounding code, do not add abstractions, do not over-engineer. The simplest fix that completely solves the problem is always preferred over a clever one.
+23. **Diagnose before writing code** — read the relevant code first, identify the exact line or condition causing the bug, state the root cause in one sentence, then fix only that. Do not fix things that are not broken.
+24. **Efficiency over thoroughness** — a focused 10-line fix that works is better than a 100-line refactor that might. Fix the bug, run npm run build, confirm it works, commit. Nothing more.
+25. **Short prompt format for bug fixes** — when given a bug to fix, expect and follow this format:
+    - Run backup first
+    - One sentence describing what is wrong
+    - One sentence on where to look
+    - Fix only the broken part
+    - Build, test, commit
+    Do not expand scope beyond what is described.
 
 ## Pre-Deploy Checklist
 Before every commit verify:
