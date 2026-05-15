@@ -1924,7 +1924,7 @@ function SwapExerciseModal({exercise,onSwap,onClose,C}){
   async function loadAISuggestions(){
     setLoadingAI(true);
     const prompt=`You are a personal trainer. Suggest 6 alternative exercises to swap for "${exercise.name}" (muscle: ${exercise.muscle||"unknown"}).
-Requirements: joint-friendly for a 49-year-old, similar muscle group, gym equipment available.
+Requirements: joint-friendly, minimize joint stress, similar muscle group, gym equipment available.
 Return ONLY a JSON array of objects: [{"name":"Exercise Name","sets":"3","reps":"10-12","note":"brief reason","muscle":"${exercise.muscle||""}"}]
 No markdown, no explanation, just the array.`;
     try{
