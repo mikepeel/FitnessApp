@@ -807,11 +807,20 @@ export default function ForgeApp(){
       const {data:{user:u}}=await supabase.auth.getUser();
       if(!u)return;
       for(const[key,plan]of Object.entries(p)){
-        await supabase.from("plans").upsert({
+        const{error}=await supabase.from("plans").upsert({
           id:plan.supabaseId||undefined,
           user_id:u.id, plan_key:key, name:plan.name,
-          subtitle:plan.subtitle, description:plan.description
+          subtitle:plan.subtitle, description:plan.description,
+          days_json:plan.days||[]
         },{onConflict:"user_id,plan_key"});
+        if(error?.code==="42703"){
+          // days_json column not yet added — fall back to metadata-only save
+          await supabase.from("plans").upsert({
+            id:plan.supabaseId||undefined,
+            user_id:u.id, plan_key:key, name:plan.name,
+            subtitle:plan.subtitle, description:plan.description
+          },{onConflict:"user_id,plan_key"});
+        }else if(error){ console.error("savePlans:",error); }
       }
     }catch(e){ console.error("savePlans:",e); }
   };
@@ -948,6 +957,17 @@ export default function ForgeApp(){
         const prMap={};
         prData.forEach(r=>{prMap[r.exercise_name]={weight:r.max_weight,date:r.achieved_at};});
         setPrs(prMap);
+      }
+      // Load plans (days_json column required — silently skipped if column not yet added)
+      const {data:planRows}=await supabase.from("plans").select("plan_key,name,subtitle,description,days_json,id").eq("user_id",u.id);
+      if(planRows&&planRows.length>0){
+        const merged={...MIKE_PLANS};
+        planRows.forEach(r=>{
+          if(r.plan_key&&Array.isArray(r.days_json)&&r.days_json.length>0){
+            merged[r.plan_key]={...(merged[r.plan_key]||{}),name:r.name,subtitle:r.subtitle||"",description:r.description||"",supabaseId:r.id,days:r.days_json};
+          }
+        });
+        setPlans(merged);
       }
       // Load profile (body stats + active plan key)
       const {data:prof}=await supabase.from("profiles").select("*").eq("id",u.id).single();
