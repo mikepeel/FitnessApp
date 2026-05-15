@@ -994,10 +994,10 @@ export default function ForgeApp(){
       if(session?.user)loadUserData(session.user);
       else setLoading(false);
     });
-    const {data:{subscription}}=supabase.auth.onAuthStateChange((_,session)=>{
+    const {data:{subscription}}=supabase.auth.onAuthStateChange((event,session)=>{
       setAuthUser(session?.user||null);
-      if(session?.user){loadUserData(session.user);}
-      else{setSessions([]);setPrs({});setPlans(MIKE_PLANS);setSettings(DEFAULT_SETTINGS);setLoading(false);}
+      if(event==="SIGNED_IN"&&session?.user){loadUserData(session.user);}
+      else if(!session?.user){setSessions([]);setPrs({});setPlans(MIKE_PLANS);setSettings(DEFAULT_SETTINGS);setLoading(false);}
     });
     return()=>subscription.unsubscribe();
   },[]);// eslint-disable-line react-hooks/exhaustive-deps
