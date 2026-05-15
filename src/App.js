@@ -2594,7 +2594,7 @@ function HistoryTab({sessions,saveSessions,savePRs,prs,C,onRerun}){
     savePRs(newPRs);
   }
 
-  function saveEdit(updated){
+  async function saveEdit(updated){
     const setsArr=[];
     for(const[exName,sets]of Object.entries(updated.sets||{})){
       for(const[sn,vals]of Object.entries(sets)){
@@ -2605,12 +2605,11 @@ function HistoryTab({sessions,saveSessions,savePRs,prs,C,onRerun}){
     }
     const updatedSession={...updated,setsArr};
     const updatedSessions=sessions.map(s=>s.id===updatedSession.id?updatedSession:s);
-    saveSessions(updatedSessions);
+    await saveSessions(updatedSessions);
     recalcPRs(updatedSessions);
     if(updatedSession.supabaseId){
       supabase.from("workout_sessions").update({completed_at:updatedSession.completedAt,started_at:updatedSession.startedAt,notes:updatedSession.notes||"",sets_data:updatedSession.sets||{},partial:updatedSession.partial||false}).eq("id",updatedSession.supabaseId).catch(e=>console.error("saveEdit update:",e));
     }
-    setEditingSession(null);
   }
 
   function deleteSession(sessId){
@@ -2808,6 +2807,7 @@ ${prCount>0?`★ ${prCount} new PR${prCount>1?"s":""}!`:""}
 
 // -- SESSION EDIT MODAL --------------------------------------------------------
 function SessionEditModal({session,onSave,onClose,C}){
+  const [saving,setSaving]=useState(false);
   const [editData,setEditData]=useState(()=>{
     // Build editable sets: { exName -> { setNum -> { weight, reps } } }
     const sets={};
@@ -2949,8 +2949,10 @@ function SessionEditModal({session,onSave,onClose,C}){
     </div>}
 
     <div style={{display:"flex",gap:10}}>
-      <Btn style={{flex:1}} C={C} onClick={()=>onSave(editData)}>Save Changes</Btn>
-      <Btn variant="ghost" style={{flex:1}} C={C} onClick={onClose}>Cancel</Btn>
+      <Btn style={{flex:1}} C={C} disabled={saving} onClick={async()=>{setSaving(true);try{await onSave(editData);}finally{setSaving(false);}onClose();}}>
+        {saving?"Saving…":"Save Changes"}
+      </Btn>
+      <Btn variant="ghost" style={{flex:1}} C={C} disabled={saving} onClick={onClose}>Cancel</Btn>
     </div>
   </Modal>;
 }
