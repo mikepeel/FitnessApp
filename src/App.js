@@ -798,7 +798,6 @@ export default function ForgeApp(){
   const [bannerElapsed,setBannerElapsed]=useState(0);
   const minimizeTimeRef=useRef(null);
   const [deloadDismissed,setDeloadDismissed]=useState(null);
-  const [sessionSaveError,setSessionSaveError]=useState(false);
   const C=useTheme(themeMode);
 
   const savePlans=async(p)=>{
@@ -841,11 +840,11 @@ export default function ForgeApp(){
   };
 
   const saveSessions=async(s)=>{
-    if(!Array.isArray(s))return;
+    if(!Array.isArray(s))return false;
     setSessions(s);
     try{
       const {data:{user:u}}=await supabase.auth.getUser();
-      if(!u)return;
+      if(!u)return false;
       // Save the most recent session (last in array)
       const latest=s[s.length-1];
       if(latest&&!latest.supabaseId){
@@ -855,9 +854,8 @@ export default function ForgeApp(){
           notes:latest.notes||"", sets_data:latest.sets||{},
           partial:latest.partial||false
         }).select().single();
-        if(error){ console.error("saveSessions insert error:",error); setSessionSaveError(true); return; }
+        if(error){ console.error("saveSessions insert error:",error); return false; }
         if(data){
-          setSessionSaveError(false);
           // Mark session as persisted so it is not re-inserted on next save
           setSessions(prev=>prev.map(sess=>sess===latest?{...sess,supabaseId:data.id}:sess));
           // Save individual sets
@@ -874,9 +872,11 @@ export default function ForgeApp(){
             const {error:setsErr}=await supabase.from("logged_sets").insert(setRows);
             if(setsErr) console.error("saveSessions logged_sets error:",setsErr);
           }
+          return true;
         }
       }
-    }catch(e){ console.error("saveSessions exception:",e); setSessionSaveError(true); }
+      return true;
+    }catch(e){ console.error("saveSessions exception:",e); return false; }
   };
 
   const savePRs=async(p)=>{
@@ -1120,17 +1120,13 @@ export default function ForgeApp(){
       plans={plans} activePlanKey={activePlanKey} savePlans={savePlans} authUser={authUser}
       workoutDraft={workoutDraft}
       onMinimize={(data)=>{minimizeTimeRef.current=Date.now();setBannerElapsed(data.elapsed);setMinimizedWorkout(data);setWorkoutDraft(null);setActiveWorkout(null);}}
-      onFinish={(sess,newPRs)=>{setWorkoutDraft(null);setMinimizedWorkout(null);saveSessions([...sessions,sess]);savePRs({...prs,...newPRs});setActiveWorkout(null);}}
+      onFinish={async(sess,newPRs)=>{const ok=await saveSessions([...sessions,sess]);if(ok){setWorkoutDraft(null);setMinimizedWorkout(null);savePRs({...prs,...newPRs});setActiveWorkout(null);}return ok;}}
       onCancel={()=>{setWorkoutDraft(null);setMinimizedWorkout(null);setActiveWorkout(null);}} C={C}/>;
   }
 
   return <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:C.serif,paddingBottom:72,userSelect:"none",scrollBehavior:"smooth"}}>
     {!isOnline&&<div style={{background:"#f7c948",color:"#1a202c",padding:"8px 18px",fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"center",letterSpacing:"0.04em"}}>
       ⚠ Offline — workouts will sync when connection is restored
-    </div>}
-    {sessionSaveError&&<div style={{background:"#f06584",padding:"10px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-      <Mono style={{fontSize:12,color:"#fff",fontWeight:700}}>⚠ Workout not saved — check connection</Mono>
-      <button onClick={()=>{setSessionSaveError(false);saveSessions(sessions);}} style={{background:"rgba(255,255,255,0.25)",border:"1px solid rgba(255,255,255,0.5)",borderRadius:6,color:"#fff",fontSize:11,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",padding:"4px 10px",cursor:"pointer"}}>Retry</button>
     </div>}
     {minimizedWorkout&&<div onClick={()=>{setWorkoutDraft({loggedSets:minimizedWorkout.loggedSets,elapsed:bannerElapsed,startedAt:minimizedWorkout.startedAt,workout:minimizedWorkout.workout});setActiveWorkout(minimizedWorkout.workout);setMinimizedWorkout(null);}} style={{position:"fixed",top:"env(safe-area-inset-top,0px)",left:0,right:0,zIndex:100,background:C.neon,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",minHeight:44,cursor:"pointer",userSelect:"none"}}>
       <Mono style={{fontSize:12,color:"#0b0c0e",fontWeight:700}}>🔴 {minimizedWorkout.workout.label} in progress · {Math.floor(bannerElapsed/60)}:{String(bannerElapsed%60).padStart(2,"0")}</Mono>
@@ -1490,6 +1486,8 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   const [setStates,setSetStates]=useState({});
   const [showEndMenu,setShowEndMenu]=useState(false);
   const [showAbandonConfirm,setShowAbandonConfirm]=useState(false);
+  const [saving,setSaving]=useState(false);
+  const [saveError,setSaveError]=useState(null);
   const [autoSaveToast,setAutoSaveToast]=useState(false);
   const autoSavedRef=useRef(false);
   const topRef=useRef(null);
@@ -1541,6 +1539,8 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   }
 
   async function savePartialAndExit(){
+    if(saving)return;
+    setSaving(true);setSaveError(null);
     const setsArr=[];
     for(const[exName,sets]of Object.entries(loggedSets)){
       for(const[sn,vals]of Object.entries(sets)){
@@ -1550,10 +1550,10 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
         }
       }
     }
-    await deleteDraft();
     const cleanSets={};
     for(const[ex,exSets]of Object.entries(loggedSets)){const c={};for(const[n,v]of Object.entries(exSets)){if(!v.prepop)c[n]={weight:v.weight||"",reps:v.reps||"",minutes:v.minutes||"",level:v.level||""};}if(Object.keys(c).length)cleanSets[ex]=c;}
-    onFinish({id:Date.now().toString(),dayId:workout.id,dayLabel:workout.label,startedAt:startTime,completedAt:new Date().toISOString(),notes,sets:cleanSets,setsArr,partial:true},{});
+    const ok=await onFinish({id:Date.now().toString(),dayId:workout.id,dayLabel:workout.label,startedAt:startTime,completedAt:new Date().toISOString(),notes,sets:cleanSets,setsArr,partial:true},{});
+    if(ok){await deleteDraft();}else{setSaving(false);setSaveError("Could not save — check connection and try again.");}
   }
 
   async function abandonWorkout(){
@@ -1655,7 +1655,9 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
     setEditExModal(null);
   }
 
-  function finish(){
+  async function finish(){
+    if(saving)return;
+    setSaving(true);setSaveError(null);
     const newPRs={};
     const setsArr=[];
     for(const[exName,sets]of Object.entries(loggedSets)){
@@ -1673,10 +1675,10 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
       const vol=setsArr.filter(x=>x.type!=="warmup").reduce((s,x)=>(s+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0);
       writeToAppleHealth(startTime,new Date().toISOString(),vol);
     }
-    deleteDraft();
     const cleanSets={};
     for(const[ex,exSets]of Object.entries(loggedSets)){const c={};for(const[n,v]of Object.entries(exSets)){if(!v.prepop)c[n]={weight:v.weight||"",reps:v.reps||"",minutes:v.minutes||"",level:v.level||""};}if(Object.keys(c).length)cleanSets[ex]=c;}
-    onFinish({id:Date.now().toString(),dayId:workout.id,dayLabel:workout.label,startedAt:startTime,completedAt:new Date().toISOString(),notes,sets:cleanSets,setsArr,partial:false},newPRs);
+    const ok=await onFinish({id:Date.now().toString(),dayId:workout.id,dayLabel:workout.label,startedAt:startTime,completedAt:new Date().toISOString(),notes,sets:cleanSets,setsArr,partial:false},newPRs);
+    if(ok){await deleteDraft();}else{setSaving(false);setSaveError("Workout not saved — check connection and tap Retry.");}
   }
 
   const inputStyle={padding:"9px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:7,color:C.text,fontSize:14,fontFamily:"'SF Mono','Courier New',monospace",width:"100%",boxSizing:"border-box"};
@@ -1884,15 +1886,19 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
         <textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Energy, joints, anything notable..."
           style={{width:"100%",padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:10,color:C.text,fontSize:13,fontFamily:C.serif,height:72,resize:"none",boxSizing:"border-box"}}/>
       </div>}
-      <Btn onClick={finish} size="lg" C={C} style={{width:"100%",marginTop:14,background:C.neon,color:"#fff",fontWeight:800,letterSpacing:"0.1em",fontSize:15}}>COMPLETE WORKOUT ✓</Btn>
+      {saveError&&<div style={{background:"#f06584",padding:"12px 14px",borderRadius:8,marginTop:14}}>
+        <Mono style={{fontSize:12,color:"#fff",fontWeight:700,display:"block",marginBottom:8}}>⚠ {saveError}</Mono>
+        <Btn onClick={finish} size="sm" C={C} style={{background:"rgba(255,255,255,0.25)",color:"#fff",border:"1px solid rgba(255,255,255,0.5)",width:"100%"}}>Retry</Btn>
+      </div>}
+      <Btn onClick={finish} disabled={saving} size="lg" C={C} style={{width:"100%",marginTop:14,background:saving?C.card:C.neon,color:saving?C.muted:"#fff",fontWeight:800,letterSpacing:"0.1em",fontSize:15}}>{saving?"SAVING...":"COMPLETE WORKOUT ✓"}</Btn>
     </div>
 
     {/* Swap exercise modal */}
     {showEndMenu&&<div onClick={()=>setShowEndMenu(false)} style={{position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,0.55)",display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
       <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:"16px 16px 0 0",padding:"20px 18px calc(32px + env(safe-area-inset-bottom,0px)) 18px",display:"flex",flexDirection:"column",gap:10}}>
         <Mono style={{fontSize:11,color:C.muted,letterSpacing:"0.1em",marginBottom:4}}>END WORKOUT</Mono>
-        <button onClick={()=>{setShowEndMenu(false);finish();}} style={{width:"100%",padding:"13px 16px",background:C.neon+"22",border:`1px solid ${C.neon}44`,borderRadius:10,color:C.neon,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}>✓ Complete Workout</button>
-        <button onClick={()=>{setShowEndMenu(false);savePartialAndExit();}} style={{width:"100%",padding:"13px 16px",background:C.card,border:`1px solid ${C.border}`,borderRadius:10,color:C.text,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}>↓ Save & Exit</button>
+        <button onClick={()=>{setShowEndMenu(false);finish();}} disabled={saving} style={{width:"100%",padding:"13px 16px",background:C.neon+"22",border:`1px solid ${C.neon}44`,borderRadius:10,color:C.neon,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:saving?"not-allowed":"pointer",textAlign:"left",letterSpacing:"0.04em",opacity:saving?0.5:1}}>✓ Complete Workout</button>
+        <button onClick={()=>{setShowEndMenu(false);savePartialAndExit();}} disabled={saving} style={{width:"100%",padding:"13px 16px",background:C.card,border:`1px solid ${C.border}`,borderRadius:10,color:C.text,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:saving?"not-allowed":"pointer",textAlign:"left",letterSpacing:"0.04em",opacity:saving?0.5:1}}>↓ Save & Exit</button>
         <button onClick={()=>{setShowEndMenu(false);setShowAbandonConfirm(true);}} style={{width:"100%",padding:"13px 16px",background:C.red+"11",border:`1px solid ${C.red}44`,borderRadius:10,color:C.red,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}>✕ Abandon</button>
         <button onClick={()=>setShowEndMenu(false)} style={{width:"100%",padding:"11px 16px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",letterSpacing:"0.04em",marginTop:2}}>Cancel</button>
       </div>
