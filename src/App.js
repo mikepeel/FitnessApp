@@ -843,24 +843,30 @@ export default function ForgeApp(){
     if(!Array.isArray(s))return false;
     setSessions(s);
     try{
-      const {data:{user:u}}=await supabase.auth.getUser();
-      if(!u)return false;
-      // Save the most recent session (last in array)
+      if(!authUser)return false;
+      const uid=authUser.id;
       const latest=s[s.length-1];
       if(latest&&!latest.supabaseId){
+        // Guard against duplicate inserts on retry — session may already be saved
+        const {data:existing}=await supabase.from("workout_sessions")
+          .select("id").eq("user_id",uid).eq("started_at",latest.startedAt).maybeSingle();
+        if(existing?.id){
+          setSessions(prev=>prev.map(sess=>sess===latest?{...sess,supabaseId:existing.id}:sess));
+          return true;
+        }
+        // .select("id") without .single() — error reflects only the INSERT, not the SELECT
         const {data,error}=await supabase.from("workout_sessions").insert({
-          user_id:u.id, day_label:latest.dayLabel, day_id:latest.dayId||null,
+          user_id:uid, day_label:latest.dayLabel, day_id:latest.dayId||null,
           started_at:latest.startedAt, completed_at:latest.completedAt,
           notes:latest.notes||"", sets_data:latest.sets||{},
           partial:latest.partial||false
-        }).select().single();
-        if(error){ console.error("saveSessions insert error:",error); return false; }
-        if(data){
-          // Mark session as persisted so it is not re-inserted on next save
-          setSessions(prev=>prev.map(sess=>sess===latest?{...sess,supabaseId:data.id}:sess));
-          // Save individual sets
+        }).select("id");
+        if(error){ console.error("saveSessions insert error:",JSON.stringify(error)); return false; }
+        const insertedId=data?.[0]?.id;
+        if(insertedId){
+          setSessions(prev=>prev.map(sess=>sess===latest?{...sess,supabaseId:insertedId}:sess));
           const setRows=(latest.setsArr||[]).map(x=>({
-            session_id:data.id, user_id:u.id,
+            session_id:insertedId, user_id:uid,
             exercise_name:x.exName, set_number:x.setNum,
             weight:parseFloat(x.weight)||null,
             reps:x.minutes?(parseInt(x.level)||null):(parseInt(x.reps)||null),
@@ -870,13 +876,12 @@ export default function ForgeApp(){
           }));
           if(setRows.length>0){
             const {error:setsErr}=await supabase.from("logged_sets").insert(setRows);
-            if(setsErr) console.error("saveSessions logged_sets error:",setsErr);
+            if(setsErr) console.error("saveSessions logged_sets error:",JSON.stringify(setsErr));
           }
-          return true;
         }
       }
       return true;
-    }catch(e){ console.error("saveSessions exception:",e); return false; }
+    }catch(e){ console.error("saveSessions exception:",JSON.stringify(e)); return false; }
   };
 
   const savePRs=async(p)=>{
