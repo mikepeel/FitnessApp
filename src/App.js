@@ -798,6 +798,7 @@ export default function ForgeApp(){
   const [bannerElapsed,setBannerElapsed]=useState(0);
   const minimizeTimeRef=useRef(null);
   const [deloadDismissed,setDeloadDismissed]=useState(null);
+  const [workoutSummary,setWorkoutSummary]=useState(null);
   const C=useTheme(themeMode);
 
   const savePlans=async(p)=>{
@@ -1120,12 +1121,16 @@ export default function ForgeApp(){
     return <AuthScreen C={C} onAuth={u=>{setAuthUser(u);}} themeMode={themeMode} toggleTheme={toggleTheme}/>;
   }
 
+  if(workoutSummary){
+    return <WorkoutSummary session={workoutSummary.session} newPRs={workoutSummary.newPRs} previousPRs={workoutSummary.previousPRs} complianceStreak={complianceStreak} onClose={()=>{setWorkoutSummary(null);setActiveWorkout(null);}}/>;
+  }
+
   if(activeWorkout){
     return <WorkoutSession workout={activeWorkout} settings={settings} prs={prs} sessions={sessions}
       plans={plans} activePlanKey={activePlanKey} savePlans={savePlans} authUser={authUser}
       workoutDraft={workoutDraft}
       onMinimize={(data)=>{minimizeTimeRef.current=Date.now();setBannerElapsed(data.elapsed);setMinimizedWorkout(data);setWorkoutDraft(null);setActiveWorkout(null);}}
-      onFinish={async(sess,newPRs)=>{const ok=await saveSessions([...sessions,sess]);if(ok){setWorkoutDraft(null);setMinimizedWorkout(null);savePRs({...prs,...newPRs});setActiveWorkout(null);}return ok;}}
+      onFinish={async(sess,newPRs)=>{const ok=await saveSessions([...sessions,sess]);if(ok){const prevPRs={...prs};setWorkoutDraft(null);setMinimizedWorkout(null);savePRs({...prs,...newPRs});if(!sess.partial){setWorkoutSummary({session:sess,newPRs,previousPRs:prevPRs});}else{setActiveWorkout(null);}}return ok;}}
       onCancel={()=>{setWorkoutDraft(null);setMinimizedWorkout(null);setActiveWorkout(null);}} C={C}/>;
   }
 
@@ -3510,4 +3515,106 @@ Plain text, no markdown, be concise.`;
     {loading?<div style={{textAlign:"center",padding:"32px 0",fontFamily:"'SF Mono','Courier New',monospace",color:C.muted,fontSize:13}}>Analyzing...</div>
       :<div style={{fontSize:13,lineHeight:1.8,color:C.text,whiteSpace:"pre-wrap"}}>{response}</div>}
   </Modal>;
+}
+
+function WorkoutSummary({session,newPRs,previousPRs,complianceStreak,onClose}){
+  const completedDate=new Date(session.completedAt);
+  const durationMin=Math.max(1,Math.round((completedDate-new Date(session.startedAt))/60000));
+  const dayName=completedDate.toLocaleDateString("en-US",{weekday:"long"});
+  const dateStr=completedDate.toLocaleDateString("en-US",{month:"long",day:"numeric"});
+  const workingSets=(session.setsArr||[]).filter(x=>x.type!=="warmup");
+  const volume=workingSets.reduce((sum,x)=>sum+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0),0);
+  const setCount=workingSets.length;
+  const prList=Object.entries(newPRs||{}).map(([name,pr])=>({name,weight:pr.weight}));
+
+  const handleShare=()=>{
+    const text=`${session.dayLabel} complete! ${setCount} sets · ${volume>=1000?(volume/1000).toFixed(1)+"k":volume.toLocaleString()} lbs · ${durationMin} min${prList.length>0?` · ${prList.length} new PR${prList.length>1?"s":""}!`:""} 💪 #IRON`;
+    if(navigator.share){navigator.share({title:"IRON Workout",text}).catch(()=>{});}
+    else if(navigator.clipboard){navigator.clipboard.writeText(text).catch(()=>{});}
+  };
+
+  return(
+    <div style={{minHeight:"100vh",background:"#f0faf5",fontFamily:"'SF Mono','Courier New',monospace",paddingTop:"env(safe-area-inset-top,0px)",paddingBottom:"env(safe-area-inset-bottom,0px)",overflowY:"auto"}}>
+      {/* Header */}
+      <div style={{background:"linear-gradient(150deg,#3ecf8e 0%,#2ebd80 100%)",padding:"36px 24px 32px",textAlign:"center",position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",width:120,height:120,borderRadius:"50%",background:"rgba(255,255,255,0.08)",top:-30,right:-20,pointerEvents:"none"}}/>
+        <div style={{position:"absolute",width:80,height:80,borderRadius:"50%",background:"rgba(255,255,255,0.06)",bottom:-10,left:-15,pointerEvents:"none"}}/>
+        <div style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:80,height:80,borderRadius:"50%",background:"rgba(255,255,255,0.2)",marginBottom:16}}>
+          <div style={{width:64,height:64,borderRadius:"50%",background:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+              <circle cx={12} cy={12} r={10} fill="#3ecf8e"/>
+              <path d="M7 12.5l3.5 3.5 6.5-7" stroke="#fff" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+        </div>
+        <div style={{fontSize:22,fontWeight:800,color:"#fff",letterSpacing:"0.04em",marginBottom:6}}>WORKOUT SUMMARY</div>
+        <div style={{fontSize:16,fontWeight:700,color:"rgba(255,255,255,0.95)",marginBottom:4}}>{session.dayLabel}</div>
+        <div style={{fontSize:12,color:"rgba(255,255,255,0.88)"}}>{dayName} · {dateStr} · {durationMin} min</div>
+      </div>
+
+      {/* Content */}
+      <div style={{padding:"20px 20px 32px"}}>
+        {/* 2x2 stat grid */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+          <div style={{background:"#fff",borderRadius:12,padding:"14px 16px",textAlign:"center",border:"1.5px solid #d1f0e4"}}>
+            <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.14em",color:"#2ab87a",marginBottom:6}}>VOLUME</div>
+            <div style={{fontSize:24,fontWeight:800,letterSpacing:"-0.02em",color:"#0d1117"}}>{volume>=1000?`${(volume/1000).toFixed(1)}k`:volume.toLocaleString()}</div>
+            <div style={{fontSize:11,color:"#3d4f63",marginTop:2}}>lbs lifted</div>
+          </div>
+          <div style={{background:"#fff",borderRadius:12,padding:"14px 16px",textAlign:"center",border:"1.5px solid #d1e4f7"}}>
+            <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.14em",color:"#4f8ef7",marginBottom:6}}>SETS</div>
+            <div style={{fontSize:24,fontWeight:800,letterSpacing:"-0.02em",color:"#0d1117"}}>{setCount}</div>
+            <div style={{fontSize:11,color:"#3d4f63",marginTop:2}}>completed</div>
+          </div>
+          <div style={{background:"#fff",borderRadius:12,padding:"14px 16px",textAlign:"center",border:"1.5px solid #faebd1"}}>
+            <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.14em",color:"#d4a017",marginBottom:6}}>STREAK</div>
+            <div style={{fontSize:24,fontWeight:800,letterSpacing:"-0.02em",color:"#d4a017"}}>{complianceStreak}</div>
+            <div style={{fontSize:11,color:"#3d4f63",marginTop:2}}>days on plan</div>
+          </div>
+          <div style={{background:"#fff",borderRadius:12,padding:"14px 16px",textAlign:"center",border:"1.5px solid #fad1dc"}}>
+            <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.14em",color:"#e53e6a",marginBottom:6}}>NEW PRs</div>
+            <div style={{fontSize:24,fontWeight:800,letterSpacing:"-0.02em",color:"#e53e6a"}}>{prList.length}</div>
+            <div style={{fontSize:11,color:"#3d4f63",marginTop:2}}>new records</div>
+          </div>
+        </div>
+
+        {/* New records section */}
+        {prList.length>0&&(
+          <div style={{background:"#fff",border:"1.5px solid #e2e8f0",borderRadius:12,padding:"14px 16px",marginBottom:14}}>
+            <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.14em",color:"#3d4f63",marginBottom:12}}>NEW RECORDS</div>
+            {prList.map((pr,i)=>(
+              <div key={pr.name} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:i<prList.length-1?10:0,marginBottom:i<prList.length-1?10:0,borderBottom:i<prList.length-1?"1px solid #f1f5f9":"none"}}>
+                <div>
+                  <div style={{fontSize:13,fontWeight:600,color:"#0d1117"}}>{pr.name}</div>
+                  {previousPRs[pr.name]&&<div style={{fontSize:11,color:"#64748b"}}>was {previousPRs[pr.name].weight} lbs</div>}
+                </div>
+                <div style={{textAlign:"right"}}>
+                  <div style={{fontSize:14,fontWeight:800,color:"#0d1117",marginBottom:4}}>{pr.weight} lbs</div>
+                  <div style={{display:"inline-flex",alignItems:"center",gap:4,background:"#f0fdf4",border:"1.5px solid #3ecf8e",borderRadius:6,padding:"3px 8px",color:"#1a7a4a",fontSize:9,fontWeight:700}}>
+                    <svg width={12} height={12} viewBox="0 0 24 24" fill="none">
+                      <path d="M12 3L14.5 9.5L21.5 10.3L16.5 15L18 22L12 18.5L6 22L7.5 15L2.5 10.3L9.5 9.5L12 3Z" fill="#3ecf8e" stroke="#2ab87a" strokeWidth={1}/>
+                    </svg>
+                    PR
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Action buttons */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          <button onClick={handleShare} style={{background:"#fff",border:"1.5px solid #e2e8f0",borderRadius:12,padding:14,fontSize:12,fontWeight:700,letterSpacing:"0.08em",color:"#3d4f63",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#3d4f63" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/>
+            </svg>
+            SHARE
+          </button>
+          <button onClick={onClose} style={{background:"#3ecf8e",border:"none",borderRadius:12,padding:14,fontSize:12,fontWeight:700,letterSpacing:"0.08em",color:"#fff",cursor:"pointer"}}>
+            CLOSE ✓
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
