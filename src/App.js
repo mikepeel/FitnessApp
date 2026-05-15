@@ -2588,7 +2588,7 @@ function HistoryTab({sessions,saveSessions,savePRs,prs,C,onRerun}){
     saveSessions(updatedSessions);
     recalcPRs(updatedSessions);
     if(updatedSession.supabaseId){
-      supabase.from("workout_sessions").update({partial:updatedSession.partial||false,notes:updatedSession.notes||""}).eq("id",updatedSession.supabaseId).catch(e=>console.error("saveEdit update:",e));
+      supabase.from("workout_sessions").update({completed_at:updatedSession.completedAt,started_at:updatedSession.startedAt,notes:updatedSession.notes||"",sets_data:updatedSession.sets||{},partial:updatedSession.partial||false}).eq("id",updatedSession.supabaseId).catch(e=>console.error("saveEdit update:",e));
     }
     setEditingSession(null);
   }
