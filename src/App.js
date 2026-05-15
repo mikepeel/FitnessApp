@@ -848,19 +848,11 @@ export default function ForgeApp(){
       const uid=authUser.id;
       const latest=s[s.length-1];
       if(latest&&!latest.supabaseId){
-        // Guard against duplicate inserts on retry — session may already be saved
-        const {data:existing}=await supabase.from("workout_sessions")
-          .select("id").eq("user_id",uid).eq("started_at",latest.startedAt).maybeSingle();
-        if(existing?.id){
-          setSessions(prev=>prev.map(sess=>sess===latest?{...sess,supabaseId:existing.id}:sess));
-          return true;
-        }
-        // .select("id") without .single() — error reflects only the INSERT, not the SELECT
         const {data,error}=await supabase.from("workout_sessions").insert({
-          user_id:uid, day_label:latest.dayLabel, day_id:latest.dayId||null,
+          user_id:uid, day_label:latest.dayLabel,
           started_at:latest.startedAt, completed_at:latest.completedAt,
           notes:latest.notes||"", sets_data:latest.sets||{},
-          partial:latest.partial||false
+          rating:latest.rating||null
         }).select("id");
         if(error){ console.error("saveSessions insert error:",JSON.stringify(error)); return false; }
         const insertedId=data?.[0]?.id;
