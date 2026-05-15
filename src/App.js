@@ -798,6 +798,7 @@ export default function ForgeApp(){
   const [bannerElapsed,setBannerElapsed]=useState(0);
   const minimizeTimeRef=useRef(null);
   const [deloadDismissed,setDeloadDismissed]=useState(null);
+  const [sessionSaveError,setSessionSaveError]=useState(false);
   const C=useTheme(themeMode);
 
   const savePlans=async(p)=>{
@@ -852,10 +853,11 @@ export default function ForgeApp(){
           user_id:u.id, day_label:latest.dayLabel, day_id:latest.dayId||null,
           started_at:latest.startedAt, completed_at:latest.completedAt,
           notes:latest.notes||"", sets_data:latest.sets||{},
-          rating:latest.rating||null, partial:latest.partial||false
+          partial:latest.partial||false
         }).select().single();
-        if(error){ console.error("saveSessions insert error:",error); return; }
+        if(error){ console.error("saveSessions insert error:",error); setSessionSaveError(true); return; }
         if(data){
+          setSessionSaveError(false);
           // Mark session as persisted so it is not re-inserted on next save
           setSessions(prev=>prev.map(sess=>sess===latest?{...sess,supabaseId:data.id}:sess));
           // Save individual sets
@@ -874,7 +876,7 @@ export default function ForgeApp(){
           }
         }
       }
-    }catch(e){ console.error("saveSessions exception:",e); }
+    }catch(e){ console.error("saveSessions exception:",e); setSessionSaveError(true); }
   };
 
   const savePRs=async(p)=>{
@@ -930,7 +932,7 @@ export default function ForgeApp(){
           id:s.id, supabaseId:s.id,
           dayLabel:s.day_label, dayId:s.day_id,
           startedAt:s.started_at, completedAt:s.completed_at,
-          notes:s.notes, rating:s.rating||0, partial:s.partial||false, sets:s.sets_data||{},
+          notes:s.notes, partial:s.partial||false, sets:s.sets_data||{},
           setsArr:Object.entries(s.sets_data||{}).flatMap(([exName,sets])=>
             Object.entries(sets).map(([setNum,x])=>({
               exName, setNum:parseInt(setNum),
@@ -969,7 +971,7 @@ export default function ForgeApp(){
               started_at:draft.started_at,
               completed_at:draft.updated_at||new Date().toISOString(),
               notes:"Session auto-saved after timeout",
-              sets_data:draft.logged_sets||{}, rating:null
+              sets_data:draft.logged_sets||{}
             }).catch(e=>console.error("draft expired save:",e));
             await supabase.from("workout_drafts").delete().eq("user_id",u.id).catch(()=>{});
           }else{
@@ -1125,6 +1127,10 @@ export default function ForgeApp(){
   return <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:C.serif,paddingBottom:72,userSelect:"none",scrollBehavior:"smooth"}}>
     {!isOnline&&<div style={{background:"#f7c948",color:"#1a202c",padding:"8px 18px",fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"center",letterSpacing:"0.04em"}}>
       ⚠ Offline — workouts will sync when connection is restored
+    </div>}
+    {sessionSaveError&&<div style={{background:"#f06584",padding:"10px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+      <Mono style={{fontSize:12,color:"#fff",fontWeight:700}}>⚠ Workout not saved — check connection</Mono>
+      <button onClick={()=>{setSessionSaveError(false);saveSessions(sessions);}} style={{background:"rgba(255,255,255,0.25)",border:"1px solid rgba(255,255,255,0.5)",borderRadius:6,color:"#fff",fontSize:11,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",padding:"4px 10px",cursor:"pointer"}}>Retry</button>
     </div>}
     {minimizedWorkout&&<div onClick={()=>{setWorkoutDraft({loggedSets:minimizedWorkout.loggedSets,elapsed:bannerElapsed,startedAt:minimizedWorkout.startedAt,workout:minimizedWorkout.workout});setActiveWorkout(minimizedWorkout.workout);setMinimizedWorkout(null);}} style={{position:"fixed",top:"env(safe-area-inset-top,0px)",left:0,right:0,zIndex:100,background:C.neon,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",minHeight:44,cursor:"pointer",userSelect:"none"}}>
       <Mono style={{fontSize:12,color:"#0b0c0e",fontWeight:700}}>🔴 {minimizedWorkout.workout.label} in progress · {Math.floor(bannerElapsed/60)}:{String(bannerElapsed%60).padStart(2,"0")}</Mono>
@@ -1471,7 +1477,6 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   const [completedExIds,setCompletedExIds]=useState(new Set());
   const [showRest,setShowRest]=useState(false);
   const [notes,setNotes]=useState("");
-  const [rating,setRating]=useState(0);
   const [startTime]=useState(workoutDraft?.startedAt||new Date().toISOString());
   const startMs=useRef(workoutDraft?.elapsed ? Date.now()-(workoutDraft.elapsed*1000) : Date.now());
   const [aiModal,setAiModal]=useState(null);
@@ -1548,7 +1553,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
     await deleteDraft();
     const cleanSets={};
     for(const[ex,exSets]of Object.entries(loggedSets)){const c={};for(const[n,v]of Object.entries(exSets)){if(!v.prepop)c[n]={weight:v.weight||"",reps:v.reps||"",minutes:v.minutes||"",level:v.level||""};}if(Object.keys(c).length)cleanSets[ex]=c;}
-    onFinish({id:Date.now().toString(),dayId:workout.id,dayLabel:workout.label,startedAt:startTime,completedAt:new Date().toISOString(),notes,rating,sets:cleanSets,setsArr,partial:true},{});
+    onFinish({id:Date.now().toString(),dayId:workout.id,dayLabel:workout.label,startedAt:startTime,completedAt:new Date().toISOString(),notes,sets:cleanSets,setsArr,partial:true},{});
   }
 
   async function abandonWorkout(){
@@ -1671,7 +1676,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
     deleteDraft();
     const cleanSets={};
     for(const[ex,exSets]of Object.entries(loggedSets)){const c={};for(const[n,v]of Object.entries(exSets)){if(!v.prepop)c[n]={weight:v.weight||"",reps:v.reps||"",minutes:v.minutes||"",level:v.level||""};}if(Object.keys(c).length)cleanSets[ex]=c;}
-    onFinish({id:Date.now().toString(),dayId:workout.id,dayLabel:workout.label,startedAt:startTime,completedAt:new Date().toISOString(),notes,rating,sets:cleanSets,setsArr,partial:false},newPRs);
+    onFinish({id:Date.now().toString(),dayId:workout.id,dayLabel:workout.label,startedAt:startTime,completedAt:new Date().toISOString(),notes,sets:cleanSets,setsArr,partial:false},newPRs);
   }
 
   const inputStyle={padding:"9px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:7,color:C.text,fontSize:14,fontFamily:"'SF Mono','Courier New',monospace",width:"100%",boxSizing:"border-box"};
@@ -1879,19 +1884,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
         <textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Energy, joints, anything notable..."
           style={{width:"100%",padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:10,color:C.text,fontSize:13,fontFamily:C.serif,height:72,resize:"none",boxSizing:"border-box"}}/>
       </div>}
-      {/* Session rating */}
-      <div style={{marginTop:14,marginBottom:8}}>
-        <SectionLabel C={C}>How was this session?</SectionLabel>
-        <div style={{display:"flex",gap:8,justifyContent:"center"}}>
-          {[1,2,3,4,5].map(n=>(
-            <button key={n} onClick={()=>setRating(n)}
-              style={{width:44,height:44,borderRadius:22,border:`2px solid ${rating>=n?C.accent:C.border}`,background:rating>=n?C.accent+"22":"transparent",fontSize:18,cursor:"pointer",transition:"all .15s"}}>
-              {["😴","😐","🙂","💪","🔥"][n-1]}
-            </button>
-          ))}
-        </div>
-      </div>
-      <Btn onClick={finish} size="lg" C={C} style={{width:"100%",marginTop:8,background:C.neon,color:"#fff",fontWeight:800,letterSpacing:"0.1em",fontSize:15}}>COMPLETE WORKOUT ✓</Btn>
+      <Btn onClick={finish} size="lg" C={C} style={{width:"100%",marginTop:14,background:C.neon,color:"#fff",fontWeight:800,letterSpacing:"0.1em",fontSize:15}}>COMPLETE WORKOUT ✓</Btn>
     </div>
 
     {/* Swap exercise modal */}
@@ -2550,7 +2543,7 @@ function HistoryTab({sessions,saveSessions,savePRs,prs,C,onRerun}){
       dayLabel:manualSession.dayLabel,
       startedAt:dt, completedAt:dt,
       notes:manualSession.notes,
-      rating:0, sets:setsMap, setsArr,
+      sets:setsMap, setsArr,
       manual:true
     };
     const updated=[newSess,...sessions].sort((a,b)=>new Date(b.completedAt)-new Date(a.completedAt));
@@ -3047,7 +3040,7 @@ function StatsTab({sessions,prs,settings,C,bodyStatsInit=[],onBodyStatsChange}){
 
   async function loadTrainerInsight(){
     setLoadingInsight(true);
-    const recentSessions=sessions.slice(0,5).map(s=>({day:s.dayLabel,date:s.completedAt?.split("T")[0],sets:(s.setsArr||[]).length,rating:s.rating}));
+    const recentSessions=sessions.slice(0,5).map(s=>({day:s.dayLabel,date:s.completedAt?.split("T")[0],sets:(s.setsArr||[]).length}));
     const topPRs=prList.slice(0,5).map(([n,p])=>(`${n}: ${p.weight}lbs`));
     const prompt=`You are a personal trainer AI.${aiProfileContext(settings)} Analyze this user's recent workout data and provide ONE specific, actionable insight in 2-3 sentences. Be direct and personalized.
 
@@ -3286,19 +3279,6 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
               </Btn>
             </div>}
         </div>
-        {/* Session ratings history */}
-        {sessions.filter(s=>s.rating).length>0&&<div>
-          <SectionLabel C={C}>Session Energy Ratings</SectionLabel>
-          {sessions.filter(s=>s.rating).slice(0,8).map(s=>(
-            <div key={s.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
-              <div>
-                <div style={{fontSize:13}}>{s.dayLabel||"Workout"}</div>
-                <Mono style={{fontSize:10,color:C.muted}}>{s.completedAt?.split("T")[0]}</Mono>
-              </div>
-              <div style={{fontSize:20}}>{["😴","😐","🙂","💪","🔥"][s.rating-1]}</div>
-            </div>
-          ))}
-        </div>}
       </div>}
 
     </div>
