@@ -1692,17 +1692,15 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
         const isCardio=ex.muscle==="Cardio"||ex.muscle==="Recovery";
         const myLog=loggedSets[ex.name]||{};
         const last=settings.lastRef?lastSets[ex.name]:null;
-        const hasAnyLog=isCardio?(myLog[1]?.minutes&&!myLog[1]?.prepop):Object.values(myLog).some(v=>(v.weight||v.reps)&&!v.prepop);
         const myPR=(!isCardio&&settings.prDetection)?prs[ex.name]:null;
         const w0=myLog[1]?.weight;
         const isPRNow=myPR&&w0&&parseFloat(w0)>myPR.weight;
 
         const isDone=completedExIds.has(ex.id);
         const numSets=(parseInt(ex.sets)||3)+(extraSets[ex.name]||0);
-        const cardioKey=ex.id+"-1";
-        const isConfirmedCardio=isCardio&&setStates[cardioKey]==="confirmed";
-        const cardioPrepop=isCardio&&!!myLog[1]?.prepop;
-        const cardioInProg=isCardio&&!!(myLog[1]?.minutes&&!cardioPrepop);
+        const intervalKeys=isCardio?Object.keys(myLog).map(n=>parseInt(n)).filter(n=>Number.isFinite(n)).sort((a,b)=>a-b):[];
+        if(isCardio&&intervalKeys.length===0)intervalKeys.push(1);
+        const hasAnyLog=isCardio?intervalKeys.some(n=>myLog[n]?.minutes&&!myLog[n]?.prepop):Object.values(myLog).some(v=>(v.weight||v.reps)&&!v.prepop);
         return <div key={ex.id} style={{background:isDone?C.surface:C.card,border:`1px solid ${isDone?C.faint:hasAnyLog?C.neon+"44":C.border}`,borderLeft:`3px solid ${isDone?C.faint:isCardio?C.green:hasAnyLog?C.neon:C.accent}`,borderRadius:10,padding:"14px",marginBottom:10,transition:"all .3s",opacity:isDone?0.55:1}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
             <div style={{flex:1}}>
@@ -1727,37 +1725,61 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
             </div>
           </div>
 
-          {/* CARDIO: minutes + optional level — 3 states: suggested / inprogress / confirmed */}
-          {isCardio&&<div style={{display:"flex",gap:8,alignItems:"center"}}>
-            {isConfirmedCardio
-              ?<div onClick={()=>{setSetStates(prev=>{const u={...prev};delete u[cardioKey];return u;});}}
-                  style={{flex:1,background:C.neon+"12",border:`1px solid ${C.neon}22`,borderRadius:7,padding:"9px 12px",display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}>
+          {/* CARDIO: minutes + optional level — multiple intervals, 3 states */}
+          {isCardio&&<div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {intervalKeys.map(n=>{
+              const rowKey=ex.id+"-"+n;
+              const rowLog=myLog[n]||{};
+              const isPrepop=!!rowLog.prepop;
+              const isConfirmed=setStates[rowKey]==="confirmed";
+              const hasVal=!!rowLog.minutes;
+              const setRowState=isConfirmed?"confirmed":isPrepop?"suggested":hasVal?"inprogress":"suggested";
+              if(isConfirmed){
+                return <div key={n} onClick={()=>{setSetStates(prev=>{const u={...prev};delete u[rowKey];return u;});}} style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",background:C.neon+"12",border:`1px solid ${C.neon}22`,borderRadius:8,padding:"10px 12px"}}>
                   <span style={{color:C.neon,fontSize:14,fontWeight:800}}>✓</span>
-                  <Mono style={{color:C.text,fontSize:18,fontWeight:700}}>{myLog[1]?.minutes} min{myLog[1]?.level?` · L${myLog[1].level}`:""}</Mono>
-                  <Mono style={{color:C.faint,fontSize:9,marginLeft:"auto"}}>tap to edit</Mono>
-                </div>
-              :<>
+                  <Mono style={{color:C.neon,fontSize:12,fontWeight:700}}>Interval {n}</Mono>
+                  <Mono style={{color:C.text,fontSize:14,fontWeight:700}}>{rowLog.minutes} min{rowLog.level?` · L${rowLog.level}`:""}</Mono>
+                  <Mono style={{color:C.faint,fontSize:10,marginLeft:"auto"}}>tap to edit</Mono>
+                </div>;
+              }
+              return <div key={n} style={{display:"flex",gap:8,alignItems:"center"}}>
                 <input type="number" placeholder={(ex.reps||"").match(/\d+/)?.[0]||"0"}
-                  value={myLog[1]?.minutes||""}
-                  onChange={e=>logSet(ex.name,1,"minutes",e.target.value)}
-                  style={{...inputStyle,flex:2,fontSize:20,fontWeight:700,textAlign:"center",color:cardioPrepop?C.muted:C.text,fontStyle:cardioPrepop?"italic":"normal",background:cardioInProg?C.accent+"12":C.surface}}/>
+                  value={rowLog.minutes||""}
+                  onChange={e=>logSet(ex.name,n,"minutes",e.target.value)}
+                  style={{...inputStyle,flex:2,fontSize:20,fontWeight:700,textAlign:"center",color:setRowState==="suggested"?C.muted:C.text,fontStyle:setRowState==="suggested"?"italic":"normal",background:setRowState==="inprogress"?C.accent+"12":C.surface}}/>
                 <Mono style={{fontSize:12,color:C.muted}}>min</Mono>
                 <input type="number" placeholder="lvl"
-                  value={myLog[1]?.level||""}
-                  onChange={e=>logSet(ex.name,1,"level",e.target.value)}
-                  style={{...inputStyle,flex:1,fontSize:16,fontWeight:600,textAlign:"center",color:cardioPrepop?C.muted:C.text,fontStyle:cardioPrepop?"italic":"normal",background:cardioInProg?C.accent+"12":C.surface}}/>
+                  value={rowLog.level||""}
+                  onChange={e=>logSet(ex.name,n,"level",e.target.value)}
+                  style={{...inputStyle,flex:1,fontSize:16,fontWeight:600,textAlign:"center",color:setRowState==="suggested"?C.muted:C.text,fontStyle:setRowState==="suggested"?"italic":"normal",background:setRowState==="inprogress"?C.accent+"12":C.surface}}/>
                 <Mono style={{fontSize:12,color:C.muted}}>lvl</Mono>
+                {intervalKeys.length>1&&<button onClick={()=>{
+                  setLoggedSets(prev=>{
+                    const updated={...prev};
+                    if(updated[ex.name]){const row={...updated[ex.name]};delete row[n];updated[ex.name]=row;}
+                    return updated;
+                  });
+                  setSetStates(prev=>{const next={...prev};delete next[rowKey];return next;});
+                }} style={{padding:"8px 10px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:7,color:C.muted,cursor:"pointer",fontSize:14,fontWeight:700}}>
+                  ✕
+                </button>}
                 <button onClick={()=>{
-                  if(!myLog[1]?.minutes){setSetError(prev=>({...prev,[ex.name]:"Enter minutes first"}));return;}
+                  if(!rowLog.minutes){setSetError(prev=>({...prev,[ex.name]:"Enter minutes first"}));return;}
                   setSetError(prev=>({...prev,[ex.name]:""}));
-                  setLoggedSets(prev=>({...prev,[ex.name]:{1:{...prev[ex.name]?.[1],done:true,prepop:false}}}));
-                  setSetStates(prev=>({...prev,[cardioKey]:"confirmed"}));
-                  // REST TIMER: only triggered here, on explicit set confirmation
+                  setLoggedSets(prev=>({...prev,[ex.name]:{...(prev[ex.name]||{}),[n]:{...prev[ex.name]?.[n],minutes:rowLog.minutes,level:rowLog.level||"",done:true,prepop:false}}}));
+                  setSetStates(prev=>({...prev,[rowKey]:"confirmed"}));
                   setShowRest(true);
-                  saveDraft({...loggedSets,[ex.name]:{1:{...loggedSets[ex.name]?.[1],minutes:myLog[1].minutes,level:myLog[1]?.level||"",done:true,prepop:false}}});
+                  const draftSets={...loggedSets,[ex.name]:{...(loggedSets[ex.name]||{}),[n]:{...loggedSets[ex.name]?.[n],minutes:rowLog.minutes,level:rowLog.level||"",done:true,prepop:false}}};
+                  saveDraft(draftSets);
                 }} style={{padding:"9px 14px",background:"transparent",border:`1px solid ${C.neon}44`,borderRadius:7,color:C.neon,cursor:"pointer",fontSize:14,fontWeight:700,transition:"all .2s"}}>✓</button>
-              </>
-            }
+              </div>;
+            })}
+            <div style={{display:"flex",justifyContent:"flex-start"}}>
+              <Btn size="sm" variant="ghost" C={C} onClick={()=>{
+                const nextNum=Math.max(0,...intervalKeys)+1;
+                setLoggedSets(prev=>({...prev,[ex.name]:{...(prev[ex.name]||{}),[nextNum]:{minutes:"",level:"",prepop:false}}}));
+              }} style={{fontSize:11,color:C.neon,borderColor:C.neon+"44"}}>+ Add Interval</Btn>
+            </div>
           </div>}
 
           {/* STRENGTH: sets × weight × reps */}
@@ -2683,12 +2705,16 @@ ${raw.slice(0,500)}...`:"No sessions found");
                   const exSets=allSets.filter(x=>x.exName===name);
                   return <div key={name} style={{marginBottom:8,paddingBottom:8,borderBottom:`1px solid ${C.border}`}}>
                     <div style={{fontSize:13,fontWeight:600,marginBottom:4}}>{name}</div>
-                    <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                    <div style={{display:"grid",gap:6}}>
                       {exSets.map((x,j)=>(
-                        <Mono key={j} style={{fontSize:11,background:C.surface,padding:"3px 8px",borderRadius:5,color:x.isPR?C.red:x.minutes?C.green:C.muted,opacity:x.type==="warmup"?0.6:1}}>
-                          {x.type==="warmup"?"W ":""}{x.minutes?`${x.minutes} min${x.level?` · L${x.level}`:""}`:""}{!x.minutes&&x.weight?`${x.weight}lbs`:""}{!x.minutes&&x.weight&&x.reps?" × ":""}{!x.minutes&&x.reps?`${x.reps}r`:""}{x.isPR?" ★":""}
+                        <Mono key={j} style={{fontSize:11,background:C.surface,padding:"8px 10px",borderRadius:8,color:x.isPR?C.red:x.minutes?C.green:C.muted,opacity:x.type==="warmup"?0.6:1}}>
+                          {x.type==="warmup"?"W ":""}{x.minutes?`Interval ${x.setNum}: ${x.minutes} min${x.level?` · L${x.level}`:""}`:""}{!x.minutes&&x.weight?`${x.weight}lbs`:""}{!x.minutes&&x.weight&&x.reps?" × ":""}{!x.minutes&&x.reps?`${x.reps}r`:""}{x.isPR?" ★":""}
                         </Mono>
                       ))}
+                      {(() => {
+                        const totalMinutes = exSets.reduce((sum,x)=>sum + (parseFloat(x.minutes)||0),0);
+                        return totalMinutes>0 ? <Mono style={{fontSize:11,color:C.muted}}>Total: {Math.round(totalMinutes)} min</Mono> : null;
+                      })()}
                     </div>
                   </div>;
                 })}
