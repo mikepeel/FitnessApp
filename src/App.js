@@ -1457,6 +1457,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   const [setTypes,setSetTypes]=useState({});
   const [setError,setSetError]=useState({});
   const [extraSets,setExtraSets]=useState({});
+  const [setStates,setSetStates]=useState({});
   const [showEndMenu,setShowEndMenu]=useState(false);
   const [showAbandonConfirm,setShowAbandonConfirm]=useState(false);
   const [autoSaveToast,setAutoSaveToast]=useState(false);
@@ -1698,6 +1699,10 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
 
         const isDone=completedExIds.has(ex.id);
         const numSets=(parseInt(ex.sets)||3)+(extraSets[ex.name]||0);
+        const cardioKey=ex.id+"-1";
+        const isConfirmedCardio=isCardio&&setStates[cardioKey]==="confirmed";
+        const cardioPrepop=isCardio&&!!myLog[1]?.prepop;
+        const cardioInProg=isCardio&&!!(myLog[1]?.minutes&&!cardioPrepop);
         return <div key={ex.id} style={{background:isDone?C.surface:C.card,border:`1px solid ${isDone?C.faint:hasAnyLog?C.neon+"44":C.border}`,borderLeft:`3px solid ${isDone?C.faint:isCardio?C.green:hasAnyLog?C.neon:C.accent}`,borderRadius:10,padding:"14px",marginBottom:10,transition:"all .3s",opacity:isDone?0.55:1}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
             <div style={{flex:1}}>
@@ -1722,26 +1727,37 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
             </div>
           </div>
 
-          {/* CARDIO: minutes + optional level */}
+          {/* CARDIO: minutes + optional level — 3 states: suggested / inprogress / confirmed */}
           {isCardio&&<div style={{display:"flex",gap:8,alignItems:"center"}}>
-            <input type="number" placeholder={(ex.reps||"").match(/\d+/)?.[0]||"0"}
-              value={myLog[1]?.minutes||""}
-              onChange={e=>logSet(ex.name,1,"minutes",e.target.value)}
-              style={{...inputStyle,flex:2,fontSize:20,fontWeight:700,textAlign:"center",color:myLog[1]?.prepop?C.muted:C.text}}/>
-            <Mono style={{fontSize:12,color:C.muted}}>min</Mono>
-            <input type="number" placeholder="lvl"
-              value={myLog[1]?.level||""}
-              onChange={e=>logSet(ex.name,1,"level",e.target.value)}
-              style={{...inputStyle,flex:1,fontSize:16,fontWeight:600,textAlign:"center",color:myLog[1]?.prepop?C.muted:C.text}}/>
-            <Mono style={{fontSize:12,color:C.muted}}>lvl</Mono>
-            <button onClick={()=>{
-              if(!myLog[1]?.minutes){setSetError(prev=>({...prev,[ex.name]:"Enter minutes first"}));return;}
-              setSetError(prev=>({...prev,[ex.name]:""}));
-              setLoggedSets(prev=>({...prev,[ex.name]:{1:{...prev[ex.name]?.[1],done:true,prepop:false}}}));
-              // REST TIMER: only triggered here, on explicit set confirmation
-              setShowRest(true);
-              saveDraft({...loggedSets,[ex.name]:{1:{...loggedSets[ex.name]?.[1],minutes:myLog[1].minutes,level:myLog[1]?.level||"",done:true,prepop:false}}});
-            }} style={{padding:"9px 14px",background:myLog[1]?.done?C.neon:"transparent",border:`1px solid ${C.neon}44`,borderRadius:7,color:myLog[1]?.done?"#0b0c0e":C.neon,cursor:"pointer",fontSize:14,fontWeight:700,transition:"all .2s"}}>✓</button>
+            {isConfirmedCardio
+              ?<div onClick={()=>{setSetStates(prev=>{const u={...prev};delete u[cardioKey];return u;});}}
+                  style={{flex:1,background:C.neon+"12",border:`1px solid ${C.neon}22`,borderRadius:7,padding:"9px 12px",display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}>
+                  <span style={{color:C.neon,fontSize:14,fontWeight:800}}>✓</span>
+                  <Mono style={{color:C.text,fontSize:18,fontWeight:700}}>{myLog[1]?.minutes} min{myLog[1]?.level?` · L${myLog[1].level}`:""}</Mono>
+                  <Mono style={{color:C.faint,fontSize:9,marginLeft:"auto"}}>tap to edit</Mono>
+                </div>
+              :<>
+                <input type="number" placeholder={(ex.reps||"").match(/\d+/)?.[0]||"0"}
+                  value={myLog[1]?.minutes||""}
+                  onChange={e=>logSet(ex.name,1,"minutes",e.target.value)}
+                  style={{...inputStyle,flex:2,fontSize:20,fontWeight:700,textAlign:"center",color:cardioPrepop?C.muted:C.text,fontStyle:cardioPrepop?"italic":"normal",background:cardioInProg?C.accent+"12":C.surface}}/>
+                <Mono style={{fontSize:12,color:C.muted}}>min</Mono>
+                <input type="number" placeholder="lvl"
+                  value={myLog[1]?.level||""}
+                  onChange={e=>logSet(ex.name,1,"level",e.target.value)}
+                  style={{...inputStyle,flex:1,fontSize:16,fontWeight:600,textAlign:"center",color:cardioPrepop?C.muted:C.text,fontStyle:cardioPrepop?"italic":"normal",background:cardioInProg?C.accent+"12":C.surface}}/>
+                <Mono style={{fontSize:12,color:C.muted}}>lvl</Mono>
+                <button onClick={()=>{
+                  if(!myLog[1]?.minutes){setSetError(prev=>({...prev,[ex.name]:"Enter minutes first"}));return;}
+                  setSetError(prev=>({...prev,[ex.name]:""}));
+                  setLoggedSets(prev=>({...prev,[ex.name]:{1:{...prev[ex.name]?.[1],done:true,prepop:false}}}));
+                  setSetStates(prev=>({...prev,[cardioKey]:"confirmed"}));
+                  // REST TIMER: only triggered here, on explicit set confirmation
+                  setShowRest(true);
+                  saveDraft({...loggedSets,[ex.name]:{1:{...loggedSets[ex.name]?.[1],minutes:myLog[1].minutes,level:myLog[1]?.level||"",done:true,prepop:false}}});
+                }} style={{padding:"9px 14px",background:"transparent",border:`1px solid ${C.neon}44`,borderRadius:7,color:C.neon,cursor:"pointer",fontSize:14,fontWeight:700,transition:"all .2s"}}>✓</button>
+              </>
+            }
           </div>}
 
           {/* STRENGTH: sets × weight × reps */}
@@ -1756,32 +1772,46 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
               const typeLabel=typ==="warmup"?"W":typ==="working"?"S":typ==="drop"?"D":"F";
               const typeColor=typ==="warmup"?C.muted:typ==="working"?C.accent:typ==="drop"?C.gold:C.red;
               const isPrepop=!!myLog[n]?.prepop;
+              const stateKey=ex.id+"-"+n;
+              const isConfirmed=setStates[stateKey]==="confirmed";
+              const hasVal=!!(myLog[n]?.weight||myLog[n]?.reps);
+              const setRowState=isConfirmed?"confirmed":isPrepop?"suggested":hasVal?"inprogress":"suggested";
               return [
                 <button key={`t${n}`} onClick={()=>cycleSetType(ex.name,n)} style={{padding:"3px 0",background:typeColor+"22",border:"none",borderRadius:4,color:typeColor,fontSize:9,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"center",letterSpacing:"0.05em"}}>{typeLabel}</button>,
-                <Mono key={`n${n}`} style={{fontSize:12,color:C.muted,textAlign:"center"}}>{n}</Mono>,
-                <input key={`w${n}`} type="number" placeholder={last?.[n]?.weight||"lbs"} value={myLog[n]?.weight||""} onChange={e=>logSet(ex.name,n,"weight",e.target.value)} style={{...inputStyle,color:isPrepop?C.muted:C.text}}/>,
-                <input key={`r${n}`} type="number" placeholder={last?.[n]?.reps||"reps"} value={myLog[n]?.reps||""} onChange={e=>logSet(ex.name,n,"reps",e.target.value)} style={{...inputStyle,color:isPrepop?C.muted:C.text}}/>,
-                <button key={`d${n}`} onClick={()=>{
-                  const w=myLog[n]?.weight;
-                  const r=myLog[n]?.reps;
-                  if(!w||!r){setSetError(prev=>({...prev,[ex.name]:"Enter weight and reps first"}));return;}
-                  setSetError(prev=>({...prev,[ex.name]:""}));
-                  lastActiveExRef.current=ex.name;
-                  const isWarmup=typ==="warmup";
-                  const draftSets={...loggedSets,[ex.name]:{...loggedSets[ex.name],[n]:{weight:w,reps:r,prepop:false}}};
-                  saveDraft(draftSets);
-                  setLoggedSets(prev=>{
-                    const cur=prev[ex.name]||{};
-                    const updated={...cur,[n]:{...cur[n],prepop:false}};
-                    for(let i=n+1;i<=numSets;i++){if(cur[i]?.prepop)updated[i]={...cur[i],weight:w};}
-                    return {...prev,[ex.name]:updated};
-                  });
-                  const myL=loggedSets[ex.name]||{};
-                  const allFilled=Array.from({length:numSets},(_,i)=>i+1).every(s=>myL[s]?.weight&&myL[s]?.reps);
-                  if(n===numSets&&allFilled){markExerciseDone(ex.id,ex.name,!isWarmup);}
-                  // REST TIMER: only triggered here, on explicit set confirmation
-                  else if(!isWarmup){setShowRest(true);}
-                }} style={{padding:"9px 4px",background:completedExIds.has(ex.id)&&n===numSets?C.neon+"44":"transparent",border:`1px solid ${C.neon}44`,borderRadius:7,color:C.neon,cursor:"pointer",fontSize:14,fontWeight:700}}>✓</button>
+                ...(isConfirmed
+                  ?[<div key={`confirmed${n}`} onClick={()=>{setSetStates(prev=>{const u={...prev};delete u[stateKey];return u;});}} style={{gridColumn:"span 4",background:C.neon+"12",border:`1px solid ${C.neon}22`,borderRadius:6,display:"flex",alignItems:"center",gap:8,padding:"8px 10px",cursor:"pointer"}}>
+                      <span style={{color:C.neon,fontSize:11,fontWeight:800}}>✓</span>
+                      <Mono style={{color:C.neon,fontSize:12,fontWeight:700}}>{n}</Mono>
+                      <Mono style={{color:C.text,fontSize:13,fontWeight:600,flex:1}}>{myLog[n]?.weight} lbs × {myLog[n]?.reps}</Mono>
+                      <Mono style={{color:C.faint,fontSize:9}}>tap to edit</Mono>
+                    </div>]
+                  :[
+                    <Mono key={`n${n}`} style={{fontSize:12,color:setRowState==="inprogress"?C.text:C.muted,textAlign:"center",fontWeight:setRowState==="inprogress"?700:400}}>{n}</Mono>,
+                    <input key={`w${n}`} type="number" placeholder={last?.[n]?.weight||"lbs"} value={myLog[n]?.weight||""} onChange={e=>logSet(ex.name,n,"weight",e.target.value)} style={{...inputStyle,color:setRowState==="suggested"?C.muted:C.text,fontStyle:setRowState==="suggested"?"italic":"normal",background:setRowState==="inprogress"?C.accent+"12":C.surface}}/>,
+                    <input key={`r${n}`} type="number" placeholder={last?.[n]?.reps||"reps"} value={myLog[n]?.reps||""} onChange={e=>logSet(ex.name,n,"reps",e.target.value)} style={{...inputStyle,color:setRowState==="suggested"?C.muted:C.text,fontStyle:setRowState==="suggested"?"italic":"normal",background:setRowState==="inprogress"?C.accent+"12":C.surface}}/>,
+                    <button key={`d${n}`} onClick={()=>{
+                      const w=myLog[n]?.weight;
+                      const r=myLog[n]?.reps;
+                      if(!w||!r){setSetError(prev=>({...prev,[ex.name]:"Enter weight and reps first"}));return;}
+                      setSetError(prev=>({...prev,[ex.name]:""}));
+                      lastActiveExRef.current=ex.name;
+                      const isWarmup=typ==="warmup";
+                      const draftSets={...loggedSets,[ex.name]:{...loggedSets[ex.name],[n]:{weight:w,reps:r,prepop:false}}};
+                      saveDraft(draftSets);
+                      setLoggedSets(prev=>{
+                        const cur=prev[ex.name]||{};
+                        const updated={...cur,[n]:{...cur[n],prepop:false}};
+                        for(let i=n+1;i<=numSets;i++){if(cur[i]?.prepop)updated[i]={...cur[i],weight:w};}
+                        return {...prev,[ex.name]:updated};
+                      });
+                      setSetStates(prev=>({...prev,[stateKey]:"confirmed"}));
+                      const myL=loggedSets[ex.name]||{};
+                      const allFilled=Array.from({length:numSets},(_,i)=>i+1).every(s=>myL[s]?.weight&&myL[s]?.reps);
+                      if(n===numSets&&allFilled){markExerciseDone(ex.id,ex.name,!isWarmup);}
+                      // REST TIMER: only triggered here, on explicit set confirmation
+                      else if(!isWarmup){setShowRest(true);}
+                    }} style={{padding:"9px 4px",background:"transparent",border:`1px solid ${C.neon}44`,borderRadius:7,color:C.neon,cursor:"pointer",fontSize:14,fontWeight:700}}>✓</button>
+                  ])
               ];
             })}
           </div>}
