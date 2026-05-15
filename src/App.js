@@ -532,7 +532,19 @@ const DEFAULT_SETTINGS = {
   restTimer:true, restSeconds:90, prDetection:true, lastRef:true,
   deloadReminder:true, streakTracking:true, plateCalc:true,
   workoutNotes:true, aiRecs:true, startDay:1, appleHealth:false,
+  aiAgeRange:"", aiExperience:"", aiJointNotes:"", aiGoal:"",
 };
+
+// Builds a trainer profile string injected into all AI prompts
+function aiProfileContext(s){
+  if(!s)return "";
+  const parts=[];
+  if(s.aiAgeRange)parts.push(`Age range: ${s.aiAgeRange}`);
+  if(s.aiExperience)parts.push(`Experience: ${s.aiExperience}`);
+  if(s.aiGoal)parts.push(`Goal: ${s.aiGoal}`);
+  if(s.aiJointNotes)parts.push(`Notes: ${s.aiJointNotes}`);
+  return parts.length?`\nTrainer profile — ${parts.join(", ")}.`:"";
+}
 
 // -- THEME CONTEXT -------------------------------------------------------------
 const useTheme = (mode) => THEMES[mode] || THEMES.dark;
@@ -817,6 +829,13 @@ export default function ForgeApp(){
       ai_recs:s.aiRecs, start_day:s.startDay, theme_mode:themeMode,
       apple_health:s.appleHealth||false
     },{onConflict:"user_id"});
+    // AI profile columns saved separately -- requires migration to add columns
+    try{
+      await supabase.from("user_settings").update({
+        ai_age_range:s.aiAgeRange||"", ai_experience:s.aiExperience||"",
+        ai_joint_notes:s.aiJointNotes||"", ai_goal:s.aiGoal||""
+      }).eq("user_id",u.id);
+    }catch(e){ console.error("saveSettings aiProfile:",e); }
     }catch(e){ console.error("saveSettings:",e); }
   };
 
@@ -893,7 +912,9 @@ export default function ForgeApp(){
           deloadReminder:sett.deload_reminder, streakTracking:sett.streak_tracking,
           plateCalc:sett.plate_calc, workoutNotes:sett.workout_notes,
           aiRecs:sett.ai_recs, startDay:sett.start_day||1,
-          appleHealth:sett.apple_health||false
+          appleHealth:sett.apple_health||false,
+          aiAgeRange:sett.ai_age_range||"", aiExperience:sett.ai_experience||"",
+          aiJointNotes:sett.ai_joint_notes||"", aiGoal:sett.ai_goal||""
         });
         if(sett.theme_mode)setThemeMode(sett.theme_mode);
       }
@@ -1895,7 +1916,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
       </div>
     </div>}
 
-    {swapModal&&<SwapExerciseModal exercise={swapModal} onSwap={(newData)=>swapExercise(swapModal,newData)} onClose={()=>setSwapModal(null)} C={C}/>}
+    {swapModal&&<SwapExerciseModal exercise={swapModal} settings={settings} onSwap={(newData)=>swapExercise(swapModal,newData)} onClose={()=>setSwapModal(null)} C={C}/>}
 
     {/* Add exercise modal */}
     {addExModal&&<ExerciseLibraryModal onSelect={addExercise} onClose={()=>setAddExModal(false)} C={C}/>}
@@ -1907,12 +1928,12 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
         onSave={(data)=>updateExercise(editExModal.id,data)} onClose={()=>setEditExModal(null)} C={C}/>
     </Modal>}
 
-    {aiModal&&<AIModal exercise={aiModal} onClose={()=>setAiModal(null)} C={C}/>}
+    {aiModal&&<AIModal exercise={aiModal} settings={settings} onClose={()=>setAiModal(null)} C={C}/>}
   </div>;
 }
 
 // -- SWAP EXERCISE MODAL -------------------------------------------------------
-function SwapExerciseModal({exercise,onSwap,onClose,C}){
+function SwapExerciseModal({exercise,settings,onSwap,onClose,C}){
   const [query,setQuery]=useState("");
   const [aiSuggestions,setAiSuggestions]=useState([]);
   const [loadingAI,setLoadingAI]=useState(false);
@@ -1923,8 +1944,8 @@ function SwapExerciseModal({exercise,onSwap,onClose,C}){
 
   async function loadAISuggestions(){
     setLoadingAI(true);
-    const prompt=`You are a personal trainer. Suggest 6 alternative exercises to swap for "${exercise.name}" (muscle: ${exercise.muscle||"unknown"}).
-Requirements: joint-friendly, minimize joint stress, similar muscle group, gym equipment available.
+    const prompt=`You are a personal trainer. Suggest 6 alternative exercises to swap for "${exercise.name}" (muscle: ${exercise.muscle||"unknown"}).${aiProfileContext(settings)}
+Requirements: joint-friendly, similar muscle group, gym equipment available.
 Return ONLY a JSON array of objects: [{"name":"Exercise Name","sets":"3","reps":"10-12","note":"brief reason","muscle":"${exercise.muscle||""}"}]
 No markdown, no explanation, just the array.`;
     try{
@@ -2290,7 +2311,7 @@ No explanation, no markdown, just the JSON array.`;
       <Btn style={{width:"100%",marginTop:16}} onClick={()=>loadPreset(presetPreview)} C={C}>Add to My Plans</Btn>
     </Modal>}
     {goalModal&&<GoalBuilderModal onAdd={addAIPlan} onClose={()=>setGoalModal(false)} C={C}/>}
-    {aiModal&&<AIModal exercise={null} day={aiModal.day} onClose={()=>setAiModal(null)} C={C}/>}
+    {aiModal&&<AIModal exercise={null} day={aiModal.day} settings={settings} onClose={()=>setAiModal(null)} C={C}/>}
   </div>;
 }
 
@@ -3028,7 +3049,7 @@ function StatsTab({sessions,prs,settings,C,bodyStatsInit=[],onBodyStatsChange}){
     setLoadingInsight(true);
     const recentSessions=sessions.slice(0,5).map(s=>({day:s.dayLabel,date:s.completedAt?.split("T")[0],sets:(s.setsArr||[]).length,rating:s.rating}));
     const topPRs=prList.slice(0,5).map(([n,p])=>(`${n}: ${p.weight}lbs`));
-    const prompt=`You are a personal trainer AI. Analyze this user's recent workout data and provide ONE specific, actionable insight in 2-3 sentences. Be direct and personalized.
+    const prompt=`You are a personal trainer AI.${aiProfileContext(settings)} Analyze this user's recent workout data and provide ONE specific, actionable insight in 2-3 sentences. Be direct and personalized.
 
 Recent sessions: ${JSON.stringify(recentSessions)}
 Top PRs: ${topPRs.join(", ")}
@@ -3407,6 +3428,37 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
         {!isIOSSafari&&<Mono style={{fontSize:10,color:C.faint,display:"block",marginTop:6}}>Available on iPhone via Safari</Mono>}
       </div>
 
+      {local.aiRecs&&<div style={{marginTop:16,padding:"14px",background:C.card,border:`1px solid ${C.border}`,borderRadius:12}}>
+        <div style={{fontSize:14,fontWeight:700,marginBottom:12}}>AI Trainer Profile</div>
+        <Mono style={{fontSize:11,color:C.muted,display:"block",marginBottom:14}}>Personalizes all AI suggestions and coaching to your needs</Mono>
+        {[
+          {label:"Age Range",key:"aiAgeRange",opts:["20s","30s","40s","50s+"]},
+          {label:"Experience",key:"aiExperience",opts:["Beginner","Intermediate","Advanced"]},
+          {label:"Primary Goal",key:"aiGoal",opts:["Strength","Hypertrophy","General fitness"]},
+        ].map(({label,key,opts})=>(
+          <div key={key} style={{marginBottom:14}}>
+            <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:6,letterSpacing:"0.08em"}}>{label.toUpperCase()}</Mono>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              {opts.map(o=>(
+                <button key={o} onClick={()=>setLocal(p=>({...p,[key]:p[key]===o?"":o}))}
+                  style={{padding:"7px 12px",borderRadius:7,fontFamily:"'SF Mono','Courier New',monospace",fontSize:11,cursor:"pointer",
+                    border:local[key]===o?"none":`1px solid ${C.border}`,
+                    background:local[key]===o?C.accent:"transparent",
+                    color:local[key]===o?"#fff":C.muted}}>
+                  {o}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+        <div>
+          <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:6,letterSpacing:"0.08em"}}>JOINT / HEALTH NOTES</Mono>
+          <input type="text" value={local.aiJointNotes||""} placeholder="e.g. bad left knee, avoid overhead press"
+            onChange={e=>setLocal(p=>({...p,aiJointNotes:e.target.value}))}
+            style={{width:"100%",padding:"10px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
+        </div>
+      </div>}
+
       <div style={{marginTop:24,padding:"14px 0",borderTop:`1px solid ${C.border}`}}>
         <SectionLabel C={C}>About</SectionLabel>
         <Mono style={{fontSize:12,color:C.muted,lineHeight:1.9,display:"block"}}>
@@ -3419,7 +3471,7 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
 }
 
 // -- AI MODAL ------------------------------------------------------------------
-function AIModal({exercise,day,onClose,C}){
+function AIModal({exercise,day,settings,onClose,C}){
   const [response,setResponse]=useState("");
   const [loading,setLoading]=useState(true);
 
@@ -3428,15 +3480,16 @@ function AIModal({exercise,day,onClose,C}){
   async function getRecommendation(){
     setLoading(true);
     const isEx=!!exercise&&!day;
+    const profile=aiProfileContext(settings);
     const prompt=isEx
-      ?`You are a personal trainer specializing in hypertrophy and joint-safe training.
+      ?`You are a personal trainer specializing in hypertrophy and joint-safe training.${profile}
 Program: ${exercise?.programNote||"Strength training program"}, currently week ${programWeek([])}.
 Exercise: "${exercise.name}" -- ${exercise.muscle||"unknown"}, ${exercise.sets} sets × ${exercise.reps}.
 Provide:
 1. THREE alternative exercises for the same muscle group (joint-friendly, brief reason each)
 2. ONE form or progression tip for the current exercise
 Plain text, no markdown, be concise and direct.`
-      :`You are a personal trainer analyzing a workout day for someone focused on hypertrophy.
+      :`You are a personal trainer analyzing a workout day.${profile}
 Program: ${day?.programNote||"Strength training program"}, currently week ${programWeek([])}.
 Day: "${day?.label}" (${day?.tag})
 Exercises: ${(day?.exercises||[]).map(e=>`${e.name} (${e.sets}×${e.reps})`).join(", ")}.
