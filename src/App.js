@@ -825,6 +825,11 @@ export default function ForgeApp(){
     }catch(e){ console.error("savePlans:",e); }
   };
 
+  const persistActivePlanKey=(k)=>{
+    setActivePlanKey(k);
+    supabase.auth.updateUser({data:{active_plan_key:k}}).catch(e=>console.error("persistActivePlanKey:",e));
+  };
+
   const saveSettings=async(s)=>{
     setSettings(s);
     try{
@@ -974,7 +979,8 @@ export default function ForgeApp(){
       if(prof?.raw_user_meta_data?.body_stats){
         try{ setBodyStatsGlobal(JSON.parse(prof.raw_user_meta_data.body_stats||"[]")); }catch{}
       }
-      if(prof?.active_plan_key)setActivePlanKey(prof.active_plan_key);
+      const savedPlanKey=prof?.active_plan_key||u.user_metadata?.active_plan_key;
+      if(savedPlanKey)setActivePlanKey(savedPlanKey);
       // Load workout draft
       try{
         const{data:draft,error:draftErr}=await supabase.from("workout_drafts")
@@ -1156,13 +1162,13 @@ export default function ForgeApp(){
     </div>}
     {minimizedWorkout&&<div style={{height:44}}/>}
     {tab==="today"&&<TodayTab plan={activePlan} plans={plans} activePlanKey={activePlanKey}
-      setActivePlanKey={k=>{setActivePlanKey(k);}}
-      settings={settings} sessions={sessions} streak={streak} complianceStreak={complianceStreak} deloadDue={deloadDue&&deloadDismissed!==new Date().toISOString().slice(0,7)}
-      onDeloadDismiss={()=>{setDeloadDismissed(new Date().toISOString().slice(0,7));}}
+      setActivePlanKey={persistActivePlanKey}
+      settings={settings} sessions={sessions} streak={streak} complianceStreak={complianceStreak} deloadDue={deloadDue&&deloadDismissed!==new Date().toLocaleDateString("en-CA").slice(0,7)}
+      onDeloadDismiss={()=>{setDeloadDismissed(new Date().toLocaleDateString("en-CA").slice(0,7));}}
       onStart={day=>{setWorkoutDraft(null);setActiveWorkout(day);}} C={C} getOrderedDays={getOrderedDays} toggleTheme={toggleTheme} themeMode={themeMode}
       authUser={authUser} todayDay={(activePlan?.days||[]).find(d=>d.name===DOW[new Date().getDay()]&&!d.isRest)}/>}
     {tab==="plan"&&<PlanTab plans={plans} activePlanKey={activePlanKey}
-      setActivePlanKey={k=>{setActivePlanKey(k);}}
+      setActivePlanKey={persistActivePlanKey}
       savePlans={savePlans} settings={settings} C={C}/>}
     {tab==="log"&&<HistoryTab sessions={sessions} saveSessions={saveSessions} savePRs={savePRs} prs={prs} C={C} onRerun={sess=>{
       const day=(activePlan?.days||[]).find(d=>d.id===sess.dayId)||{...sess,exercises:Object.keys(sess.sets||{}).map(name=>({id:name,name,sets:"3",reps:"",muscle:"",note:""})),label:sess.dayLabel||"Workout"};
@@ -2608,14 +2614,19 @@ function HistoryTab({sessions,saveSessions,savePRs,prs,C,onRerun}){
     await saveSessions(updatedSessions);
     recalcPRs(updatedSessions);
     if(updatedSession.supabaseId){
-      supabase.from("workout_sessions").update({completed_at:updatedSession.completedAt,started_at:updatedSession.startedAt,notes:updatedSession.notes||"",sets_data:updatedSession.sets||{},partial:updatedSession.partial||false}).eq("id",updatedSession.supabaseId).catch(e=>console.error("saveEdit update:",e));
+      const{error:updErr}=await supabase.from("workout_sessions").update({completed_at:updatedSession.completedAt,started_at:updatedSession.startedAt,notes:updatedSession.notes||"",sets_data:updatedSession.sets||{},partial:updatedSession.partial||false}).eq("id",updatedSession.supabaseId);
+      if(updErr)console.error("saveEdit update:",updErr);
     }
   }
 
-  function deleteSession(sessId){
+  async function deleteSession(sessId){
+    const sess=sessions.find(s=>s.id===sessId);
     const updatedSessions=sessions.filter(s=>s.id!==sessId);
     saveSessions(updatedSessions);
     recalcPRs(updatedSessions);
+    if(sess?.supabaseId){
+      supabase.from("workout_sessions").delete().eq("id",sess.supabaseId).catch(e=>console.error("deleteSession:",e));
+    }
     setConfirmDelete(null);
     setExpanded(null);
   }
