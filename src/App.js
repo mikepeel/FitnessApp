@@ -1315,7 +1315,7 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
       {(()=>{
         const today=new Date();
         const weekStart=new Date(today);weekStart.setDate(today.getDate()-today.getDay());
-        const weekStr=weekStart.toISOString().split("T")[0];
+        const weekStr=weekStart.toLocaleDateString("en-CA");
         const weekSess=sessions.filter(s=>s.completedAt>=weekStr);
         const weekVol=weekSess.reduce((a,s)=>(a+(s.setsArr||[]).filter(x=>x.type!=="warmup").reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
         if(weekSess.length===0)return null;
@@ -2519,9 +2519,9 @@ function DayForm({onSave,onClose,C}){
 
 // -- HISTORY -------------------------------------------------------------------
 function HistoryTab({sessions,saveSessions,savePRs,prs,C,onRerun}){
-  const todayStr=new Date().toISOString().split("T")[0];
+  const todayStr=new Date().toLocaleDateString("en-CA");
   const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
-  const yesterdayStr=yesterday.toISOString().split("T")[0];
+  const yesterdayStr=yesterday.toLocaleDateString("en-CA");
 
   // Sort all sessions newest first -- include ALL sessions, even if completedAt is missing
   const sorted=[...sessions]
@@ -2549,7 +2549,7 @@ function HistoryTab({sessions,saveSessions,savePRs,prs,C,onRerun}){
   const [showDebug,setShowDebug]=useState(false);
   const [addingSession,setAddingSession]=useState(false);
   const [manualSession,setManualSession]=useState({
-    dayLabel:"",date:new Date().toISOString().split("T")[0],
+    dayLabel:"",date:new Date().toLocaleDateString("en-CA"),
     duration:"",notes:"",
     exercises:[{name:"",sets:"3",reps:"10",weight:""}]
   });
@@ -2584,7 +2584,7 @@ function HistoryTab({sessions,saveSessions,savePRs,prs,C,onRerun}){
     saveSessions(updated);
     recalcPRs(updated);
     setAddingSession(false);
-    setManualSession({dayLabel:"",date:new Date().toISOString().split("T")[0],duration:"",notes:"",exercises:[{name:"",sets:"3",reps:"10",weight:""}]});
+    setManualSession({dayLabel:"",date:new Date().toLocaleDateString("en-CA"),duration:"",notes:"",exercises:[{name:"",sets:"3",reps:"10",weight:""}]});
   }
 
   function recalcPRs(updatedSessions){
@@ -3022,7 +3022,7 @@ function StatsTab({sessions,prs,settings,C,bodyStatsInit=[],onBodyStatsChange}){
   const [chartData,setChartData]=useState([]);
   const [statsView,setStatsView]=useState("overview"); // overview | progress | muscles | body | trainer
   const [bodyStats,setBodyStats]=useState(bodyStatsInit||[]);
-  const [newBodyStat,setNewBodyStat]=useState({weight:"",chest:"",waist:"",hips:"",arms:"",date:new Date().toISOString().split("T")[0]});
+  const [newBodyStat,setNewBodyStat]=useState({weight:"",chest:"",waist:"",hips:"",arms:"",date:new Date().toLocaleDateString("en-CA")});
   const [addingBody,setAddingBody]=useState(false);
   const [trainerInsight,setTrainerInsight]=useState("");
   const [loadingInsight,setLoadingInsight]=useState(false);
@@ -3042,7 +3042,7 @@ function StatsTab({sessions,prs,settings,C,bodyStatsInit=[],onBodyStatsChange}){
 
   // Weekly volume summary
   const weekStart = new Date(); weekStart.setDate(weekStart.getDate()-weekStart.getDay());
-  const weekStr = weekStart.toISOString().split("T")[0];
+  const weekStr = weekStart.toLocaleDateString("en-CA");
   const weekSessions = sessions.filter(s=>s.completedAt>=weekStr);
   const weekVol = weekSessions.reduce((a,s)=>(a+(s.setsArr||[]).filter(x=>x.type!=="warmup").reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
 
@@ -3269,7 +3269,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
                 const updated=[{...newBodyStat,id:Date.now()},...bodyStats];
                 setBodyStats(updated);
                 if(onBodyStatsChange)onBodyStatsChange(updated);
-                setNewBodyStat({weight:"",chest:"",waist:"",hips:"",arms:"",date:new Date().toISOString().split("T")[0]});
+                setNewBodyStat({weight:"",chest:"",waist:"",hips:"",arms:"",date:new Date().toLocaleDateString("en-CA")});
                 setAddingBody(false);
               }
             }}>Save</Btn>
