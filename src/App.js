@@ -858,10 +858,10 @@ export default function ForgeApp(){
       const latest=s[s.length-1];
       if(latest&&!latest.supabaseId){
         const {data,error}=await supabase.from("workout_sessions").insert({
-          user_id:uid, day_label:latest.dayLabel,
+          user_id:uid, day_label:latest.dayLabel, day_id:latest.dayId||null,
           started_at:latest.startedAt, completed_at:latest.completedAt,
           notes:latest.notes||"", sets_data:latest.sets||{},
-          rating:latest.rating||null
+          partial:latest.partial||false
         }).select("id");
         if(error){ console.error("saveSessions insert error:",JSON.stringify(error)); return false; }
         const insertedId=data?.[0]?.id;
