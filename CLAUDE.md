@@ -158,6 +158,33 @@ Icons are SVG components rendered inline in the nav — not emojis.
     - Build, test, commit
     Do not expand scope beyond what is described.
 
+26. **Two phase approach for every change:**
+    PHASE 1 — IMPLEMENT
+    Write the fix or feature. Run npm run build.
+    Confirm it compiles cleanly.
+
+    PHASE 2 — VERIFY (switch to tester mindset)
+    After implementing, stop coding entirely.
+    Attempt to break what you just built by checking:
+    - Does it work with no data?
+    - Does it work with maximum data?
+    - Does it persist after logout/login?
+    - Does it reflect correctly on all other tabs?
+    - Does it work on the unhappy path
+      (network failure, missing data, null values)?
+    Report verification results before committing.
+    Only commit if verification passes.
+
+27. **Never self-certify without evidence**
+    Do not say "this is fixed" without showing proof.
+    Proof means one of:
+    - npm run backup shows count increased as expected
+    - SQL query shows correct data in Supabase
+    - Specific test steps were followed and passed
+      with exact results reported
+    Saying "this should work" or "this looks correct"
+    is not proof. Show the evidence.
+
 ## Pre-Deploy Checklist
 Before every commit verify:
 - [ ] No duplicate import statements
