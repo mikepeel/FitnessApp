@@ -940,20 +940,25 @@ export default function ForgeApp(){
         .limit(100);
       if(sessErr) console.error("loadUserData sessions error:",sessErr);
       if(sessData){
-        const mapped=sessData.map(s=>({
-          id:s.id, supabaseId:s.id,
-          dayLabel:s.day_label, dayId:s.day_id,
-          startedAt:s.started_at, completedAt:s.completed_at,
-          notes:s.notes, partial:s.partial||false, sets:s.sets_data||{},
-          setsArr:Object.entries(s.sets_data||{}).flatMap(([exName,sets])=>
-            Object.entries(sets).map(([setNum,x])=>({
-              exName, setNum:parseInt(setNum),
-              weight:x.weight||"", reps:x.reps||"",
-              minutes:x.minutes||"", level:x.level||"",
-              muscle:"", isPR:false, type:x.type||"working"
-            }))
-          )
-        }));
+        const mapped=sessData.map(s=>{
+          const lsMap={};
+          (s.logged_sets||[]).forEach(ls=>{lsMap[`${ls.exercise_name}|${ls.set_number}`]={isPR:ls.is_pr||false,type:ls.set_type||"working"};});
+          return {
+            id:s.id, supabaseId:s.id,
+            dayLabel:s.day_label, dayId:s.day_id,
+            startedAt:s.started_at, completedAt:s.completed_at,
+            notes:s.notes, partial:s.partial||false, sets:s.sets_data||{},
+            setsArr:Object.entries(s.sets_data||{}).flatMap(([exName,sets])=>
+              Object.entries(sets).map(([setNum,x])=>{
+                const ls=lsMap[`${exName}|${setNum}`]||{};
+                return {exName, setNum:parseInt(setNum),
+                  weight:x.weight||"", reps:x.reps||"",
+                  minutes:x.minutes||"", level:x.level||"",
+                  muscle:"", isPR:ls.isPR||false, type:ls.type||x.type||"working"};
+              })
+            )
+          };
+        });
         setSessions(mapped);
       }
       // Load PRs
