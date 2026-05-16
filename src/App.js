@@ -842,15 +842,10 @@ export default function ForgeApp(){
       deload_reminder:s.deloadReminder, streak_tracking:s.streakTracking,
       plate_calc:s.plateCalc, workout_notes:s.workoutNotes,
       ai_recs:s.aiRecs, start_day:s.startDay, theme_mode:themeMode,
-      apple_health:s.appleHealth||false
+      apple_health:s.appleHealth||false,
+      ai_age_range:s.aiAgeRange||"", ai_experience:s.aiExperience||"",
+      ai_joint_notes:s.aiJointNotes||"", ai_goal:s.aiGoal||""
     },{onConflict:"user_id"});
-    // AI profile columns saved separately -- requires migration to add columns
-    try{
-      await supabase.from("user_settings").update({
-        ai_age_range:s.aiAgeRange||"", ai_experience:s.aiExperience||"",
-        ai_joint_notes:s.aiJointNotes||"", ai_goal:s.aiGoal||""
-      }).eq("user_id",u.id);
-    }catch(e){ console.error("saveSettings aiProfile:",e); }
     }catch(e){ console.error("saveSettings:",e); }
   };
 
@@ -1028,7 +1023,7 @@ export default function ForgeApp(){
     const {data:{subscription}}=supabase.auth.onAuthStateChange((event,session)=>{
       setAuthUser(session?.user||null);
       if(event==="SIGNED_IN"&&session?.user){loadUserData(session.user);}
-      else if(!session?.user){setSessions([]);setPrs({});setPlans(MIKE_PLANS);setSettings(DEFAULT_SETTINGS);setLoading(false);}
+      else if(!session?.user){setSessions([]);setPrs({});setPlans(MIKE_PLANS);setSettings(DEFAULT_SETTINGS);setActivePlanKey("B");setLoading(false);}
     });
     return()=>subscription.unsubscribe();
   },[]);// eslint-disable-line react-hooks/exhaustive-deps
@@ -2152,7 +2147,7 @@ No explanation, no markdown, just the JSON array.`;
     const newKey=`custom_${Date.now()}`;
     const newPlan={
       key:newKey, name, subtitle:plan?.subtitle||"", description:plan?.description||"",
-      days:days.map(d=>({...d,id:mkId(),exercises:d.exercises.map(e=>({...e,id:mkId()}))}))
+      days:days.map(d=>({...d,exercises:d.exercises.map(e=>({...e,id:mkId()}))}))
     };
     savePlans({...plans,[newKey]:newPlan});
     setActivePlanKey(newKey);
@@ -2559,7 +2554,7 @@ function HistoryTab({sessions,saveSessions,savePRs,prs,C,onRerun}){
     exercises:[{name:"",sets:"3",reps:"10",weight:""}]
   });
 
-  function saveManualSession(){
+  async function saveManualSession(){
     if(!manualSession.dayLabel){return;}
     const dt=manualSession.date+"T12:00:00.000Z";
     const setsArr=manualSession.exercises
@@ -2586,10 +2581,12 @@ function HistoryTab({sessions,saveSessions,savePRs,prs,C,onRerun}){
       manual:true
     };
     const updated=[newSess,...sessions].sort((a,b)=>new Date(b.completedAt)-new Date(a.completedAt));
-    saveSessions(updated);
+    const ok=await saveSessions(updated);
     recalcPRs(updated);
-    setAddingSession(false);
-    setManualSession({dayLabel:"",date:new Date().toLocaleDateString("en-CA"),duration:"",notes:"",exercises:[{name:"",sets:"3",reps:"10",weight:""}]});
+    if(ok){
+      setAddingSession(false);
+      setManualSession({dayLabel:"",date:new Date().toLocaleDateString("en-CA"),duration:"",notes:"",exercises:[{name:"",sets:"3",reps:"10",weight:""}]});
+    }
   }
 
   function recalcPRs(updatedSessions){
