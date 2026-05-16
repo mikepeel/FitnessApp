@@ -572,7 +572,7 @@ function Btn({children,onClick,variant="primary",size="md",style={},disabled=fal
 
 function Modal({children,onClose,C}){
   return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.72)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={onClose}>
-    <div style={{background:C.surface,borderRadius:"18px 18px 0 0",width:"100%",maxWidth:560,maxHeight:"90vh",overflowY:"auto",padding:"20px 20px 40px"}} onClick={e=>e.stopPropagation()}>
+    <div style={{background:C.surface,borderRadius:"18px 18px 0 0",width:"100%",maxWidth:560,maxHeight:"90vh",overflowY:"auto",WebkitOverflowScrolling:"touch",padding:"20px 20px 40px"}} onClick={e=>e.stopPropagation()}>
       {children}
     </div>
   </div>;
@@ -2949,7 +2949,7 @@ function SessionEditModal({session,onSave,onClose,C}){
     </div>}
 
     <div style={{display:"flex",gap:10}}>
-      <Btn style={{flex:1}} C={C} disabled={saving} onClick={async()=>{setSaving(true);try{await onSave(editData);}finally{setSaving(false);}onClose();}}>
+      <Btn style={{flex:1}} C={C} disabled={saving} onClick={async()=>{setSaving(true);try{await onSave(editData);onClose();}finally{setSaving(false);}}}>
         {saving?"Saving…":"Save Changes"}
       </Btn>
       <Btn variant="ghost" style={{flex:1}} C={C} disabled={saving} onClick={onClose}>Cancel</Btn>
