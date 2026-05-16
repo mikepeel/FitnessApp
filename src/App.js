@@ -8,13 +8,6 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 
-// ── IN-MEMORY CACHE (Supabase is source of truth) ────────────────────────────
-const _cacheData = {};
-const cache = {
-  get: (k, fb=null) => k in _cacheData ? _cacheData[k] : fb,
-  set: (k, v) => { _cacheData[k] = v; },
-};
-
 const DOW = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 
 // -- PROGRAM START -------------------------------------------------------------
@@ -33,8 +26,6 @@ const programWeek = (sessions=[]) => {
   const days = Math.floor((now - start) / 86400000);
   return Math.max(1, Math.ceil((days + 1) / 7));
 };
-
-// Saturday May 2 2026 session — enter manually via Log tab
 
 
 // -- THEME ---------------------------------------------------------------------
@@ -789,7 +780,6 @@ export default function ForgeApp(){
   const [authUser,setAuthUser]=useState(null);
   const [authChecked,setAuthChecked]=useState(false);
   const [isOnline,setIsOnline]=useState(navigator.onLine);
-  const [offlineQueue,setOfflineQueue]=useState([]);
   const [bodyStatsGlobal,setBodyStatsGlobal]=useState([]);
   const [tab,setTab]=useState("today");
   const [activeWorkout,setActiveWorkout]=useState(null);
@@ -1140,7 +1130,7 @@ export default function ForgeApp(){
   }
 
   if(workoutSummary){
-    return <WorkoutSummary session={workoutSummary.session} newPRs={workoutSummary.newPRs} previousPRs={workoutSummary.previousPRs} complianceStreak={complianceStreak} onClose={()=>{setWorkoutSummary(null);setActiveWorkout(null);}}/>;
+    return <WorkoutSummary session={workoutSummary.session} newPRs={workoutSummary.newPRs} previousPRs={workoutSummary.previousPRs} complianceStreak={complianceStreak} onClose={()=>{setWorkoutSummary(null);setActiveWorkout(null);}} C={C}/>;
   }
 
   if(activeWorkout){
@@ -2546,7 +2536,6 @@ function HistoryTab({sessions,saveSessions,savePRs,prs,C,onRerun}){
   const [expanded,setExpanded]=useState(mostRecentIdx);
   const [editingSession,setEditingSession]=useState(null);
   const [confirmDelete,setConfirmDelete]=useState(null);
-  const [showDebug,setShowDebug]=useState(false);
   const [addingSession,setAddingSession]=useState(false);
   const [manualSession,setManualSession]=useState({
     dayLabel:"",date:new Date().toLocaleDateString("en-CA"),
@@ -2641,33 +2630,9 @@ function HistoryTab({sessions,saveSessions,savePRs,prs,C,onRerun}){
           <Mono style={{fontSize:11,color:C.muted}}>{sorted.length} sessions . {Object.keys(grouped).length} months</Mono>
         </div>
         <div style={{display:"flex",gap:6,alignItems:"center",marginTop:2}}>
-          <Btn size="sm" variant="ghost" C={C} onClick={()=>setShowDebug(d=>!d)} style={{fontSize:10}}>{showDebug?"Hide":"Debug"}</Btn>
           <Btn size="sm" C={C} onClick={()=>setAddingSession(a=>!a)} style={{background:C.neon,color:"#fff",fontWeight:700,padding:"6px 10px",fontSize:11}}>+ Log</Btn>
         </div>
       </div>
-      {showDebug&&<div style={{marginTop:12,background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"12px"}}>
-        <SectionLabel C={C}>Storage Diagnostic</SectionLabel>
-        <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:6}}>
-          Raw sessions in storage: {sessions.length}
-        </Mono>
-        {sessions.length===0&&<Mono style={{fontSize:11,color:C.danger,display:"block",marginBottom:6}}>
-          ⚠ No sessions found. Complete a workout to start logging.
-        </Mono>}
-        {sessions.slice(0,8).map((s,i)=>(
-          <Mono key={i} style={{fontSize:10,color:C.muted,display:"block",marginBottom:2}}>
-            {i+1}. {s.dayLabel||"?"} -- {s.completedAt?new Date(s.completedAt).toLocaleDateString("en",{weekday:"short",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}):"no date"} -- {(s.setsArr||[]).length} sets
-          </Mono>
-        ))}
-        {sessions.length>8&&<Mono style={{fontSize:10,color:C.faint,display:"block"}}>...+{sessions.length-8} more</Mono>}
-        <Btn size="sm" variant="ghost" C={C} style={{marginTop:10,fontSize:10,color:C.danger,borderColor:C.danger+"44"}}
-          onClick={()=>{
-            const raw=JSON.stringify(sessions);
-            alert(raw?`Raw storage:
-${raw.slice(0,500)}...`:"No sessions found");
-          }}>
-          Inspect Raw Storage
-        </Btn>
-      </div>}
     </div>
 
     {/* Manual Session Logger Modal */}
@@ -3053,8 +3018,6 @@ function StatsTab({sessions,prs,settings,C,bodyStatsInit=[],onBodyStatsChange}){
   const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate()-7);
   sessions.filter(s=>s.completedAt&&new Date(s.completedAt)>sevenDaysAgo).forEach(s=>{
     (s.setsArr||[]).forEach(x=>{
-      // Map exercise to muscle group
-      const plan_ex = null;
       const muscle = x.muscle || "Other";
       if(!muscleVol[muscle]) muscleVol[muscle]=0;
       muscleVol[muscle]+=(parseFloat(x.weight)||0)*(parseInt(x.reps)||0);
@@ -3544,7 +3507,7 @@ Plain text, no markdown, be concise.`;
   </Modal>;
 }
 
-function WorkoutSummary({session,newPRs,previousPRs,complianceStreak,onClose}){
+function WorkoutSummary({session,newPRs,previousPRs,complianceStreak,onClose,C}){
   const completedDate=new Date(session.completedAt);
   const durationMin=Math.max(1,Math.round((completedDate-new Date(session.startedAt))/60000));
   const dayName=completedDate.toLocaleDateString("en-US",{weekday:"long"});
@@ -3561,7 +3524,7 @@ function WorkoutSummary({session,newPRs,previousPRs,complianceStreak,onClose}){
   };
 
   return(
-    <div style={{minHeight:"100vh",background:"#f0faf5",fontFamily:"'SF Mono','Courier New',monospace",paddingTop:"env(safe-area-inset-top,0px)",paddingBottom:"env(safe-area-inset-bottom,0px)",overflowY:"auto"}}>
+    <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'SF Mono','Courier New',monospace",paddingTop:"env(safe-area-inset-top,0px)",paddingBottom:"env(safe-area-inset-bottom,0px)",overflowY:"auto"}}>
       {/* Header */}
       <div style={{background:"linear-gradient(150deg,#3ecf8e 0%,#2ebd80 100%)",padding:"36px 24px 32px",textAlign:"center",position:"relative",overflow:"hidden"}}>
         <div style={{position:"absolute",width:120,height:120,borderRadius:"50%",background:"rgba(255,255,255,0.08)",top:-30,right:-20,pointerEvents:"none"}}/>
@@ -3583,40 +3546,40 @@ function WorkoutSummary({session,newPRs,previousPRs,complianceStreak,onClose}){
       <div style={{padding:"20px 20px 32px"}}>
         {/* 2x2 stat grid */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
-          <div style={{background:"#fff",borderRadius:12,padding:"14px 16px",textAlign:"center",border:"1.5px solid #d1f0e4"}}>
-            <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.14em",color:"#2ab87a",marginBottom:6}}>VOLUME</div>
-            <div style={{fontSize:24,fontWeight:800,letterSpacing:"-0.02em",color:"#0d1117"}}>{volume>=1000?`${(volume/1000).toFixed(1)}k`:volume.toLocaleString()}</div>
-            <div style={{fontSize:11,color:"#3d4f63",marginTop:2}}>lbs lifted</div>
+          <div style={{background:C.card,borderRadius:12,padding:"14px 16px",textAlign:"center",border:`1.5px solid ${C.neon}44`}}>
+            <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.14em",color:C.neon,marginBottom:6}}>VOLUME</div>
+            <div style={{fontSize:24,fontWeight:800,letterSpacing:"-0.02em",color:C.text}}>{volume>=1000?`${(volume/1000).toFixed(1)}k`:volume.toLocaleString()}</div>
+            <div style={{fontSize:11,color:C.muted,marginTop:2}}>lbs lifted</div>
           </div>
-          <div style={{background:"#fff",borderRadius:12,padding:"14px 16px",textAlign:"center",border:"1.5px solid #d1e4f7"}}>
-            <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.14em",color:"#4f8ef7",marginBottom:6}}>SETS</div>
-            <div style={{fontSize:24,fontWeight:800,letterSpacing:"-0.02em",color:"#0d1117"}}>{setCount}</div>
-            <div style={{fontSize:11,color:"#3d4f63",marginTop:2}}>completed</div>
+          <div style={{background:C.card,borderRadius:12,padding:"14px 16px",textAlign:"center",border:`1.5px solid ${C.accent}44`}}>
+            <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.14em",color:C.accent,marginBottom:6}}>SETS</div>
+            <div style={{fontSize:24,fontWeight:800,letterSpacing:"-0.02em",color:C.text}}>{setCount}</div>
+            <div style={{fontSize:11,color:C.muted,marginTop:2}}>completed</div>
           </div>
-          <div style={{background:"#fff",borderRadius:12,padding:"14px 16px",textAlign:"center",border:"1.5px solid #faebd1"}}>
-            <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.14em",color:"#d4a017",marginBottom:6}}>STREAK</div>
-            <div style={{fontSize:24,fontWeight:800,letterSpacing:"-0.02em",color:"#d4a017"}}>{complianceStreak}</div>
-            <div style={{fontSize:11,color:"#3d4f63",marginTop:2}}>days on plan</div>
+          <div style={{background:C.card,borderRadius:12,padding:"14px 16px",textAlign:"center",border:`1.5px solid ${C.gold}44`}}>
+            <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.14em",color:C.gold,marginBottom:6}}>STREAK</div>
+            <div style={{fontSize:24,fontWeight:800,letterSpacing:"-0.02em",color:C.gold}}>{complianceStreak}</div>
+            <div style={{fontSize:11,color:C.muted,marginTop:2}}>days on plan</div>
           </div>
-          <div style={{background:"#fff",borderRadius:12,padding:"14px 16px",textAlign:"center",border:"1.5px solid #fad1dc"}}>
-            <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.14em",color:"#e53e6a",marginBottom:6}}>NEW PRs</div>
-            <div style={{fontSize:24,fontWeight:800,letterSpacing:"-0.02em",color:"#e53e6a"}}>{prList.length}</div>
-            <div style={{fontSize:11,color:"#3d4f63",marginTop:2}}>new records</div>
+          <div style={{background:C.card,borderRadius:12,padding:"14px 16px",textAlign:"center",border:`1.5px solid ${C.red}44`}}>
+            <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.14em",color:C.red,marginBottom:6}}>NEW PRs</div>
+            <div style={{fontSize:24,fontWeight:800,letterSpacing:"-0.02em",color:C.red}}>{prList.length}</div>
+            <div style={{fontSize:11,color:C.muted,marginTop:2}}>new records</div>
           </div>
         </div>
 
         {/* New records section */}
         {prList.length>0&&(
-          <div style={{background:"#fff",border:"1.5px solid #e2e8f0",borderRadius:12,padding:"14px 16px",marginBottom:14}}>
-            <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.14em",color:"#3d4f63",marginBottom:12}}>NEW RECORDS</div>
+          <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:12,padding:"14px 16px",marginBottom:14}}>
+            <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.14em",color:C.muted,marginBottom:12}}>NEW RECORDS</div>
             {prList.map((pr,i)=>(
-              <div key={pr.name} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:i<prList.length-1?10:0,marginBottom:i<prList.length-1?10:0,borderBottom:i<prList.length-1?"1px solid #f1f5f9":"none"}}>
+              <div key={pr.name} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:i<prList.length-1?10:0,marginBottom:i<prList.length-1?10:0,borderBottom:i<prList.length-1?`1px solid ${C.border}`:"none"}}>
                 <div>
-                  <div style={{fontSize:13,fontWeight:600,color:"#0d1117"}}>{pr.name}</div>
-                  {previousPRs[pr.name]&&<div style={{fontSize:11,color:"#64748b"}}>was {previousPRs[pr.name].weight} lbs</div>}
+                  <div style={{fontSize:13,fontWeight:600,color:C.text}}>{pr.name}</div>
+                  {previousPRs[pr.name]&&<div style={{fontSize:11,color:C.muted}}>was {previousPRs[pr.name].weight} lbs</div>}
                 </div>
                 <div style={{textAlign:"right"}}>
-                  <div style={{fontSize:14,fontWeight:800,color:"#0d1117",marginBottom:4}}>{pr.weight} lbs</div>
+                  <div style={{fontSize:14,fontWeight:800,color:C.text,marginBottom:4}}>{pr.weight} lbs</div>
                   <div style={{display:"inline-flex",alignItems:"center",gap:4,background:"#f0fdf4",border:"1.5px solid #3ecf8e",borderRadius:6,padding:"3px 8px",color:"#1a7a4a",fontSize:9,fontWeight:700}}>
                     <svg width={12} height={12} viewBox="0 0 24 24" fill="none">
                       <path d="M12 3L14.5 9.5L21.5 10.3L16.5 15L18 22L12 18.5L6 22L7.5 15L2.5 10.3L9.5 9.5L12 3Z" fill="#3ecf8e" stroke="#2ab87a" strokeWidth={1}/>
@@ -3631,8 +3594,8 @@ function WorkoutSummary({session,newPRs,previousPRs,complianceStreak,onClose}){
 
         {/* Action buttons */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          <button onClick={handleShare} style={{background:"#fff",border:"1.5px solid #e2e8f0",borderRadius:12,padding:14,fontSize:12,fontWeight:700,letterSpacing:"0.08em",color:"#3d4f63",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#3d4f63" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <button onClick={handleShare} style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:12,padding:14,fontSize:12,fontWeight:700,letterSpacing:"0.08em",color:C.muted,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
               <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/>
             </svg>
             SHARE
