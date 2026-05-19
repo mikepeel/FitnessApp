@@ -212,3 +212,11 @@ Before every commit verify:
 ## Known Deferred Items
 - URL rename to iron-app.vercel.app (not done yet)
 - Apple Watch companion (requires native app, not possible in React PWA)
+
+## Response Style
+- No preamble, no restating the task before doing it
+- No post-step summaries unless I ask
+- Skip narration of obvious actions
+- Be concise; lead with the action or answer
+- No affirmations ("Great!", "Sure!", "Absolutely!")
+- No disclaimers unless genuinely critical
