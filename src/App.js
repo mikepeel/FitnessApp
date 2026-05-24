@@ -255,8 +255,13 @@ const PRESET_TEMPLATES = [
         {name:"Tricep Extension",sets:"2",reps:"15",note:"",muscle:"Triceps"},
         {name:"Mountain Climbers",sets:"3",reps:"30 sec",note:"",muscle:"Cardio"},
       ]},
-      { label:"Rest", tag:"Full Rest", color:"#aaff00", isRest:true, exercises:[
-        {name:"Rest",sets:"--",reps:"--",note:"",muscle:"Recovery"},
+      { label:"HIIT + Core", tag:"Conditioning . Abs . Power", color:"#f06584", isRest:false, exercises:[
+        {name:"Stair Stepper (HIIT)",sets:"--",reps:"10 min",note:"30 sec hard / 30 sec easy",muscle:"Cardio"},
+        {name:"Kettlebell Swing",sets:"4",reps:"15",note:"Hip-hinge power, not a squat",muscle:"Legs"},
+        {name:"Medicine Ball Slam",sets:"3",reps:"12",note:"Full extension overhead, explosive",muscle:"Shoulders"},
+        {name:"Cable Wood Chop",sets:"3",reps:"12 each",note:"Rotational core, control the return",muscle:"Abs"},
+        {name:"Dead Bug",sets:"3",reps:"10 each",note:"Opposite arm/leg, lower back stays flat",muscle:"Abs"},
+        {name:"Pallof Press",sets:"3",reps:"12 each",note:"Anti-rotation, stand tall",muscle:"Abs"},
       ]},
       { label:"Rest", tag:"Full Rest", color:"#aaff00", isRest:true, exercises:[
         {name:"Rest",sets:"--",reps:"--",note:"",muscle:"Recovery"},
