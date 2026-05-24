@@ -26,6 +26,14 @@ const programWeek = (sessions=[]) => {
   const days = Math.floor((now - start) / 86400000);
   return Math.max(1, Math.ceil((days + 1) / 7));
 };
+const planWeekOf = (plan) => {
+  if (!plan?.startDate) return null;
+  const start = new Date(plan.startDate + "T12:00:00");
+  const now = new Date();
+  const days = Math.floor((now - start) / 86400000);
+  if (days < 0) return 1;
+  return Math.max(1, Math.ceil((days + 1) / 7));
+};
 
 
 // -- THEME ---------------------------------------------------------------------
@@ -52,124 +60,6 @@ const THEMES = {
 
 // -- DEFAULT PLANS -------------------------------------------------------------
 const mkId = () => `id_${Math.random().toString(36).slice(2,9)}`;
-
-const MIKE_PLANS = {
-  A: {
-    key:"A", name:"Custom - PPL", subtitle:"Push/Pull/Legs . 4-5 days",
-    description:"Arms built into Push/Pull days. High frequency, clean structure.",
-    days:[
-      { id:"a1", name:"Monday", label:"Push", tag:"Chest . Shoulders . Triceps", color:"#4f8ef7", isRest:false, exercises:[
-        {id:"a1e1",name:"Bench Press",sets:"4",reps:"6-10",note:"Primary strength move",muscle:"Chest"},
-        {id:"a1e2",name:"Incline Press (DB)",sets:"3",reps:"8-12",note:"DB preferred for shoulder safety",muscle:"Chest"},
-        {id:"a1e3",name:"Machine Shoulder Press",sets:"3",reps:"10-12",note:"Machine reduces joint stress",muscle:"Shoulders"},
-        {id:"a1e4",name:"Dumbbell Lateral Raises",sets:"3",reps:"12-15",note:"Slow eccentric, avoid momentum",muscle:"Shoulders"},
-        {id:"a1e5",name:"Incline Tricep Extension",sets:"3",reps:"10-12",note:"Elbow-friendly angle",muscle:"Triceps"},
-        {id:"a1e6",name:"Cable Overhead Extension",sets:"2",reps:"12-15",note:"Long-head emphasis",muscle:"Triceps"},
-        {id:"a1e7",name:"Stair Stepper",sets:"--",reps:"10-15 min",note:"Zone 2 cardio post-workout",muscle:"Cardio"},
-      ]},
-      { id:"a2", name:"Tuesday", label:"Pull", tag:"Back . Biceps . Rear Delt", color:"#3d8eff", isRest:false, exercises:[
-        {id:"a2e1",name:"Reverse Grip Lat Pulldown",sets:"4",reps:"8-12",note:"Supinated grip -- easier on elbows",muscle:"Back"},
-        {id:"a2e2",name:"Seated Cable Row",sets:"3",reps:"10-12",note:"Drive elbows back, hold 1 sec",muscle:"Back"},
-        {id:"a2e3",name:"Rear Delt Machine",sets:"3",reps:"12-15",note:"Shoulder health -- never skip",muscle:"Shoulders"},
-        {id:"a2e4",name:"Cable Curl",sets:"3",reps:"10-12",note:"Control the negative",muscle:"Biceps"},
-        {id:"a2e5",name:"Concentration Curl",sets:"2",reps:"12-15",note:"Full squeeze at top, slow negative",muscle:"Biceps"},
-        {id:"a2e6",name:"Machine Crunch",sets:"3",reps:"15-20",note:"",muscle:"Abs"},
-        {id:"a2e7",name:"Russian Twist",sets:"3",reps:"20 total",note:"Add plate for progression",muscle:"Abs"},
-      ]},
-      { id:"a3", name:"Wednesday", label:"Rest", tag:"Active Recovery", color:"#aaff00", isRest:true, exercises:[
-        {id:"a3e1",name:"Walking / Yoga / Stretching",sets:"--",reps:"20-30 min",note:"Keep it easy",muscle:"Recovery"},
-      ]},
-      { id:"a4", name:"Thursday", label:"Legs", tag:"Quads . Glutes . Hamstrings . Core", color:"#aa44ff", isRest:false, exercises:[
-        {id:"a4e1",name:"Goblet Squat",sets:"4",reps:"10-15",note:"Keep weight over mid-foot",muscle:"Legs"},
-        {id:"a4e2",name:"DB Romanian Deadlift",sets:"3",reps:"10-12",note:"Hip hinge -- protects knees",muscle:"Legs"},
-        {id:"a4e3",name:"Box Step-Ups (DB)",sets:"3",reps:"10 each leg",note:"Drive through heel, controlled step down",muscle:"Legs"},
-        {id:"a4e4",name:"Decline Sit-Ups",sets:"3",reps:"12-15",note:"",muscle:"Abs"},
-        {id:"a4e5",name:"Russian Twist",sets:"3",reps:"20 total",note:"",muscle:"Abs"},
-        {id:"a4e6",name:"Stair Stepper",sets:"--",reps:"10 min",note:"Shorter today -- legs already worked",muscle:"Cardio"},
-      ]},
-      { id:"a5", name:"Friday", label:"Push", tag:"Chest . Shoulders . Triceps (Vol)", color:"#4f8ef7", isRest:false, exercises:[
-        {id:"a5e1",name:"Incline Press (DB)",sets:"4",reps:"8-12",note:"Lead with incline today",muscle:"Chest"},
-        {id:"a5e2",name:"Cable Fly / Pec Deck",sets:"3",reps:"12-15",note:"Stretch-focused, lighter load",muscle:"Chest"},
-        {id:"a5e3",name:"Machine Shoulder Press",sets:"3",reps:"10-12",note:"",muscle:"Shoulders"},
-        {id:"a5e4",name:"Cable Lateral Raise",sets:"3",reps:"12-15",note:"Constant tension vs DB",muscle:"Shoulders"},
-        {id:"a5e5",name:"Cable Rope Pressdown",sets:"3",reps:"12-15",note:"",muscle:"Triceps"},
-        {id:"a5e6",name:"Machine Crunch",sets:"3",reps:"15-20",note:"",muscle:"Abs"},
-      ]},
-      { id:"a6", name:"Saturday", label:"Pull", tag:"Back . Biceps (Volume)", color:"#3d8eff", isRest:false, exercises:[
-        {id:"a6e1",name:"T-Bar Row",sets:"4",reps:"8-12",note:"Neutral grip easier on elbows",muscle:"Back"},
-        {id:"a6e2",name:"Reverse Grip Pulldown",sets:"3",reps:"10-12",note:"",muscle:"Back"},
-        {id:"a6e3",name:"Rear Delt Cable or Machine",sets:"3",reps:"12-15",note:"",muscle:"Shoulders"},
-        {id:"a6e4",name:"Cable Curl",sets:"3",reps:"12-15",note:"Constant tension",muscle:"Biceps"},
-        {id:"a6e5",name:"Concentration Curl",sets:"2",reps:"12-15",note:"Full squeeze at top",muscle:"Biceps"},
-        {id:"a6e6",name:"Decline Sit-Ups",sets:"3",reps:"12-15",note:"",muscle:"Abs"},
-        {id:"a6e7",name:"Stair Stepper",sets:"--",reps:"15 min",note:"",muscle:"Cardio"},
-      ]},
-      { id:"a7", name:"Sunday", label:"Rest", tag:"Full Rest", color:"#aaff00", isRest:true, exercises:[
-        {id:"a7e1",name:"Full Rest or Light Walk",sets:"--",reps:"--",note:"Recovery is where you grow",muscle:"Recovery"},
-      ]},
-    ]
-  },
-  B: {
-    key:"B", name:"Custom - Antagonist Split", subtitle:"Antagonist pairs . 4-5 days",
-    description:"Chest/Back paired, then a standalone Arm day. Full arm focus and great pumps.",
-    days:[
-      { id:"b1", name:"Monday", label:"Chest + Back", tag:"Antagonist Pair", color:"#4f8ef7", isRest:false, exercises:[
-        {id:"b1e1",name:"Bench Press",sets:"4",reps:"6-10",note:"Primary push strength",muscle:"Chest"},
-        {id:"b1e2",name:"T-Bar Row",sets:"4",reps:"8-12",note:"Superset option with bench",muscle:"Back"},
-        {id:"b1e3",name:"Incline Press (DB)",sets:"3",reps:"8-12",note:"",muscle:"Chest"},
-        {id:"b1e4",name:"Reverse Grip Lat Pulldown",sets:"3",reps:"10-12",note:"",muscle:"Back"},
-        {id:"b1e5",name:"Cable Fly",sets:"3",reps:"12-15",note:"Stretch focus",muscle:"Chest"},
-        {id:"b1e6",name:"Seated Cable Row",sets:"3",reps:"10-12",note:"",muscle:"Back"},
-        {id:"b1e7",name:"Machine Crunch",sets:"3",reps:"15-20",note:"",muscle:"Abs"},
-        {id:"b1e8",name:"Stair Stepper",sets:"--",reps:"10-15 min",note:"",muscle:"Cardio"},
-      ]},
-      { id:"b2", name:"Tuesday", label:"Arms", tag:"Shoulders . Triceps . Biceps", color:"#f0b429", isRest:false, exercises:[
-        {id:"b2e1",name:"Machine Shoulder Press",sets:"4",reps:"10-12",note:"Machine reduces joint stress",muscle:"Shoulders"},
-        {id:"b2e2",name:"DB / Cable Lateral Raises",sets:"3",reps:"12-15",note:"Slow and controlled",muscle:"Shoulders"},
-        {id:"b2e3",name:"Rear Delt Machine",sets:"3",reps:"12-15",note:"Critical for shoulder health",muscle:"Shoulders"},
-        {id:"b2e4",name:"Incline Tricep Extension",sets:"3",reps:"10-12",note:"",muscle:"Triceps"},
-        {id:"b2e5",name:"Cable Overhead Extension",sets:"2",reps:"12-15",note:"",muscle:"Triceps"},
-        {id:"b2e6",name:"Cable Curl",sets:"3",reps:"10-12",note:"",muscle:"Biceps"},
-        {id:"b2e7",name:"Concentration Curl",sets:"3",reps:"12-15",note:"Full squeeze, slow negative",muscle:"Biceps"},
-        {id:"b2e8",name:"Russian Twist",sets:"3",reps:"20 total",note:"",muscle:"Abs"},
-      ]},
-      { id:"b3", name:"Wednesday", label:"Rest", tag:"Active Recovery", color:"#aaff00", isRest:true, exercises:[
-        {id:"b3e1",name:"Walking / Yoga / Stretching",sets:"--",reps:"20-30 min",note:"",muscle:"Recovery"},
-      ]},
-      { id:"b4", name:"Thursday", label:"Legs", tag:"Quads . Glutes . Hamstrings . Core", color:"#aa44ff", isRest:false, exercises:[
-        {id:"b4e1",name:"Goblet Squat",sets:"4",reps:"10-15",note:"Heels elevated slightly if needed",muscle:"Legs"},
-        {id:"b4e2",name:"DB Romanian Deadlift",sets:"3",reps:"10-12",note:"Hip hinge -- protects knees",muscle:"Legs"},
-        {id:"b4e3",name:"Box Step-Ups (DB)",sets:"3",reps:"10 each leg",note:"Drive through heel, controlled down",muscle:"Legs"},
-        {id:"b4e4",name:"DB Lunges (optional)",sets:"3",reps:"10 each leg",note:"Only if knees feel good",muscle:"Legs"},
-        {id:"b4e5",name:"Decline Sit-Ups",sets:"3",reps:"12-15",note:"",muscle:"Abs"},
-        {id:"b4e6",name:"Machine Crunch",sets:"3",reps:"15-20",note:"",muscle:"Abs"},
-        {id:"b4e7",name:"Stair Stepper",sets:"--",reps:"10 min",note:"",muscle:"Cardio"},
-      ]},
-      { id:"b5", name:"Friday", label:"Chest + Back", tag:"Antagonist Pair (Volume)", color:"#4f8ef7", isRest:false, exercises:[
-        {id:"b5e1",name:"Incline Press (DB)",sets:"4",reps:"8-12",note:"Lead with incline",muscle:"Chest"},
-        {id:"b5e2",name:"Seated Row (Close Grip)",sets:"4",reps:"10-12",note:"",muscle:"Back"},
-        {id:"b5e3",name:"Pec Deck / Cable Fly",sets:"3",reps:"12-15",note:"",muscle:"Chest"},
-        {id:"b5e4",name:"Reverse Grip Pulldown",sets:"3",reps:"10-12",note:"",muscle:"Back"},
-        {id:"b5e5",name:"Rear Delt Cable",sets:"3",reps:"12-15",note:"Shoulder health",muscle:"Shoulders"},
-        {id:"b5e6",name:"Russian Twist",sets:"3",reps:"20 total",note:"",muscle:"Abs"},
-        {id:"b5e7",name:"Stair Stepper",sets:"--",reps:"15 min",note:"",muscle:"Cardio"},
-      ]},
-      { id:"b6", name:"Saturday", label:"Arms", tag:"Shoulders . Triceps . Biceps (Vol)", color:"#f0b429", isRest:false, exercises:[
-        {id:"b6e1",name:"Machine Shoulder Press",sets:"3",reps:"10-12",note:"",muscle:"Shoulders"},
-        {id:"b6e2",name:"Cable Lateral Raise",sets:"3",reps:"12-15",note:"Constant tension",muscle:"Shoulders"},
-        {id:"b6e3",name:"Front Delt Raise",sets:"2",reps:"12-15",note:"",muscle:"Shoulders"},
-        {id:"b6e4",name:"Cable Rope Pressdown",sets:"3",reps:"12-15",note:"",muscle:"Triceps"},
-        {id:"b6e5",name:"Incline Tricep Extension",sets:"2",reps:"10-12",note:"",muscle:"Triceps"},
-        {id:"b6e6",name:"Barbell / Cable Curl",sets:"3",reps:"10-12",note:"",muscle:"Biceps"},
-        {id:"b6e7",name:"Concentration Curl",sets:"2",reps:"12-15",note:"",muscle:"Biceps"},
-        {id:"b6e8",name:"Decline Sit-Ups",sets:"3",reps:"12-15",note:"",muscle:"Abs"},
-      ]},
-      { id:"b7", name:"Sunday", label:"Rest", tag:"Full Rest", color:"#aaff00", isRest:true, exercises:[
-        {id:"b7e1",name:"Full Rest",sets:"--",reps:"--",note:"Recovery is where you grow",muscle:"Recovery"},
-      ]},
-    ]
-  }
-};
 
 // -- PRESET TEMPLATES ----------------------------------------------------------
 const PRESET_TEMPLATES = [
@@ -307,6 +197,121 @@ const PRESET_TEMPLATES = [
       ]},
       { label:"Rest", tag:"Full Rest", color:"#3d8eff", isRest:true, exercises:[
         {name:"Rest",sets:"--",reps:"--",note:"",muscle:"Recovery"},
+      ]},
+    ]
+  },
+  {
+    id:"preset_ppl", emoji:"💪", name:"Custom PPL", tag:"5 days . Push/Pull/Legs",
+    desc:"Arms built into Push/Pull days. High frequency, clean structure. Great for intermediate lifters.",
+    days:[
+      { name:"Monday", label:"Push", tag:"Chest . Shoulders . Triceps", color:"#4f8ef7", isRest:false, exercises:[
+        {name:"Bench Press",sets:"4",reps:"6-10",note:"Primary strength move",muscle:"Chest"},
+        {name:"Incline Press (DB)",sets:"3",reps:"8-12",note:"DB preferred for shoulder safety",muscle:"Chest"},
+        {name:"Machine Shoulder Press",sets:"3",reps:"10-12",note:"Machine reduces joint stress",muscle:"Shoulders"},
+        {name:"Dumbbell Lateral Raises",sets:"3",reps:"12-15",note:"Slow eccentric, avoid momentum",muscle:"Shoulders"},
+        {name:"Incline Tricep Extension",sets:"3",reps:"10-12",note:"Elbow-friendly angle",muscle:"Triceps"},
+        {name:"Cable Overhead Extension",sets:"2",reps:"12-15",note:"Long-head emphasis",muscle:"Triceps"},
+        {name:"Stair Stepper",sets:"--",reps:"10-15 min",note:"Zone 2 cardio post-workout",muscle:"Cardio"},
+      ]},
+      { name:"Tuesday", label:"Pull", tag:"Back . Biceps . Rear Delt", color:"#3d8eff", isRest:false, exercises:[
+        {name:"Reverse Grip Lat Pulldown",sets:"4",reps:"8-12",note:"Supinated grip -- easier on elbows",muscle:"Back"},
+        {name:"Seated Cable Row",sets:"3",reps:"10-12",note:"Drive elbows back, hold 1 sec",muscle:"Back"},
+        {name:"Rear Delt Machine",sets:"3",reps:"12-15",note:"Shoulder health -- never skip",muscle:"Shoulders"},
+        {name:"Cable Curl",sets:"3",reps:"10-12",note:"Control the negative",muscle:"Biceps"},
+        {name:"Concentration Curl",sets:"2",reps:"12-15",note:"Full squeeze at top, slow negative",muscle:"Biceps"},
+        {name:"Machine Crunch",sets:"3",reps:"15-20",note:"",muscle:"Abs"},
+        {name:"Russian Twist",sets:"3",reps:"20 total",note:"Add plate for progression",muscle:"Abs"},
+      ]},
+      { name:"Wednesday", label:"Rest", tag:"Active Recovery", color:"#aaff00", isRest:true, exercises:[
+        {name:"Walking / Yoga / Stretching",sets:"--",reps:"20-30 min",note:"Keep it easy",muscle:"Recovery"},
+      ]},
+      { name:"Thursday", label:"Legs", tag:"Quads . Glutes . Hamstrings . Core", color:"#aa44ff", isRest:false, exercises:[
+        {name:"Goblet Squat",sets:"4",reps:"10-15",note:"Keep weight over mid-foot",muscle:"Legs"},
+        {name:"DB Romanian Deadlift",sets:"3",reps:"10-12",note:"Hip hinge -- protects knees",muscle:"Legs"},
+        {name:"Box Step-Ups (DB)",sets:"3",reps:"10 each leg",note:"Drive through heel, controlled step down",muscle:"Legs"},
+        {name:"Decline Sit-Ups",sets:"3",reps:"12-15",note:"",muscle:"Abs"},
+        {name:"Russian Twist",sets:"3",reps:"20 total",note:"",muscle:"Abs"},
+        {name:"Stair Stepper",sets:"--",reps:"10 min",note:"Shorter today -- legs already worked",muscle:"Cardio"},
+      ]},
+      { name:"Friday", label:"Push", tag:"Chest . Shoulders . Triceps (Vol)", color:"#4f8ef7", isRest:false, exercises:[
+        {name:"Incline Press (DB)",sets:"4",reps:"8-12",note:"Lead with incline today",muscle:"Chest"},
+        {name:"Cable Fly / Pec Deck",sets:"3",reps:"12-15",note:"Stretch-focused, lighter load",muscle:"Chest"},
+        {name:"Machine Shoulder Press",sets:"3",reps:"10-12",note:"",muscle:"Shoulders"},
+        {name:"Cable Lateral Raise",sets:"3",reps:"12-15",note:"Constant tension vs DB",muscle:"Shoulders"},
+        {name:"Cable Rope Pressdown",sets:"3",reps:"12-15",note:"",muscle:"Triceps"},
+        {name:"Machine Crunch",sets:"3",reps:"15-20",note:"",muscle:"Abs"},
+      ]},
+      { name:"Saturday", label:"Pull", tag:"Back . Biceps (Volume)", color:"#3d8eff", isRest:false, exercises:[
+        {name:"T-Bar Row",sets:"4",reps:"8-12",note:"Neutral grip easier on elbows",muscle:"Back"},
+        {name:"Reverse Grip Pulldown",sets:"3",reps:"10-12",note:"",muscle:"Back"},
+        {name:"Rear Delt Cable or Machine",sets:"3",reps:"12-15",note:"",muscle:"Shoulders"},
+        {name:"Cable Curl",sets:"3",reps:"12-15",note:"Constant tension",muscle:"Biceps"},
+        {name:"Concentration Curl",sets:"2",reps:"12-15",note:"Full squeeze at top",muscle:"Biceps"},
+        {name:"Decline Sit-Ups",sets:"3",reps:"12-15",note:"",muscle:"Abs"},
+        {name:"Stair Stepper",sets:"--",reps:"15 min",note:"",muscle:"Cardio"},
+      ]},
+      { name:"Sunday", label:"Rest", tag:"Full Rest", color:"#aaff00", isRest:true, exercises:[
+        {name:"Full Rest or Light Walk",sets:"--",reps:"--",note:"Recovery is where you grow",muscle:"Recovery"},
+      ]},
+    ]
+  },
+  {
+    id:"preset_antagonist", emoji:"🔄", name:"Antagonist Split", tag:"5 days . Chest+Back / Arms / Legs",
+    desc:"Chest/Back paired for maximum pump and efficiency. Standalone Arm day for full specialization.",
+    days:[
+      { name:"Monday", label:"Chest + Back", tag:"Antagonist Pair", color:"#4f8ef7", isRest:false, exercises:[
+        {name:"Bench Press",sets:"4",reps:"6-10",note:"Primary push strength",muscle:"Chest"},
+        {name:"T-Bar Row",sets:"4",reps:"8-12",note:"Superset option with bench",muscle:"Back"},
+        {name:"Incline Press (DB)",sets:"3",reps:"8-12",note:"",muscle:"Chest"},
+        {name:"Reverse Grip Lat Pulldown",sets:"3",reps:"10-12",note:"",muscle:"Back"},
+        {name:"Cable Fly",sets:"3",reps:"12-15",note:"Stretch focus",muscle:"Chest"},
+        {name:"Seated Cable Row",sets:"3",reps:"10-12",note:"",muscle:"Back"},
+        {name:"Machine Crunch",sets:"3",reps:"15-20",note:"",muscle:"Abs"},
+        {name:"Stair Stepper",sets:"--",reps:"10-15 min",note:"",muscle:"Cardio"},
+      ]},
+      { name:"Tuesday", label:"Arms", tag:"Shoulders . Triceps . Biceps", color:"#f0b429", isRest:false, exercises:[
+        {name:"Machine Shoulder Press",sets:"4",reps:"10-12",note:"Machine reduces joint stress",muscle:"Shoulders"},
+        {name:"DB / Cable Lateral Raises",sets:"3",reps:"12-15",note:"Slow and controlled",muscle:"Shoulders"},
+        {name:"Rear Delt Machine",sets:"3",reps:"12-15",note:"Critical for shoulder health",muscle:"Shoulders"},
+        {name:"Incline Tricep Extension",sets:"3",reps:"10-12",note:"",muscle:"Triceps"},
+        {name:"Cable Overhead Extension",sets:"2",reps:"12-15",note:"",muscle:"Triceps"},
+        {name:"Cable Curl",sets:"3",reps:"10-12",note:"",muscle:"Biceps"},
+        {name:"Concentration Curl",sets:"3",reps:"12-15",note:"Full squeeze, slow negative",muscle:"Biceps"},
+        {name:"Russian Twist",sets:"3",reps:"20 total",note:"",muscle:"Abs"},
+      ]},
+      { name:"Wednesday", label:"Rest", tag:"Active Recovery", color:"#aaff00", isRest:true, exercises:[
+        {name:"Walking / Yoga / Stretching",sets:"--",reps:"20-30 min",note:"",muscle:"Recovery"},
+      ]},
+      { name:"Thursday", label:"Legs", tag:"Quads . Glutes . Hamstrings . Core", color:"#aa44ff", isRest:false, exercises:[
+        {name:"Goblet Squat",sets:"4",reps:"10-15",note:"Heels elevated slightly if needed",muscle:"Legs"},
+        {name:"DB Romanian Deadlift",sets:"3",reps:"10-12",note:"Hip hinge -- protects knees",muscle:"Legs"},
+        {name:"Box Step-Ups (DB)",sets:"3",reps:"10 each leg",note:"Drive through heel, controlled down",muscle:"Legs"},
+        {name:"DB Lunges (optional)",sets:"3",reps:"10 each leg",note:"Only if knees feel good",muscle:"Legs"},
+        {name:"Decline Sit-Ups",sets:"3",reps:"12-15",note:"",muscle:"Abs"},
+        {name:"Machine Crunch",sets:"3",reps:"15-20",note:"",muscle:"Abs"},
+        {name:"Stair Stepper",sets:"--",reps:"10 min",note:"",muscle:"Cardio"},
+      ]},
+      { name:"Friday", label:"Chest + Back", tag:"Antagonist Pair (Volume)", color:"#4f8ef7", isRest:false, exercises:[
+        {name:"Incline Press (DB)",sets:"4",reps:"8-12",note:"Lead with incline",muscle:"Chest"},
+        {name:"Seated Row (Close Grip)",sets:"4",reps:"10-12",note:"",muscle:"Back"},
+        {name:"Pec Deck / Cable Fly",sets:"3",reps:"12-15",note:"",muscle:"Chest"},
+        {name:"Reverse Grip Pulldown",sets:"3",reps:"10-12",note:"",muscle:"Back"},
+        {name:"Rear Delt Cable",sets:"3",reps:"12-15",note:"Shoulder health",muscle:"Shoulders"},
+        {name:"Russian Twist",sets:"3",reps:"20 total",note:"",muscle:"Abs"},
+        {name:"Stair Stepper",sets:"--",reps:"15 min",note:"",muscle:"Cardio"},
+      ]},
+      { name:"Saturday", label:"Arms", tag:"Shoulders . Triceps . Biceps (Vol)", color:"#f0b429", isRest:false, exercises:[
+        {name:"Machine Shoulder Press",sets:"3",reps:"10-12",note:"",muscle:"Shoulders"},
+        {name:"Cable Lateral Raise",sets:"3",reps:"12-15",note:"Constant tension",muscle:"Shoulders"},
+        {name:"Front Delt Raise",sets:"2",reps:"12-15",note:"",muscle:"Shoulders"},
+        {name:"Cable Rope Pressdown",sets:"3",reps:"12-15",note:"",muscle:"Triceps"},
+        {name:"Incline Tricep Extension",sets:"2",reps:"10-12",note:"",muscle:"Triceps"},
+        {name:"Barbell / Cable Curl",sets:"3",reps:"10-12",note:"",muscle:"Biceps"},
+        {name:"Concentration Curl",sets:"2",reps:"12-15",note:"",muscle:"Biceps"},
+        {name:"Decline Sit-Ups",sets:"3",reps:"12-15",note:"",muscle:"Abs"},
+      ]},
+      { name:"Sunday", label:"Rest", tag:"Full Rest", color:"#aaff00", isRest:true, exercises:[
+        {name:"Full Rest",sets:"--",reps:"--",note:"Recovery is where you grow",muscle:"Recovery"},
       ]},
     ]
   }
@@ -775,8 +780,8 @@ function AuthScreen({C,onAuth,themeMode,toggleTheme}){
 
 // ── MAIN APP ──────────────────────────────────────────────────────────────────
 export default function ForgeApp(){
-  const [plans,setPlans]=useState(MIKE_PLANS);
-  const [activePlanKey,setActivePlanKey]=useState("B");
+  const [plans,setPlans]=useState({});
+  const [activePlanKey,setActivePlanKey]=useState(null);
   const [settings,setSettings]=useState(DEFAULT_SETTINGS);
   const [sessions,setSessions]=useState([]);
   const [prs,setPrs]=useState({});
@@ -806,7 +811,9 @@ export default function ForgeApp(){
           id:plan.supabaseId||undefined,
           user_id:u.id, plan_key:key, name:plan.name,
           subtitle:plan.subtitle, description:plan.description,
-          days_json:plan.days||[]
+          days_json:plan.days||[],
+          start_date:plan.startDate||null,
+          duration_weeks:plan.durationWeeks||10
         },{onConflict:"user_id,plan_key"});
         if(error?.code==="42703"){
           // days_json column not yet added — fall back to metadata-only save
@@ -958,13 +965,20 @@ export default function ForgeApp(){
         prData.forEach(r=>{prMap[r.exercise_name]={weight:r.max_weight,date:r.achieved_at};});
         setPrs(prMap);
       }
-      // Load plans (days_json column required — silently skipped if column not yet added)
-      const {data:planRows}=await supabase.from("plans").select("plan_key,name,subtitle,description,days_json,id").eq("user_id",u.id);
+      // Load plans — tries new columns first, falls back if not yet migrated
+      let planRows=null;
+      {
+        const {data,error}=await supabase.from("plans").select("plan_key,name,subtitle,description,days_json,id,start_date,duration_weeks").eq("user_id",u.id);
+        if(error?.code==="42703"){
+          const {data:fd}=await supabase.from("plans").select("plan_key,name,subtitle,description,days_json,id").eq("user_id",u.id);
+          planRows=fd;
+        }else{planRows=data;}
+      }
       if(planRows&&planRows.length>0){
-        const merged={...MIKE_PLANS};
+        const merged={};
         planRows.forEach(r=>{
           if(r.plan_key&&Array.isArray(r.days_json)&&r.days_json.length>0){
-            merged[r.plan_key]={...(merged[r.plan_key]||{}),name:r.name,subtitle:r.subtitle||"",description:r.description||"",supabaseId:r.id,days:r.days_json};
+            merged[r.plan_key]={name:r.name,subtitle:r.subtitle||"",description:r.description||"",supabaseId:r.id,days:r.days_json,startDate:r.start_date||null,durationWeeks:r.duration_weeks||10};
           }
         });
         setPlans(merged);
@@ -1018,7 +1032,7 @@ export default function ForgeApp(){
     const {data:{subscription}}=supabase.auth.onAuthStateChange((event,session)=>{
       setAuthUser(session?.user||null);
       if(event==="SIGNED_IN"&&session?.user){loadUserData(session.user);}
-      else if(!session?.user){setSessions([]);setPrs({});setPlans(MIKE_PLANS);setSettings(DEFAULT_SETTINGS);setActivePlanKey("B");setLoading(false);}
+      else if(!session?.user){setSessions([]);setPrs({});setPlans({});setSettings(DEFAULT_SETTINGS);setActivePlanKey(null);setLoading(false);}
     });
     return()=>subscription.unsubscribe();
   },[]);// eslint-disable-line react-hooks/exhaustive-deps
@@ -1161,7 +1175,8 @@ export default function ForgeApp(){
       settings={settings} sessions={sessions} streak={streak} complianceStreak={complianceStreak} deloadDue={deloadDue&&deloadDismissed!==new Date().toLocaleDateString("en-CA").slice(0,7)}
       onDeloadDismiss={()=>{setDeloadDismissed(new Date().toLocaleDateString("en-CA").slice(0,7));}}
       onStart={day=>{setWorkoutDraft(null);setActiveWorkout(day);}} C={C} getOrderedDays={getOrderedDays} toggleTheme={toggleTheme} themeMode={themeMode}
-      authUser={authUser} todayDay={(activePlan?.days||[]).find(d=>d.name===DOW[new Date().getDay()]&&!d.isRest)}/>}
+      authUser={authUser} todayDay={(activePlan?.days||[]).find(d=>d.name===DOW[new Date().getDay()]&&!d.isRest)}
+      onGoToPlan={()=>setTab("plan")}/>}
     {tab==="plan"&&<PlanTab plans={plans} activePlanKey={activePlanKey}
       setActivePlanKey={persistActivePlanKey}
       savePlans={savePlans} settings={settings} C={C}/>}
@@ -1170,7 +1185,7 @@ export default function ForgeApp(){
       setActiveWorkout({...day,_rerunSets:sess.sets});
       setTab("today");
     }}/>}
-    {tab==="stats"&&<StatsTab sessions={sessions} prs={prs} settings={settings} C={C} bodyStatsInit={bodyStatsGlobal} onBodyStatsChange={async(stats)=>{
+    {tab==="stats"&&<StatsTab sessions={sessions} prs={prs} settings={settings} C={C} activePlan={activePlan} bodyStatsInit={bodyStatsGlobal} onBodyStatsChange={async(stats)=>{
       setBodyStatsGlobal(stats);
       const {data:{user:u}}=await supabase.auth.getUser().catch(()=>({data:{user:null}}));
       if(u)await supabase.auth.updateUser({data:{body_stats:JSON.stringify(stats)}}).catch(()=>{});
@@ -1217,7 +1232,7 @@ export default function ForgeApp(){
 }
 
 // -- TODAY ---------------------------------------------------------------------
-function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,streak,complianceStreak,deloadDue,onDeloadDismiss,onStart,C,getOrderedDays,toggleTheme,themeMode,authUser,todayDay}){
+function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,streak,complianceStreak,deloadDue,onDeloadDismiss,onStart,C,getOrderedDays,toggleTheme,themeMode,authUser,todayDay,onGoToPlan}){
   const todayName=DOW[new Date().getDay()];
   // Smart week ordering: today first, then future days this week, then past days
   const rawDays=plan?.days||[];
@@ -1233,6 +1248,13 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
   const todaySessions=sessions.filter(s=>s.completedAt&&toLocalDateStr(new Date(s.completedAt))===toLocalDateStr(new Date()));
 
   const userName = authUser?.user_metadata?.display_name || authUser?.email?.split("@")[0] || "there";
+  const wkNum = planWeekOf(plan);
+  const wkTotal = plan?.durationWeeks || 10;
+  const isProgramComplete = !!wkNum && wkNum > wkTotal;
+  const [dismissedComplete,setDismissedComplete]=useState(false);
+  const weekLabel = wkNum
+    ? (isProgramComplete ? `COMPLETE · WEEK ${wkTotal} OF ${wkTotal}` : `WEEK ${wkNum} OF ${wkTotal}`)
+    : (sessions.length > 0 ? `WEEK ${programWeek(sessions)}` : "");
 
   return <div>
     <div style={{background:C.surface,borderBottom:`1px solid ${C.border}`,padding:"16px 18px 14px",position:"relative",overflow:"hidden"}}>
@@ -1248,7 +1270,7 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
             {themeMode==="dark"?"☀️":"🌙"}
           </button>
           <div style={{textAlign:"right",display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
-            <Mono style={{fontSize:10,color:C.accent,letterSpacing:"0.1em"}}>WEEK {programWeek(sessions)}</Mono>
+            {weekLabel&&<Mono style={{fontSize:10,color:isProgramComplete?C.gold:C.accent,letterSpacing:"0.1em"}}>{weekLabel}</Mono>}
             {settings.streakTracking&&(
               complianceStreak>=30
                 ?<div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:1}}>
@@ -1292,6 +1314,12 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
       </div>}
     </div>
     <div style={{padding:"14px 18px"}}>
+      {!plan&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"20px",textAlign:"center",marginBottom:14}}>
+        <div style={{fontSize:18,marginBottom:8}}>💪</div>
+        <div style={{fontSize:15,fontWeight:700,marginBottom:6}}>No plan set up yet</div>
+        <Mono style={{fontSize:11,color:C.muted,display:"block",marginBottom:14}}>Pick a template to get started or build a custom plan.</Mono>
+        <button onClick={onGoToPlan} style={{padding:"10px 20px",borderRadius:8,border:"none",background:C.accent,color:"#fff",fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",fontWeight:700,cursor:"pointer",letterSpacing:"0.04em"}}>Browse Templates</button>
+      </div>}
       {deloadDue&&<div style={{background:C.gold+"15",border:`1px solid ${C.gold}55`,borderRadius:10,padding:"12px 14px",marginBottom:14}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
           <div style={{flex:1}}>
@@ -1304,6 +1332,14 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
             </Mono>
           </div>
           <button onClick={onDeloadDismiss} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:18,padding:"0 0 0 12px",flexShrink:0,lineHeight:1}}>✕</button>
+        </div>
+      </div>}
+      {isProgramComplete&&!dismissedComplete&&<div style={{background:C.gold+"15",border:`1px solid ${C.gold}55`,borderRadius:10,padding:"14px",marginBottom:14}}>
+        <div style={{fontSize:13,color:C.gold,fontWeight:700,marginBottom:4}}>🏆 PROGRAM COMPLETE · WEEK {wkTotal} OF {wkTotal}</div>
+        <Mono style={{fontSize:11,color:C.muted,display:"block",lineHeight:1.6,marginBottom:10}}>You've completed your {wkTotal}-week program. What's next?</Mono>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={()=>setDismissedComplete(true)} style={{flex:1,padding:"9px",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",color:C.muted,fontSize:11,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer"}}>Continue As Is</button>
+          <button onClick={onGoToPlan} style={{flex:1,padding:"9px",borderRadius:8,border:"none",background:C.gold,color:"#1a202c",fontSize:11,fontFamily:"'SF Mono','Courier New',monospace",fontWeight:700,cursor:"pointer"}}>Start New Plan</button>
         </div>
       </div>}
       {/* Weekly volume summary - show every Monday or always */}
@@ -2055,6 +2091,9 @@ function PlanTab({plans,activePlanKey,setActivePlanKey,savePlans,settings,C}){
   const [saveToast,setSaveToast]=useState("");
   const [newPlanSheet,setNewPlanSheet]=useState(false); // true when showing name-input step
   const [newPlanName,setNewPlanName]=useState("");
+  const [startPlanModal,setStartPlanModal]=useState(null);
+  const [modalStartDate,setModalStartDate]=useState("");
+  const [modalDuration,setModalDuration]=useState(10);
 
   const plan=plans[activePlanKey];
   const days=plan?.days||[];
@@ -2117,21 +2156,25 @@ No explanation, no markdown, just the JSON array.`;
     setSequencingDay(null);
   }
 
-  function loadPreset(template){
+  function loadPreset(template,startDate,durationWeeks){
     const newKey=`preset_${Date.now()}`;
     const newPlan={
       key:newKey, name:template.name, subtitle:template.tag, description:template.desc,
+      startDate:startDate||new Date().toLocaleDateString("en-CA"),
+      durationWeeks:durationWeeks||10,
       days:template.days.map((d,i)=>({...d,id:mkId(),exercises:(d.exercises||[]).map(e=>({...e,id:mkId()}))}))
     };
     savePlans({...plans,[newKey]:newPlan});
     setActivePlanKey(newKey);
     setView("mine");
     setPresetPreview(null);
+    setStartPlanModal(null);
   }
 
   function addAIPlan(generatedPlan){
     const newKey=`ai_${Date.now()}`;
-    savePlans({...plans,[newKey]:generatedPlan});
+    const today=new Date().toLocaleDateString("en-CA");
+    savePlans({...plans,[newKey]:{...generatedPlan,startDate:today,durationWeeks:10}});
     setActivePlanKey(newKey);
     setView("mine");
     setGoalModal(false);
@@ -2142,6 +2185,8 @@ No explanation, no markdown, just the JSON array.`;
     const newKey=`custom_${Date.now()}`;
     const newPlan={
       key:newKey, name, subtitle:plan?.subtitle||"", description:plan?.description||"",
+      startDate:plan?.startDate||new Date().toLocaleDateString("en-CA"),
+      durationWeeks:plan?.durationWeeks||10,
       days:days.map(d=>({...d,exercises:d.exercises.map(e=>({...e,id:mkId()}))}))
     };
     savePlans({...plans,[newKey]:newPlan});
@@ -2179,6 +2224,35 @@ No explanation, no markdown, just the JSON array.`;
     </div>}
     {/* MY PLANS */}
     {view==="mine"&&<div style={{padding:"14px 18px"}}>
+      {!plan&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"20px",textAlign:"center",marginBottom:14}}>
+        <div style={{fontSize:15,fontWeight:700,marginBottom:6}}>No plan yet</div>
+        <Mono style={{fontSize:11,color:C.muted,display:"block",marginBottom:14}}>Go to Templates to pick a plan and get started.</Mono>
+        <button onClick={()=>setView("presets")} style={{padding:"10px 20px",borderRadius:8,border:"none",background:C.accent,color:"#fff",fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",fontWeight:700,cursor:"pointer"}}>Browse Templates</button>
+      </div>}
+      {plan&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"13px 14px",marginBottom:12}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+          <Mono style={{fontSize:10,color:C.muted,letterSpacing:"0.1em"}}>PLAN SCHEDULE</Mono>
+          {(()=>{const wk=planWeekOf(plan);const tot=plan?.durationWeeks||10;return wk?<Mono style={{fontSize:10,color:wk>tot?C.gold:C.accent,fontWeight:700}}>{wk>tot?`COMPLETE`:`WEEK ${wk} OF ${tot}`}</Mono>:null;})()}
+        </div>
+        <div style={{display:"flex",gap:12,alignItems:"flex-start",flexWrap:"wrap"}}>
+          <div style={{flex:1,minWidth:140}}>
+            <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:4}}>START DATE</Mono>
+            <input type="date" value={plan?.startDate||""} onChange={e=>savePlans({...plans,[activePlanKey]:{...plan,startDate:e.target.value}})}
+              style={{width:"100%",padding:"7px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:7,color:C.text,fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
+          </div>
+          <div>
+            <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:4}}>DURATION</Mono>
+            <div style={{display:"flex",gap:6}}>
+              {[8,10,12].map(w=>(
+                <button key={w} onClick={()=>savePlans({...plans,[activePlanKey]:{...plan,durationWeeks:w}})}
+                  style={{padding:"7px 12px",borderRadius:7,border:(plan?.durationWeeks||10)===w?"none":`1px solid ${C.border}`,background:(plan?.durationWeeks||10)===w?C.accent:"transparent",color:(plan?.durationWeeks||10)===w?"#fff":C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+                  {w}W
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>}
       {days.map((day,i)=>(
         <div key={day.id} style={{marginBottom:8}}>
           <div onClick={()=>setExpandedDay(expandedDay===i?null:i)}
@@ -2261,7 +2335,7 @@ No explanation, no markdown, just the JSON array.`;
           </div>
           <div style={{display:"flex",gap:8}}>
             <Btn size="sm" variant="ghost" onClick={()=>setPresetPreview(t)} C={C}>Preview</Btn>
-            <Btn size="sm" onClick={()=>loadPreset(t)} C={C}>Add to My Plans</Btn>
+            <Btn size="sm" onClick={()=>{setModalStartDate(new Date().toLocaleDateString("en-CA"));setModalDuration(10);setStartPlanModal(t);}} C={C}>Use This Plan</Btn>
           </div>
         </div>
       ))}
@@ -2330,10 +2404,31 @@ No explanation, no markdown, just the JSON array.`;
           ))}
         </div>
       ))}
-      <Btn style={{width:"100%",marginTop:16}} onClick={()=>loadPreset(presetPreview)} C={C}>Add to My Plans</Btn>
+      <Btn style={{width:"100%",marginTop:16}} onClick={()=>{setModalStartDate(new Date().toLocaleDateString("en-CA"));setModalDuration(10);setStartPlanModal(presetPreview);setPresetPreview(null);}} C={C}>Use This Plan</Btn>
     </Modal>}
     {goalModal&&<GoalBuilderModal onAdd={addAIPlan} onClose={()=>setGoalModal(false)} C={C}/>}
     {aiModal&&<AIModal exercise={null} day={aiModal.day} settings={settings} onClose={()=>setAiModal(null)} C={C}/>}
+    {startPlanModal&&<Modal onClose={()=>setStartPlanModal(null)} C={C}>
+      <div style={{fontSize:16,fontWeight:700,marginBottom:4}}>{startPlanModal.emoji} {startPlanModal.name}</div>
+      <div style={{fontSize:12,color:C.muted,marginBottom:18}}>Set a start date and duration for your plan.</div>
+      <div style={{marginBottom:14}}>
+        <Mono style={{fontSize:10,color:C.muted,letterSpacing:"0.1em",display:"block",marginBottom:6}}>START DATE</Mono>
+        <input type="date" value={modalStartDate} onChange={e=>setModalStartDate(e.target.value)}
+          style={{width:"100%",padding:"9px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
+      </div>
+      <div style={{marginBottom:22}}>
+        <Mono style={{fontSize:10,color:C.muted,letterSpacing:"0.1em",display:"block",marginBottom:6}}>DURATION</Mono>
+        <div style={{display:"flex",gap:8}}>
+          {[8,10,12].map(w=>(
+            <button key={w} onClick={()=>setModalDuration(w)}
+              style={{flex:1,padding:"11px",borderRadius:8,border:modalDuration===w?"none":`1px solid ${C.border}`,background:modalDuration===w?C.accent:"transparent",color:modalDuration===w?"#fff":C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:13,fontWeight:700,cursor:"pointer"}}>
+              {w} WK
+            </button>
+          ))}
+        </div>
+      </div>
+      <Btn style={{width:"100%"}} onClick={()=>loadPreset(startPlanModal,modalStartDate,modalDuration)} C={C}>Start Plan</Btn>
+    </Modal>}
   </div>;
 }
 
@@ -2989,7 +3084,7 @@ function getStrengthScore(exName, maxWeight){
   return Math.min(level, 4);
 }
 
-function StatsTab({sessions,prs,settings,C,bodyStatsInit=[],onBodyStatsChange}){
+function StatsTab({sessions,prs,settings,C,activePlan,bodyStatsInit=[],onBodyStatsChange}){
   const [selEx,setSelEx]=useState(null);
   const [chartData,setChartData]=useState([]);
   const [statsView,setStatsView]=useState("overview"); // overview | progress | muscles | body | trainer
@@ -3077,7 +3172,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
   return <div>
     <div style={{background:C.surface,borderBottom:`1px solid ${C.border}`,padding:"16px 18px 0"}}>
       <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em",marginBottom:2}}>Progress</div>
-      <Mono style={{fontSize:11,color:C.muted,display:"block",marginBottom:12}}>Week {programWeek(sessions)} of your program</Mono>
+      <Mono style={{fontSize:11,color:C.muted,display:"block",marginBottom:12}}>{(()=>{const wk=planWeekOf(activePlan);const tot=activePlan?.durationWeeks||10;return wk?`Week ${Math.min(wk,tot)} of ${tot} in your program`:`Week ${programWeek(sessions)} of your program`;})()}</Mono>
       <div style={{display:"flex",gap:4,background:C.card,padding:4,borderRadius:10,marginBottom:"-1px"}}>
         {[["overview","Overview"],["progress","Progress"],["muscles","Muscles"],["body","Body"],["trainer","✦ Coach"]].map(([k,label])=>(
           <button key={k} onClick={()=>{setStatsView(k);if(k==="trainer"&&!trainerInsight)loadTrainerInsight();}} style={tabStyle(statsView===k)}>{label}</button>
