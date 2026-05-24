@@ -532,7 +532,7 @@ const EXERCISE_LIBRARY = [
 const DEFAULT_SETTINGS = {
   restTimer:true, restSeconds:90, prDetection:true, lastRef:true,
   deloadReminder:true, streakTracking:true, plateCalc:true,
-  workoutNotes:true, aiRecs:true, startDay:1, appleHealth:false,
+  workoutNotes:true, aiRecs:true, appleHealth:false,
   aiAgeRange:"", aiExperience:"", aiJointNotes:"", aiGoal:"",
 };
 
@@ -571,9 +571,19 @@ function Btn({children,onClick,variant="primary",size="md",style={},disabled=fal
   return <button style={{border:bdr[variant]||"none",cursor:disabled?"not-allowed":"pointer",fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.04em",borderRadius:8,transition:"opacity .15s",opacity:disabled?.5:1,background:bg[variant]||C.accent,color:col[variant]||"#fff",...sizes[size],...style}} onClick={onClick} disabled={disabled}>{children}</button>;
 }
 
-function Modal({children,onClose,C}){
+function Modal({children,onClose,C,showClose=true}){
+  const startY=useRef(null);
+  function onTouchStart(e){startY.current=e.touches[0].clientY;}
+  function onTouchEnd(e){
+    if(startY.current===null)return;
+    const dy=e.changedTouches[0].clientY-startY.current;
+    if(dy>80)onClose();
+    startY.current=null;
+  }
   return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.72)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={onClose}>
-    <div style={{background:C.surface,borderRadius:"18px 18px 0 0",width:"100%",maxWidth:560,maxHeight:"90vh",overflowY:"auto",WebkitOverflowScrolling:"touch",padding:"20px 20px 40px"}} onClick={e=>e.stopPropagation()}>
+    <div style={{background:C.surface,borderRadius:"18px 18px 0 0",width:"100%",maxWidth:560,maxHeight:"90vh",overflowY:"auto",WebkitOverflowScrolling:"touch",padding:"20px 20px 40px",position:"relative"}} onClick={e=>e.stopPropagation()} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+      <div style={{width:36,height:4,borderRadius:2,background:C.border,margin:"-8px auto 12px",flexShrink:0}}/>
+      {showClose&&<button onClick={onClose} style={{position:"absolute",top:12,right:14,background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:20,lineHeight:1,padding:"4px 8px",zIndex:1}}>✕</button>}
       {children}
     </div>
   </div>;
@@ -843,7 +853,7 @@ export default function ForgeApp(){
       pr_detection:s.prDetection, last_ref:s.lastRef,
       deload_reminder:s.deloadReminder, streak_tracking:s.streakTracking,
       plate_calc:s.plateCalc, workout_notes:s.workoutNotes,
-      ai_recs:s.aiRecs, start_day:s.startDay, theme_mode:themeMode,
+      ai_recs:s.aiRecs, theme_mode:themeMode,
       apple_health:s.appleHealth||false,
       ai_age_range:s.aiAgeRange||"", ai_experience:s.aiExperience||"",
       ai_joint_notes:s.aiJointNotes||"", ai_goal:s.aiGoal||""
@@ -922,7 +932,7 @@ export default function ForgeApp(){
           prDetection:sett.pr_detection, lastRef:sett.last_ref,
           deloadReminder:sett.deload_reminder, streakTracking:sett.streak_tracking,
           plateCalc:sett.plate_calc, workoutNotes:sett.workout_notes,
-          aiRecs:sett.ai_recs, startDay:sett.start_day||1,
+          aiRecs:sett.ai_recs,
           appleHealth:sett.apple_health||false,
           aiAgeRange:sett.ai_age_range||"", aiExperience:sett.ai_experience||"",
           aiJointNotes:sett.ai_joint_notes||"", aiGoal:sett.ai_goal||""
@@ -1061,14 +1071,6 @@ export default function ForgeApp(){
 
   const activePlan=plans[activePlanKey];
 
-  // Compute reordered days based on startDay
-  const getOrderedDays=(days)=>{
-    if(!days||!days.length)return days;
-    const sd=settings.startDay??1;
-    const idx=days.findIndex(d=>DOW.indexOf(d.name)===sd);
-    if(idx<=0)return days;
-    return [...days.slice(idx),...days.slice(0,idx)];
-  };
 
   // Compliance streak -- consecutive WORKOUT days completed (rest days ignored, don't count toward number)
   const complianceStreak=(()=>{
@@ -1174,7 +1176,7 @@ export default function ForgeApp(){
       setActivePlanKey={persistActivePlanKey}
       settings={settings} sessions={sessions} streak={streak} complianceStreak={complianceStreak} deloadDue={deloadDue&&deloadDismissed!==new Date().toLocaleDateString("en-CA").slice(0,7)}
       onDeloadDismiss={()=>{setDeloadDismissed(new Date().toLocaleDateString("en-CA").slice(0,7));}}
-      onStart={day=>{setWorkoutDraft(null);setActiveWorkout(day);}} C={C} getOrderedDays={getOrderedDays} toggleTheme={toggleTheme} themeMode={themeMode}
+      onStart={day=>{setWorkoutDraft(null);setActiveWorkout(day);}} C={C} toggleTheme={toggleTheme} themeMode={themeMode}
       authUser={authUser} todayDay={(activePlan?.days||[]).find(d=>d.name===DOW[new Date().getDay()]&&!d.isRest)}
       onGoToPlan={()=>setTab("plan")}/>}
     {tab==="plan"&&<PlanTab plans={plans} activePlanKey={activePlanKey}
@@ -1232,13 +1234,13 @@ export default function ForgeApp(){
 }
 
 // -- TODAY ---------------------------------------------------------------------
-function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,streak,complianceStreak,deloadDue,onDeloadDismiss,onStart,C,getOrderedDays,toggleTheme,themeMode,authUser,todayDay,onGoToPlan}){
+function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,streak,complianceStreak,deloadDue,onDeloadDismiss,onStart,C,toggleTheme,themeMode,authUser,todayDay,onGoToPlan}){
   const todayName=DOW[new Date().getDay()];
   // Smart week ordering: today first, then future days this week, then past days
   const rawDays=plan?.days||[];
   const todayIdx=rawDays.findIndex(d=>d.name===todayName);
   const orderedDays=(()=>{
-    if(todayIdx<0)return getOrderedDays(rawDays);
+    if(todayIdx<0)return rawDays;
     // Split: today + future days first, then past days of this week
     const todayAndFuture=rawDays.slice(todayIdx);
     const pastDays=rawDays.slice(0,todayIdx);
@@ -1443,7 +1445,7 @@ function ExerciseLibraryModal({onSelect,onClose,C}){
     (!muscleFilter||e.muscle===muscleFilter)&&
     (!query||e.name.toLowerCase().includes(query.toLowerCase()))
   );
-  return <Modal onClose={onClose} C={C}>
+  return <Modal onClose={onClose} C={C} showClose={false}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
       <div style={{fontSize:16,fontWeight:700}}>Add Exercise</div>
       <Btn variant="ghost" size="sm" onClick={onClose} C={C}>✕</Btn>
@@ -1955,6 +1957,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
     {/* Swap exercise modal */}
     {showEndMenu&&<div onClick={()=>setShowEndMenu(false)} style={{position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,0.55)",display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
       <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:"16px 16px 0 0",padding:"20px 18px calc(32px + env(safe-area-inset-bottom,0px)) 18px",display:"flex",flexDirection:"column",gap:10}}>
+        <div style={{width:36,height:4,borderRadius:2,background:C.border,alignSelf:"center",marginTop:-8,marginBottom:4}}/>
         <Mono style={{fontSize:11,color:C.muted,letterSpacing:"0.1em",marginBottom:4}}>END WORKOUT</Mono>
         <button onClick={()=>{setShowEndMenu(false);finish();}} disabled={saving} style={{width:"100%",padding:"13px 16px",background:C.neon+"22",border:`1px solid ${C.neon}44`,borderRadius:10,color:C.neon,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:saving?"not-allowed":"pointer",textAlign:"left",letterSpacing:"0.04em",opacity:saving?0.5:1}}>✓ Complete Workout</button>
         <button onClick={()=>{setShowEndMenu(false);savePartialAndExit();}} disabled={saving} style={{width:"100%",padding:"13px 16px",background:C.card,border:`1px solid ${C.border}`,borderRadius:10,color:C.text,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:saving?"not-allowed":"pointer",textAlign:"left",letterSpacing:"0.04em",opacity:saving?0.5:1}}>↓ Save & Exit</button>
@@ -1963,8 +1966,8 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
       </div>
     </div>}
 
-    {showAbandonConfirm&&<div style={{position:"fixed",inset:0,zIndex:201,background:"rgba(0,0,0,0.65)",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
-      <div style={{background:C.surface,borderRadius:14,padding:"24px 20px",width:"100%",maxWidth:320}}>
+    {showAbandonConfirm&&<div onClick={()=>setShowAbandonConfirm(false)} style={{position:"fixed",inset:0,zIndex:201,background:"rgba(0,0,0,0.65)",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:14,padding:"24px 20px",width:"100%",maxWidth:320}}>
         <div style={{fontSize:16,fontWeight:700,marginBottom:8}}>Abandon workout?</div>
         <Mono style={{fontSize:13,color:C.muted,display:"block",marginBottom:20,lineHeight:1.6}}>All logged sets will be lost.</Mono>
         <div style={{display:"flex",gap:10}}>
@@ -2025,7 +2028,7 @@ No markdown, no explanation, just the array.`;
 
   const filtered=aiSuggestions.filter(s=>!query||s.name.toLowerCase().includes(query.toLowerCase()));
 
-  return <Modal onClose={onClose} C={C}>
+  return <Modal onClose={onClose} C={C} showClose={false}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
       <div>
         <div style={{fontSize:16,fontWeight:700}}>⇄ Swap Exercise</div>
@@ -2363,6 +2366,7 @@ No explanation, no markdown, just the JSON array.`;
     {/* MODALS */}
     {saveSheet&&<div onClick={()=>{setSaveSheet(null);setNewPlanSheet(false);}} style={{position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,0.55)",display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
       <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:"16px 16px 0 0",padding:"20px 18px calc(32px + env(safe-area-inset-bottom,0px)) 18px",display:"flex",flexDirection:"column",gap:10}}>
+        <div style={{width:36,height:4,borderRadius:2,background:C.border,alignSelf:"center",marginTop:-8,marginBottom:4}}/>
         {!newPlanSheet?<>
           <Mono style={{fontSize:11,color:C.muted,letterSpacing:"0.1em",marginBottom:4}}>SAVE DAY CHANGES</Mono>
           <button onClick={()=>{updatePlan(days);setSaveSheet(null);setExpandedDay(null);setSaveToast("Plan updated");setTimeout(()=>setSaveToast(""),2500);}} style={{width:"100%",padding:"13px 16px",background:C.neon+"22",border:`1px solid ${C.neon}44`,borderRadius:10,color:C.neon,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}>✓ Update Current Plan</button>
@@ -2951,7 +2955,7 @@ function SessionEditModal({session,onSave,onClose,C}){
     }));
   }
 
-  return <Modal onClose={onClose} C={C}>
+  return <Modal onClose={onClose} C={C} showClose={false}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
       <div>
         <div style={{fontSize:16,fontWeight:700}}>✎ Edit Workout</div>
@@ -3451,18 +3455,6 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
       </div>
     </div>
     <div style={{padding:"14px 18px"}}>
-      <div style={{marginBottom:20}}>
-        <SectionLabel C={C}>Week Start Day</SectionLabel>
-        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-          {DOW.map((d,i)=>(
-            <button key={i} onClick={()=>{ const updated={...local,startDay:i}; setLocal(updated); saveSettings(updated); }} style={{padding:"7px 11px",borderRadius:7,fontFamily:"'SF Mono','Courier New',monospace",fontSize:11,cursor:"pointer",border:local.startDay===i?"none":`1px solid ${C.border}`,background:local.startDay===i?C.accent:"transparent",color:local.startDay===i?"#fff":C.muted}}>
-              {d.slice(0,3)}
-            </button>
-          ))}
-        </div>
-        <Mono style={{fontSize:10,color:C.muted,display:"block",marginTop:6}}>Applies instantly -- check Today tab to see updated order</Mono>
-      </div>
-
       <SectionLabel C={C}>Features</SectionLabel>
       {features.map(f=>(
         <div key={f.key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"13px 0",borderBottom:`1px solid ${C.border}`}}>
@@ -3594,7 +3586,7 @@ Plain text, no markdown, be concise.`;
     setLoading(false);
   }
 
-  return <Modal onClose={onClose} C={C}>
+  return <Modal onClose={onClose} C={C} showClose={false}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
       <div>
         <div style={{fontSize:16,fontWeight:700}}>✦ AI Recommendation</div>
