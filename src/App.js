@@ -61,6 +61,16 @@ const THEMES = {
 // -- DEFAULT PLANS -------------------------------------------------------------
 const mkId = () => `id_${Math.random().toString(36).slice(2,9)}`;
 
+// -- AI PROXY HELPER -----------------------------------------------------------
+async function callAI({action,messages,maxTokens=800}){
+  const{data:{session}}=await supabase.auth.getSession();
+  const token=session?.access_token;
+  const res=await fetch("/api/ai",{method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${token||""}`},body:JSON.stringify({action,messages,max_tokens:maxTokens})});
+  if(res.status===402){const err=await res.json();return{upgradeRequired:true,...err};}
+  if(!res.ok)throw new Error(`AI error: ${res.status}`);
+  return res.json();
+}
+
 // -- PRESET TEMPLATES ----------------------------------------------------------
 const PRESET_TEMPLATES = [
   {
@@ -1993,11 +2003,26 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   </div>;
 }
 
+// -- UPGRADE PROMPT ------------------------------------------------------------
+const AI_ACTION_NAMES={exercise_swap:"Exercise Swaps",sequence_opt:"AI Sequences",plan_builder:"AI Plan Builds",coach_insight:"AI Coach Insights"};
+function UpgradePrompt({action,used,limit,C}){
+  const name=AI_ACTION_NAMES[action]||"AI uses";
+  return<div style={{background:C.gold+"18",border:`1px solid ${C.gold}40`,borderRadius:10,padding:"20px",textAlign:"center"}}>
+    <div style={{fontSize:24,marginBottom:8}}>⭐</div>
+    <div style={{fontSize:14,fontWeight:700,marginBottom:6,color:C.text}}>Free limit reached</div>
+    <Mono style={{fontSize:11,color:C.muted,display:"block",marginBottom:8}}>{used}/{limit} {name} used this month</Mono>
+    <Mono style={{fontSize:12,color:C.text,display:"block",marginBottom:4}}>Upgrade to Pro for unlimited AI</Mono>
+    <Mono style={{fontSize:11,color:C.muted,display:"block",marginBottom:4}}>$2.99/mo · $19.99/yr · $49.99 lifetime</Mono>
+    <Mono style={{fontSize:10,color:C.faint,display:"block",marginTop:8}}>Subscriptions launching soon</Mono>
+  </div>;
+}
+
 // -- SWAP EXERCISE MODAL -------------------------------------------------------
 function SwapExerciseModal({exercise,settings,onSwap,onClose,C}){
   const [query,setQuery]=useState("");
   const [aiSuggestions,setAiSuggestions]=useState([]);
   const [loadingAI,setLoadingAI]=useState(false);
+  const [swapUpgrade,setSwapUpgrade]=useState(null);
   const [custom,setCustom]=useState({name:"",sets:exercise.sets,reps:exercise.reps,note:"",muscle:exercise.muscle||""});
   const [tab,setTab]=useState("ai"); // ai | custom
 
@@ -2010,9 +2035,8 @@ Requirements: joint-friendly, similar muscle group, gym equipment available.
 Return ONLY a JSON array of objects: [{"name":"Exercise Name","sets":"3","reps":"10-12","note":"brief reason","muscle":"${exercise.muscle||""}"}]
 No markdown, no explanation, just the array.`;
     try{
-      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:600,messages:[{role:"user",content:prompt}]})});
-      const data=await res.json();
+      const data=await callAI({action:"exercise_swap",messages:[{role:"user",content:prompt}],maxTokens:600});
+      if(data.upgradeRequired){setSwapUpgrade(data);setLoadingAI(false);return;}
       const text=data.content?.find(b=>b.type==="text")?.text||"[]";
       const parsed=JSON.parse(text.replace(/```json|```/g,"").trim());
       setAiSuggestions(parsed);
@@ -2049,7 +2073,8 @@ No markdown, no explanation, just the array.`;
     {tab==="ai"&&<div>
       <input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Filter suggestions..."
         style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box",marginBottom:10}}/>
-      {loadingAI?<div style={{textAlign:"center",padding:"24px",color:C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:12}}>Finding alternatives...</div>
+      {swapUpgrade?<UpgradePrompt {...swapUpgrade} C={C}/>
+        :loadingAI?<div style={{textAlign:"center",padding:"24px",color:C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:12}}>Finding alternatives...</div>
         :filtered.map((s,i)=>(
           <div key={i} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,padding:"12px",marginBottom:8,cursor:"pointer"}} onClick={()=>onSwap(s)}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
@@ -2089,6 +2114,7 @@ function PlanTab({plans,activePlanKey,setActivePlanKey,savePlans,settings,C}){
   const [presetPreview,setPresetPreview]=useState(null);
   const [goalModal,setGoalModal]=useState(false);
   const [sequencingDay,setSequencingDay]=useState(null); // dayId being AI-sequenced
+  const [sequenceUpgrade,setSequenceUpgrade]=useState(null);
   const [reorderMode,setReorderMode]=useState(null); // dayId in manual reorder mode
   const [saveSheet,setSaveSheet]=useState(null); // dayId while save options sheet is open
   const [saveToast,setSaveToast]=useState("");
@@ -2131,11 +2157,8 @@ Exercises: ${day.exercises.map((e,i)=>`${i+1}. ${e.name} (${e.muscle||"unknown"}
 Return ONLY a JSON array of exercise names in the optimal order. Example: ["Bench Press","Incline Press","Cable Fly","Machine Crunch"]
 No explanation, no markdown, just the JSON array.`;
     try{
-      const res=await fetch("https://api.anthropic.com/v1/messages",{
-        method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:300,messages:[{role:"user",content:prompt}]})
-      });
-      const data=await res.json();
+      const data=await callAI({action:"sequence_opt",messages:[{role:"user",content:prompt}],maxTokens:300});
+      if(data.upgradeRequired){setSequenceUpgrade(data);setSequencingDay(null);return;}
       const text=data.content?.find(b=>b.type==="text")?.text||"[]";
       const ordered=JSON.parse(text.replace(/```json|```/g,"").trim());
       const reordered=[];
@@ -2411,6 +2434,7 @@ No explanation, no markdown, just the JSON array.`;
       <Btn style={{width:"100%",marginTop:16}} onClick={()=>{setModalStartDate(new Date().toLocaleDateString("en-CA"));setModalDuration(10);setStartPlanModal(presetPreview);setPresetPreview(null);}} C={C}>Use This Plan</Btn>
     </Modal>}
     {goalModal&&<GoalBuilderModal onAdd={addAIPlan} onClose={()=>setGoalModal(false)} C={C}/>}
+    {sequenceUpgrade&&<Modal onClose={()=>setSequenceUpgrade(null)} C={C}><UpgradePrompt {...sequenceUpgrade} C={C}/><Btn style={{width:"100%",marginTop:16}} onClick={()=>setSequenceUpgrade(null)} C={C}>OK</Btn></Modal>}
     {aiModal&&<AIModal exercise={null} day={aiModal.day} settings={settings} onClose={()=>setAiModal(null)} C={C}/>}
     {startPlanModal&&<Modal onClose={()=>setStartPlanModal(null)} C={C}>
       <div style={{fontSize:16,fontWeight:700,marginBottom:4}}>{startPlanModal.emoji} {startPlanModal.name}</div>
@@ -2490,11 +2514,8 @@ Return ONLY a JSON object with this exact structure (no markdown, no explanation
 Use 7 days total (fill rest days with isRest:true and minimal exercises array with one recovery item). Colors: use only these hex values: #ff5e1a, #3d9bff, #b06aff, #00d4aa, #ffb830. Make the plan practical and appropriate for the stated limitations.`;
 
     try{
-      const res=await fetch("https://api.anthropic.com/v1/messages",{
-        method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,messages:[{role:"user",content:prompt}]})
-      });
-      const data=await res.json();
+      const data=await callAI({action:"plan_builder",messages:[{role:"user",content:prompt}],maxTokens:2000});
+      if(data.upgradeRequired){setResult({upgradeRequired:true,...data});setLoading(false);return;}
       const text=data.content?.find(b=>b.type==="text")?.text||"";
       const clean=text.replace(/```json|```/g,"").trim();
       const parsed=JSON.parse(clean);
@@ -2561,7 +2582,8 @@ Use 7 days total (fill rest days with isRest:true and minimal exercises array wi
       </div>
     </div>}
 
-    {result?.error&&<div style={{textAlign:"center",padding:"20px 0"}}>
+    {result?.upgradeRequired&&<div style={{padding:"8px 0"}}><UpgradePrompt {...result} C={C}/><Btn style={{width:"100%",marginTop:16}} onClick={onClose} C={C}>OK</Btn></div>}
+    {result?.error&&!result?.upgradeRequired&&<div style={{textAlign:"center",padding:"20px 0"}}>
       <div style={{fontSize:13,color:C.muted,marginBottom:20,lineHeight:1.6}}>{result.error}</div>
       <Btn onClick={onClose} C={C}>Got it</Btn>
     </div>}
@@ -3097,6 +3119,7 @@ function StatsTab({sessions,prs,settings,C,activePlan,bodyStatsInit=[],onBodySta
   const [addingBody,setAddingBody]=useState(false);
   const [trainerInsight,setTrainerInsight]=useState("");
   const [loadingInsight,setLoadingInsight]=useState(false);
+  const [coachUpgrade,setCoachUpgrade]=useState(null);
 
   const allExNames=[...new Set(sessions.flatMap(s=>(s.setsArr||[]).map(x=>x.exName)))].sort();
   const prList=Object.entries(prs).sort((a,b)=>b[1].weight-a[1].weight);
@@ -3162,8 +3185,8 @@ Month-over-month change: ${momChange!==null?`${momChange>0?"+":""}${momChange}%`
 
 Focus on: progress trends, recovery patterns, or a specific recommendation to improve results. No generic advice.`;
     try{
-      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:200,messages:[{role:"user",content:prompt}]})});
-      const data=await res.json();
+      const data=await callAI({action:"coach_insight",messages:[{role:"user",content:prompt}],maxTokens:200});
+      if(data.upgradeRequired){setCoachUpgrade(data);setLoadingInsight(false);return;}
       setTrainerInsight(data.content?.find(b=>b.type==="text")?.text||"");
     }catch{
       setTrainerInsight("Keep logging consistently to unlock personalized AI insights about your training patterns.");
@@ -3382,9 +3405,10 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
           <div style={{fontSize:16,fontWeight:700,marginBottom:6}}>✦ Personal Trainer AI</div>
           <div style={{fontSize:13,color:C.muted,lineHeight:1.6,marginBottom:14}}>Weekly insight based on your actual training data.</div>
           {loadingInsight?<div style={{textAlign:"center",padding:"20px 0",color:C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:12}}>Analyzing your training...</div>
+            :coachUpgrade?<UpgradePrompt {...coachUpgrade} C={C}/>
             :<div>
               {trainerInsight&&<div style={{fontSize:13,lineHeight:1.8,color:C.text,marginBottom:14,padding:"12px",background:C.card,borderRadius:8}}>{trainerInsight}</div>}
-              <Btn size="sm" variant="ghost" C={C} onClick={loadTrainerInsight} style={{width:"100%"}}>
+              <Btn size="sm" variant="ghost" C={C} onClick={()=>{setCoachUpgrade(null);loadTrainerInsight();}} style={{width:"100%"}}>
                 {trainerInsight?"↺ Refresh Insight":"✦ Get My Insight"}
               </Btn>
             </div>}
@@ -3552,6 +3576,7 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
 function AIModal({exercise,day,settings,onClose,C}){
   const [response,setResponse]=useState("");
   const [loading,setLoading]=useState(true);
+  const [aiUpgrade,setAiUpgrade]=useState(null);
 
   useEffect(()=>{getRecommendation();},[]);// eslint-disable-line react-hooks/exhaustive-deps
 
@@ -3577,11 +3602,11 @@ Provide:
 3. One concrete optimization suggestion
 Plain text, no markdown, be concise.`;
     try{
-      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:800,messages:[{role:"user",content:prompt}]})});
-      const data=await res.json();
+      const data=await callAI({action:"coach_insight",messages:[{role:"user",content:prompt}],maxTokens:800});
+      if(data.upgradeRequired){setAiUpgrade(data);setLoading(false);return;}
       setResponse(data.content?.find(b=>b.type==="text")?.text||"No recommendation available.");
     }catch{
-      setResponse("AI recommendations will be live in the full deployed build with API access.\n\nThis preview shows the full UI and all features -- the AI responses will work once connected.");
+      setResponse("Unable to reach AI. Please try again.");
     }
     setLoading(false);
   }
@@ -3595,6 +3620,7 @@ Plain text, no markdown, be concise.`;
       <Btn variant="ghost" size="sm" onClick={onClose} C={C}>✕</Btn>
     </div>
     {loading?<div style={{textAlign:"center",padding:"32px 0",fontFamily:"'SF Mono','Courier New',monospace",color:C.muted,fontSize:13}}>Analyzing...</div>
+      :aiUpgrade?<UpgradePrompt {...aiUpgrade} C={C}/>
       :<div style={{fontSize:13,lineHeight:1.8,color:C.text,whiteSpace:"pre-wrap"}}>{response}</div>}
   </Modal>;
 }
