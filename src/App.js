@@ -1187,7 +1187,7 @@ export default function ForgeApp(){
       settings={settings} sessions={sessions} streak={streak} complianceStreak={complianceStreak} deloadDue={deloadDue&&deloadDismissed!==new Date().toLocaleDateString("en-CA").slice(0,7)}
       onDeloadDismiss={()=>{setDeloadDismissed(new Date().toLocaleDateString("en-CA").slice(0,7));}}
       onStart={day=>{setWorkoutDraft(null);setActiveWorkout(day);}} C={C} toggleTheme={toggleTheme} themeMode={themeMode}
-      authUser={authUser} todayDay={(activePlan?.days||[]).find(d=>d.name===DOW[new Date().getDay()]&&!d.isRest)}
+      authUser={authUser} todayDay={(()=>{const days=activePlan?.days||[];if(!activePlan?.startDate||!days.length)return undefined;const elapsed=Math.floor((new Date()-new Date(activePlan.startDate+"T12:00:00"))/86400000);if(elapsed<0)return undefined;const slot=days[elapsed%days.length];return slot?.isRest?undefined:slot;})()}
       onGoToPlan={()=>setTab("plan")}/>}
     {tab==="plan"&&<PlanTab plans={plans} activePlanKey={activePlanKey}
       setActivePlanKey={persistActivePlanKey}
@@ -1245,18 +1245,20 @@ export default function ForgeApp(){
 
 // -- TODAY ---------------------------------------------------------------------
 function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,streak,complianceStreak,deloadDue,onDeloadDismiss,onStart,C,toggleTheme,themeMode,authUser,todayDay,onGoToPlan}){
-  const todayName=DOW[new Date().getDay()];
-  // Smart week ordering: today first, then future days this week, then past days
   const rawDays=plan?.days||[];
-  const todayIdx=rawDays.findIndex(d=>d.name===todayName);
-  const orderedDays=(()=>{
-    if(todayIdx<0)return rawDays;
-    // Split: today + future days first, then past days of this week
-    const todayAndFuture=rawDays.slice(todayIdx);
-    const pastDays=rawDays.slice(0,todayIdx);
-    return [...todayAndFuture,...pastDays];
-  })();
+  const numDays=rawDays.length;
   const toLocalDateStr=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  // Position-based scheduling: slot = daysSinceStart % numDays
+  const todayMidnightRef=new Date();todayMidnightRef.setHours(0,0,0,0);
+  const startDate=plan?.startDate?new Date(plan.startDate+"T12:00:00"):null;
+  const elapsedDays=startDate?Math.floor((todayMidnightRef-startDate)/86400000):null;
+  const isFutureStart=elapsedDays!==null&&elapsedDays<0;
+  const daysUntilStart=isFutureStart?-elapsedDays:0;
+  const todaySlot=(elapsedDays!==null&&elapsedDays>=0&&numDays>0)?elapsedDays%numDays:null;
+  const orderedDays=(()=>{
+    if(todaySlot===null)return rawDays;
+    return[...rawDays.slice(todaySlot),...rawDays.slice(0,todaySlot)];
+  })();
   const todaySessions=sessions.filter(s=>s.completedAt&&toLocalDateStr(new Date(s.completedAt))===toLocalDateStr(new Date()));
 
   const userName = authUser?.user_metadata?.display_name || authUser?.email?.split("@")[0] || "there";
@@ -1370,19 +1372,30 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
           <div style={{fontSize:22}}>{"💪"}</div>
         </div>;
       })()}
-      <SectionLabel C={C}>This Week</SectionLabel>
+      {plan&&isFutureStart&&<div style={{background:C.accent+"15",border:`1px solid ${C.accent}40`,borderRadius:10,padding:"14px",marginBottom:14}}>
+        <Mono style={{fontSize:10,color:C.accent,letterSpacing:"0.1em",display:"block",marginBottom:6}}>STARTS IN {daysUntilStart} DAY{daysUntilStart!==1?"S":""} · {startDate.toLocaleDateString("en",{weekday:"long",month:"long",day:"numeric"})}</Mono>
+        <div style={{fontSize:13,fontWeight:600,color:C.text,marginBottom:10}}>Upcoming rotation</div>
+        {rawDays.map((d,i)=>{
+          const slotDate=new Date(startDate);slotDate.setDate(startDate.getDate()+i);
+          return<div key={d.id||i} style={{display:"flex",gap:10,alignItems:"center",padding:"6px 0",borderBottom:`1px solid ${C.border}40`}}>
+            <div style={{width:8,height:8,borderRadius:4,background:d.color||C.border,flexShrink:0}}/>
+            <Mono style={{fontSize:11,color:C.muted,width:90,flexShrink:0}}>{slotDate.toLocaleDateString("en",{weekday:"short",month:"short",day:"numeric"})}</Mono>
+            <div style={{fontSize:12,color:d.isRest?C.muted:C.text,fontStyle:d.isRest?"italic":"normal",flex:1}}>{d.label}</div>
+          </div>;
+        })}
+      </div>}
+      <SectionLabel C={C}>{isFutureStart?"Preview":"This Week"}</SectionLabel>
       {orderedDays.map((day,i)=>{
-        const isToday=day.name===todayName;
+        const origSlotIdx=rawDays.findIndex(d=>d.id===day.id);
+        const isToday=todaySlot!==null&&origSlotIdx===todaySlot;
+        const slotOffset=todaySlot!==null?origSlotIdx-todaySlot:null;
 
-        // ── Step 1: Calculate this day's exact calendar date this week ──
-        const todayMidnight=new Date();
-        todayMidnight.setHours(0,0,0,0);
-        const todayDOW=todayMidnight.getDay(); // 0=Sun
-        const dayDOW=DOW.indexOf(day.name);   // 0=Sun..6=Sat, full names match DOW[]
-        const calDate=new Date(todayMidnight);
-        calDate.setDate(todayMidnight.getDate()+(dayDOW-todayDOW));
-        const calDateStr=toLocalDateStr(calDate); // "2026-05-05" in local time
-        const calDateDisplay=calDate.toLocaleDateString("en",{month:"short",day:"numeric"}); // "May 5"
+        // Calendar date for this slot — position-based from today
+        const calDate=new Date(todayMidnightRef);
+        if(slotOffset!==null)calDate.setDate(todayMidnightRef.getDate()+slotOffset);
+        else if(isFutureStart&&startDate)calDate.setTime(new Date(startDate).setDate(startDate.getDate()+origSlotIdx));
+        const calDateStr=toLocalDateStr(calDate);
+        const calDateDisplay=calDate.toLocaleDateString("en",{weekday:"short",month:"short",day:"numeric"});
 
         // ── Step 2: Match history sessions on BOTH date AND workout label ──
         // Use local date strings to avoid UTC midnight mismatch after ~7pm in US timezones
@@ -1405,7 +1418,7 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
           const sets=matchedSessions.reduce((a,s)=>(a+(s.setsArr||[]).filter(x=>x.type!=="warmup").length),0);
           return {vol,sets};
         })():null;
-        const isPast=!isToday&&dayDOW>=0&&dayDOW<todayDOW;
+        const isPast=slotOffset!==null&&slotOffset<0;
         return <div key={day.id} style={{background:isToday?C.neon+"0d":C.card,border:`2px solid ${isToday?C.neon:C.border}`,borderRadius:10,padding:"13px 14px",marginBottom:8,opacity:isToday?1:day.isRest?.65:isPast?.7:1,boxShadow:isToday?`0 0 12px ${C.neon}33`:"none",transition:"all .2s"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <div style={{flex:1}}>
@@ -1414,12 +1427,12 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
                 {isToday&&!doneSess&&<Pill color={C.neon}>Today</Pill>}
                 {(doneSess||(day.isRest&&isPast))&&<Pill color={C.neon}>✓ Done</Pill>}
               </div>
-              <Mono style={{fontSize:11,color:C.muted}}>{day.name} {calDateDisplay} · {day.tag}</Mono>
+              <Mono style={{fontSize:11,color:C.muted}}>{calDateDisplay} · {day.tag}</Mono>
               {!day.isRest&&!doneSess&&<Mono style={{fontSize:11,color:C.muted,display:"block",marginTop:1}}>{day.exercises.length} exercises</Mono>}
               {doneSess&&dayVol&&dayVol.sets>0&&<Mono style={{fontSize:11,color:C.neon+"bb",display:"block",marginTop:4}}>{dayVol.sets} sets · {dayVol.vol>0?`${Math.round(dayVol.vol).toLocaleString()} lbs`:"logged"}</Mono>}
               {day.isRest&&isToday&&<div style={{fontSize:12,color:C.neon,fontStyle:"italic",marginTop:6,lineHeight:1.5}}>"{quote}"</div>}
             </div>
-            {!day.isRest&&!doneSess&&<Btn onClick={()=>onStart(day)} size="sm" C={C} style={{marginLeft:10,background:C.neon,color:"#fff",fontWeight:700,letterSpacing:"0.1em"}}>START</Btn>}
+            {!day.isRest&&!doneSess&&!isFutureStart&&<Btn onClick={()=>onStart(day)} size="sm" C={C} style={{marginLeft:10,background:C.neon,color:"#fff",fontWeight:700,letterSpacing:"0.1em"}}>START</Btn>}
             {!day.isRest&&doneSess&&!isToday&&<Btn onClick={()=>onStart(day)} size="sm" variant="ghost" C={C} style={{marginLeft:10,fontSize:10,color:C.muted,borderColor:C.border}}>↺ Again</Btn>}
           </div>
         </div>;
@@ -2115,6 +2128,9 @@ function PlanTab({plans,activePlanKey,setActivePlanKey,savePlans,settings,C}){
   const [goalModal,setGoalModal]=useState(false);
   const [sequencingDay,setSequencingDay]=useState(null); // dayId being AI-sequenced
   const [sequenceUpgrade,setSequenceUpgrade]=useState(null);
+  const [dayReorderMode,setDayReorderMode]=useState(false);
+  const startDOW=plan?.startDate?new Date(plan.startDate+"T12:00:00").getDay():null;
+  const slotWeekday=i=>startDOW!==null?DOW[(startDOW+i)%7]:null;
   const [reorderMode,setReorderMode]=useState(null); // dayId in manual reorder mode
   const [saveSheet,setSaveSheet]=useState(null); // dayId while save options sheet is open
   const [saveToast,setSaveToast]=useState("");
@@ -2148,6 +2164,14 @@ function PlanTab({plans,activePlanKey,setActivePlanKey,savePlans,settings,C}){
     const [moved]=exs.splice(fromIdx,1);
     exs.splice(toIdx,0,moved);
     updatePlan(days.map(d=>d.id!==dayId?d:{...d,exercises:exs}));
+  }
+
+  function reorderDay(fromIdx,toIdx){
+    if(toIdx<0||toIdx>=days.length)return;
+    const nd=[...days];
+    const[moved]=nd.splice(fromIdx,1);
+    nd.splice(toIdx,0,moved);
+    updatePlan(nd);
   }
 
   async function aiSequenceDay(day){
@@ -2279,16 +2303,29 @@ No explanation, no markdown, just the JSON array.`;
           </div>
         </div>
       </div>}
+      {plan&&<div style={{display:"flex",justifyContent:"flex-end",marginBottom:8}}>
+        <Btn size="sm" variant="ghost" style={{color:dayReorderMode?C.neon:C.muted,borderColor:dayReorderMode?C.neon+"55":C.border}} onClick={()=>{setDayReorderMode(v=>!v);setExpandedDay(null);}} C={C}>
+          {dayReorderMode?"✓ Done Reordering":"⇅ Reorder Days"}
+        </Btn>
+      </div>}
       {days.map((day,i)=>(
         <div key={day.id} style={{marginBottom:8}}>
-          <div onClick={()=>setExpandedDay(expandedDay===i?null:i)}
-            style={{background:C.card,border:`1px solid ${expandedDay===i?day.color+"55":C.border}`,borderLeft:`3px solid ${day.color}`,borderRadius:expandedDay===i?"10px 10px 0 0":10,padding:"13px 14px",cursor:"pointer"}}>
+          <div onClick={dayReorderMode?undefined:()=>setExpandedDay(expandedDay===i?null:i)}
+            style={{background:C.card,border:`1px solid ${dayReorderMode?C.neon+"33":expandedDay===i?day.color+"55":C.border}`,borderLeft:`3px solid ${day.color}`,borderRadius:(!dayReorderMode&&expandedDay===i)?"10px 10px 0 0":10,padding:"13px 14px",cursor:dayReorderMode?"default":"pointer"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div>
-                <div style={{fontSize:14,fontWeight:600}}>{day.name} -- {day.label}</div>
-                <Mono style={{fontSize:11,color:C.muted}}>{day.tag} . {day.exercises.length} exercises</Mono>
+              <div style={{flex:1}}>
+                <div style={{fontSize:14,fontWeight:600}}>{slotWeekday(i)||day.name||`Day ${i+1}`} — {day.label}</div>
+                <Mono style={{fontSize:11,color:C.muted}}>{day.tag} · {day.exercises.length} exercises</Mono>
               </div>
-              <Mono style={{color:C.muted,fontSize:12}}>{expandedDay===i?"▲":"▼"}</Mono>
+              {dayReorderMode
+                ?<div style={{display:"flex",flexDirection:"column",gap:3,flexShrink:0}}>
+                  <button onClick={e=>{e.stopPropagation();reorderDay(i,i-1);}} disabled={i===0}
+                    style={{padding:"3px 8px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:4,color:i===0?C.faint:C.neon,cursor:i===0?"default":"pointer",fontSize:12,lineHeight:1}}>↑</button>
+                  <button onClick={e=>{e.stopPropagation();reorderDay(i,i+1);}} disabled={i===days.length-1}
+                    style={{padding:"3px 8px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:4,color:i===days.length-1?C.faint:C.neon,cursor:i===days.length-1?"default":"pointer",fontSize:12,lineHeight:1}}>↓</button>
+                </div>
+                :<Mono style={{color:C.muted,fontSize:12,flexShrink:0}}>{expandedDay===i?"▲":"▼"}</Mono>
+              }
             </div>
           </div>
           {expandedDay===i&&<div style={{background:C.surface,border:`1px solid ${C.border}`,borderTop:"none",borderRadius:"0 0 10px 10px",padding:"8px 14px 14px"}}>
