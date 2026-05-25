@@ -832,16 +832,16 @@ export default function ForgeApp(){
           user_id:u.id, plan_key:key, name:plan.name,
           subtitle:plan.subtitle, description:plan.description,
           days_json:plan.days||[],
-          start_date:plan.startDate||null,
-          duration_weeks:plan.durationWeeks||10
+          start_date:plan.startDate||null
         },{onConflict:"user_id,plan_key"});
-        if(error?.code==="42703"){
-          // days_json column not yet added — fall back to metadata-only save
-          await supabase.from("plans").upsert({
+        if(error?.code==="42703"||error?.code==="PGRST204"){
+          // days_json or start_date column not yet migrated — save without them
+          const{error:e2}=await supabase.from("plans").upsert({
             id:plan.supabaseId||undefined,
             user_id:u.id, plan_key:key, name:plan.name,
             subtitle:plan.subtitle, description:plan.description
           },{onConflict:"user_id,plan_key"});
+          if(e2)console.error("savePlans fallback:",e2);
         }else if(error){ console.error("savePlans:",error); }
       }
     }catch(e){ console.error("savePlans:",e); }
@@ -985,20 +985,17 @@ export default function ForgeApp(){
         prData.forEach(r=>{prMap[r.exercise_name]={weight:r.max_weight,date:r.achieved_at};});
         setPrs(prMap);
       }
-      // Load plans — tries new columns first, falls back if not yet migrated
+      // Load plans
       let planRows=null;
       {
-        const {data,error}=await supabase.from("plans").select("plan_key,name,subtitle,description,days_json,id,start_date,duration_weeks").eq("user_id",u.id);
-        if(error?.code==="42703"){
-          const {data:fd}=await supabase.from("plans").select("plan_key,name,subtitle,description,days_json,id").eq("user_id",u.id);
-          planRows=fd;
-        }else{planRows=data;}
+        const {data,error}=await supabase.from("plans").select("plan_key,name,subtitle,description,days_json,id,start_date").eq("user_id",u.id);
+        if(error){console.error("loadPlans:",error);}else{planRows=data;}
       }
       if(planRows&&planRows.length>0){
         const merged={};
         planRows.forEach(r=>{
           if(r.plan_key&&Array.isArray(r.days_json)&&r.days_json.length>0){
-            merged[r.plan_key]={name:r.name,subtitle:r.subtitle||"",description:r.description||"",supabaseId:r.id,days:r.days_json,startDate:r.start_date||null,durationWeeks:r.duration_weeks||10};
+            merged[r.plan_key]={name:r.name,subtitle:r.subtitle||"",description:r.description||"",supabaseId:r.id,days:r.days_json,startDate:r.start_date||null,durationWeeks:10};
           }
         });
         setPlans(merged);
