@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Component } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { createClient } from "@supabase/supabase-js";
 
@@ -1189,9 +1189,9 @@ export default function ForgeApp(){
       onStart={day=>{setWorkoutDraft(null);setActiveWorkout(day);}} C={C} toggleTheme={toggleTheme} themeMode={themeMode}
       authUser={authUser} todayDay={(()=>{const days=activePlan?.days||[];if(!activePlan?.startDate||!days.length)return undefined;const elapsed=Math.floor((new Date()-new Date(activePlan.startDate+"T12:00:00"))/86400000);if(elapsed<0)return undefined;const slot=days[elapsed%days.length];return slot?.isRest?undefined:slot;})()}
       onGoToPlan={()=>setTab("plan")}/>}
-    {tab==="plan"&&<PlanTab plans={plans} activePlanKey={activePlanKey}
+    {tab==="plan"&&<PlanErrorBoundary C={C}><PlanTab plans={plans} activePlanKey={activePlanKey}
       setActivePlanKey={persistActivePlanKey}
-      savePlans={savePlans} settings={settings} C={C}/>}
+      savePlans={savePlans} settings={settings} C={C}/></PlanErrorBoundary>}
     {tab==="log"&&<HistoryTab sessions={sessions} saveSessions={saveSessions} savePRs={savePRs} prs={prs} C={C} onRerun={sess=>{
       const day=(activePlan?.days||[]).find(d=>d.id===sess.dayId)||{...sess,exercises:Object.keys(sess.sets||{}).map(name=>({id:name,name,sets:"3",reps:"",muscle:"",note:""})),label:sess.dayLabel||"Workout"};
       setActiveWorkout({...day,_rerunSets:sess.sets});
@@ -2115,6 +2115,24 @@ No markdown, no explanation, just the array.`;
   </Modal>;
 }
 
+// -- PLAN ERROR BOUNDARY -------------------------------------------------------
+class PlanErrorBoundary extends Component{
+  constructor(p){super(p);this.state={hasError:false};}
+  static getDerivedStateFromError(){return{hasError:true};}
+  componentDidCatch(e,info){console.error("PlanTab error:",e,info);}
+  render(){
+    if(this.state.hasError){
+      const C=this.props.C;
+      return <div style={{padding:"40px 20px",textAlign:"center"}}>
+        <div style={{fontSize:15,fontWeight:700,color:C.red,marginBottom:8}}>Plan editor error</div>
+        <Mono style={{fontSize:12,color:C.muted,display:"block",marginBottom:16}}>Something went wrong. Tap Retry to reload the editor.</Mono>
+        <button onClick={()=>this.setState({hasError:false})} style={{padding:"10px 20px",borderRadius:8,border:"none",background:C.accent,color:"#fff",fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",fontWeight:700}}>Retry</button>
+      </div>;
+    }
+    return this.props.children;
+  }
+}
+
 // -- PLAN TAB ------------------------------------------------------------------
 function PlanTab({plans,activePlanKey,setActivePlanKey,savePlans,settings,C}){
   const [view,setView]=useState("mine"); // mine | presets | ai
@@ -2129,8 +2147,6 @@ function PlanTab({plans,activePlanKey,setActivePlanKey,savePlans,settings,C}){
   const [sequencingDay,setSequencingDay]=useState(null); // dayId being AI-sequenced
   const [sequenceUpgrade,setSequenceUpgrade]=useState(null);
   const [dayReorderMode,setDayReorderMode]=useState(false);
-  const startDOW=plan?.startDate?new Date(plan.startDate+"T12:00:00").getDay():null;
-  const slotWeekday=i=>startDOW!==null?DOW[(startDOW+i)%7]:null;
   const [reorderMode,setReorderMode]=useState(null); // dayId in manual reorder mode
   const [saveSheet,setSaveSheet]=useState(null); // dayId while save options sheet is open
   const [saveToast,setSaveToast]=useState("");
@@ -2142,6 +2158,8 @@ function PlanTab({plans,activePlanKey,setActivePlanKey,savePlans,settings,C}){
 
   const plan=plans[activePlanKey];
   const days=plan?.days||[];
+  const startDOW=plan?.startDate?new Date(plan.startDate+"T12:00:00").getDay():null;
+  const slotWeekday=i=>startDOW!==null?DOW[(startDOW+i)%7]:null;
 
   function updatePlan(updatedDays){savePlans({...plans,[activePlanKey]:{...plan,days:updatedDays}});}
   function saveExercise(dayId,ex){updatePlan(days.map(d=>d.id!==dayId?d:{...d,exercises:d.exercises.map(e=>e.id===ex.id?ex:e)}));}
