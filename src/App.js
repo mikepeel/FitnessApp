@@ -1249,7 +1249,7 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
   const numDays=rawDays.length;
   const toLocalDateStr=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
   // Position-based scheduling: slot = daysSinceStart % numDays
-  const todayMidnightRef=new Date();todayMidnightRef.setHours(0,0,0,0);
+  const todayMidnightRef=new Date();todayMidnightRef.setHours(12,0,0,0);
   const startDate=plan?.startDate?new Date(plan.startDate+"T12:00:00"):null;
   const elapsedDays=startDate?Math.floor((todayMidnightRef-startDate)/86400000):null;
   const isFutureStart=elapsedDays!==null&&elapsedDays<0;
