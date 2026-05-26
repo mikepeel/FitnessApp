@@ -1259,7 +1259,7 @@ function getDayColor(day){
   if(day.isRest)return "#3ecf8e";
   const lbl=(day.label||"").toLowerCase();
   if(lbl.startsWith("push"))return "#4f8ef7";
-  if(lbl.startsWith("pull"))return "#2dd4bf";
+  if(lbl.startsWith("pull"))return "#f06584";
   if(lbl.startsWith("legs")||lbl.startsWith("lower"))return "#aa44ff";
   return day.color||"#4f8ef7";
 }
