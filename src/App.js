@@ -3001,6 +3001,8 @@ function SessionEditModal({session,onSave,onClose,C}){
   });
   const [newExName,setNewExName]=useState("");
   const [addingEx,setAddingEx]=useState(false);
+  const initDur=session.completedAt&&session.startedAt?Math.max(1,Math.round((new Date(session.completedAt)-new Date(session.startedAt))/60000)):60;
+  const [durationMins,setDurationMins]=useState(initDur);
 
   const CARDIO_NAMES=["stair stepper","treadmill","bike","elliptical","rowing machine","rowing"];
   const isCardioName=name=>CARDIO_NAMES.some(c=>name.toLowerCase().includes(c));
@@ -3047,12 +3049,19 @@ function SessionEditModal({session,onSave,onClose,C}){
 
   function updateDate(val){
     if(!val)return;
-    // Keep the time portion, just swap the date
     const time=editData.completedAt?.split("T")[1]||"10:00:00.000Z";
-    setEditData(prev=>({...prev,
-      completedAt:`${val}T${time}`,
-      startedAt:`${val}T${time}`
-    }));
+    const newCompleted=`${val}T${time}`;
+    const newStarted=new Date(new Date(newCompleted).getTime()-(durationMins*60000)).toISOString();
+    setEditData(prev=>({...prev,completedAt:newCompleted,startedAt:newStarted}));
+  }
+
+  function updateDuration(mins){
+    const m=parseInt(mins)||1;
+    setDurationMins(m);
+    if(editData.completedAt){
+      const newStarted=new Date(new Date(editData.completedAt).getTime()-(m*60000)).toISOString();
+      setEditData(prev=>({...prev,startedAt:newStarted}));
+    }
   }
 
   return <Modal onClose={onClose} C={C} showClose={false}>
@@ -3064,16 +3073,21 @@ function SessionEditModal({session,onSave,onClose,C}){
       <Btn variant="ghost" size="sm" onClick={onClose} C={C}>✕</Btn>
     </div>
 
-    {/* Date editor */}
-    <div style={{marginBottom:16,padding:"10px 14px",background:C.card,border:`1px solid ${C.border}`,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-      <div>
+    {/* Date + Duration editors */}
+    <div style={{display:"flex",gap:10,marginBottom:16}}>
+      <div style={{flex:1,padding:"10px 14px",background:C.card,border:`1px solid ${C.border}`,borderRadius:8}}>
         <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:4,letterSpacing:"0.1em"}}>WORKOUT DATE</Mono>
-        <div style={{fontSize:14,fontWeight:700}}>
-          {editData.completedAt?new Date(editData.completedAt+"").toLocaleDateString("en",{weekday:"long",month:"long",day:"numeric",year:"numeric"}):"No date set"}
+        <input type="date" value={dateVal} onChange={e=>updateDate(e.target.value)}
+          style={{width:"100%",padding:"7px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:7,color:C.text,fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box",cursor:"pointer"}}/>
+      </div>
+      <div style={{width:110,padding:"10px 14px",background:C.card,border:`1px solid ${C.border}`,borderRadius:8,flexShrink:0}}>
+        <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:4,letterSpacing:"0.1em"}}>DURATION</Mono>
+        <div style={{display:"flex",alignItems:"center",gap:6}}>
+          <input type="number" min="1" max="300" value={durationMins} onChange={e=>updateDuration(e.target.value)}
+            style={{width:"100%",padding:"7px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:7,color:C.text,fontSize:16,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box",textAlign:"center"}}/>
+          <Mono style={{fontSize:11,color:C.muted,flexShrink:0}}>min</Mono>
         </div>
       </div>
-      <input type="date" value={dateVal} onChange={e=>updateDate(e.target.value)}
-        style={{padding:"8px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer"}}/>
     </div>
 
     {/* Exercises */}
