@@ -1677,8 +1677,8 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
 
   // When all sets for an exercise are ticked, move it to the bottom
   function markExerciseDone(exId,exName,withRest=true){
-    // REST TIMER: only triggered here, on explicit set confirmation
-    if(withRest)setShowRest(true);
+    const isLastExercise=exercises.filter(e=>!completedExIds.has(e.id)).length===1;
+    if(withRest&&!isLastExercise)setShowRest(true);
     setCompletedExIds(prev=>{
       const next=new Set(prev);
       next.add(exId);
