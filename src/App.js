@@ -826,35 +826,31 @@ export default function ForgeApp(){
     try{
       const {data:{user:u}}=await supabase.auth.getUser();
       if(!u)return;
+      const patchedPlans={...p};
+      let patched=false;
       for(const[key,plan]of Object.entries(p)){
-        const{error}=await supabase.from("plans").upsert({
-          id:plan.supabaseId||undefined,
-          user_id:u.id, plan_key:key, name:plan.name,
-          subtitle:plan.subtitle, description:plan.description,
-          days_json:plan.days||[],
-          start_date:plan.startDate||null,
-          duration_weeks:plan.durationWeeks||10
-        },{onConflict:"user_id,plan_key"});
-        if(error?.code==="42703"||error?.code==="PGRST204"){
-          // start_date/duration_weeks not yet added — save without them
-          const{error:e2}=await supabase.from("plans").upsert({
-            id:plan.supabaseId||undefined,
-            user_id:u.id, plan_key:key, name:plan.name,
-            subtitle:plan.subtitle, description:plan.description,
-            days_json:plan.days||[]
-          },{onConflict:"user_id,plan_key"});
-          if(e2?.code==="42703"||e2?.code==="PGRST204"){
-            // days_json also missing — bare save
-            const{error:e3}=await supabase.from("plans").upsert({
-              id:plan.supabaseId||undefined,
-              user_id:u.id, plan_key:key, name:plan.name,
-              subtitle:plan.subtitle, description:plan.description
-            },{onConflict:"user_id,plan_key"});
-            if(e3)console.error("savePlans:",e3);
-          }else if(e2)console.error("savePlans:",e2);
-        }else if(error){ console.error("savePlans:",error); }
+        const base={user_id:u.id,plan_key:key,name:plan.name,subtitle:plan.subtitle,description:plan.description,days_json:plan.days||[]};
+        const full={...base,start_date:plan.startDate||null,duration_weeks:plan.durationWeeks||10};
+        if(plan.supabaseId){
+          // existing row — update by primary key, no unique constraint needed
+          const{error}=await supabase.from("plans").update(full).eq("id",plan.supabaseId);
+          if(error?.code==="42703"||error?.code==="PGRST204"){
+            const{error:e2}=await supabase.from("plans").update(base).eq("id",plan.supabaseId);
+            if(e2)console.error("savePlans:",e2);
+          }else if(error)console.error("savePlans:",error);
+        }else{
+          // new row — insert and capture generated id for future updates
+          const{data:ins,error}=await supabase.from("plans").insert(full).select("id").single();
+          if(error?.code==="42703"||error?.code==="PGRST204"){
+            const{data:ins2,error:e2}=await supabase.from("plans").insert(base).select("id").single();
+            if(e2)console.error("savePlans:",e2);
+            else if(ins2?.id){patchedPlans[key]={...plan,supabaseId:ins2.id};patched=true;}
+          }else if(error)console.error("savePlans:",error);
+          else if(ins?.id){patchedPlans[key]={...plan,supabaseId:ins.id};patched=true;}
+        }
       }
-    }catch(e){ console.error("savePlans:",e); }
+      if(patched)setPlans(patchedPlans);
+    }catch(e){console.error("savePlans:",e);}
   };
 
   const persistActivePlanKey=(k)=>{
