@@ -1910,6 +1910,8 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
                   setSetStates(prev=>({...prev,[rowKey]:"confirmed"}));
                   const draftSets={...loggedSets,[ex.name]:{...(loggedSets[ex.name]||{}),[n]:{...loggedSets[ex.name]?.[n],minutes:rowLog.minutes,level:rowLog.level||"",done:true,prepop:false}}};
                   saveDraft(draftSets);
+                  const allConfirmed=intervalKeys.every(k=>{const rk=ex.id+"-"+k;return rk===rowKey||setStates[rk]==="confirmed";});
+                  if(allConfirmed)markExerciseDone(ex.id,ex.name,false);
                 }} style={{padding:"9px 14px",background:"transparent",border:`1px solid ${C.neon}44`,borderRadius:7,color:C.neon,cursor:"pointer",fontSize:14,fontWeight:700,transition:"all .2s"}}>✓</button>
               </div>;
             })}
