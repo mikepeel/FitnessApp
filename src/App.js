@@ -1218,13 +1218,13 @@ export default function ForgeApp(){
         <button key={t.key} onClick={()=>setTab(t.key)} style={{flex:1,padding:"10px 4px 8px",background:"none",border:"none",color:tab===t.key?C.accent:C.muted,cursor:"pointer",fontSize:9,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.06em",textTransform:"uppercase",display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
           {t.icon==="dumbbell"
             ?<svg width="28" height="14" viewBox="0 0 36 18" fill="none" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
-              <rect x="10" y="8" width="16" height="2" rx="1" fill="#f7c948"/>
-              <rect x="7.5" y="6.5" width="2.5" height="5" rx="0.8" fill="#f7c948"/>
-              <rect x="3.5" y="3" width="3.5" height="12" rx="1" fill="#f7c948"/>
-              <rect x="0.5" y="5.5" width="2.5" height="7" rx="1" fill="#f7c948"/>
-              <rect x="26" y="6.5" width="2.5" height="5" rx="0.8" fill="#f7c948"/>
-              <rect x="29" y="3" width="3.5" height="12" rx="1" fill="#f7c948"/>
-              <rect x="33" y="5.5" width="2.5" height="7" rx="1" fill="#f7c948"/>
+              <rect x="10" y="8" width="16" height="2" rx="1" fill="currentColor"/>
+              <rect x="7.5" y="6.5" width="2.5" height="5" rx="0.8" fill="currentColor"/>
+              <rect x="3.5" y="3" width="3.5" height="12" rx="1" fill="currentColor"/>
+              <rect x="0.5" y="5.5" width="2.5" height="7" rx="1" fill="currentColor"/>
+              <rect x="26" y="6.5" width="2.5" height="5" rx="0.8" fill="currentColor"/>
+              <rect x="29" y="3" width="3.5" height="12" rx="1" fill="currentColor"/>
+              <rect x="33" y="5.5" width="2.5" height="7" rx="1" fill="currentColor"/>
             </svg>
             :t.icon==="clock"
             ?<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
@@ -1251,6 +1251,16 @@ export default function ForgeApp(){
       ))}
     </nav>
   </div>;
+}
+
+function getDayColor(day){
+  if(!day)return "#4f8ef7";
+  if(day.isRest)return "#3ecf8e";
+  const lbl=(day.label||"").toLowerCase();
+  if(lbl.startsWith("push"))return "#4f8ef7";
+  if(lbl.startsWith("pull"))return "#2dd4bf";
+  if(lbl.startsWith("legs")||lbl.startsWith("lower"))return "#aa44ff";
+  return day.color||"#4f8ef7";
 }
 
 // -- TODAY ---------------------------------------------------------------------
@@ -1388,7 +1398,7 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
         {rawDays.map((d,i)=>{
           const slotDate=new Date(startDate);slotDate.setDate(startDate.getDate()+i);
           return<div key={d.id||i} style={{display:"flex",gap:10,alignItems:"center",padding:"6px 0",borderBottom:`1px solid ${C.border}40`}}>
-            <div style={{width:8,height:8,borderRadius:4,background:d.color||C.border,flexShrink:0}}/>
+            <div style={{width:8,height:8,borderRadius:4,background:getDayColor(d),flexShrink:0}}/>
             <Mono style={{fontSize:11,color:C.muted,width:90,flexShrink:0}}>{slotDate.toLocaleDateString("en",{weekday:"short",month:"short",day:"numeric"})}</Mono>
             <div style={{fontSize:12,color:d.isRest?C.muted:C.text,fontStyle:d.isRest?"italic":"normal",flex:1}}>{d.label}</div>
           </div>;
@@ -2318,7 +2328,7 @@ No explanation, no markdown, just the JSON array.`;
             <input type="date" value={plan?.startDate||""} onChange={e=>savePlans({...plans,[activePlanKey]:{...plan,startDate:e.target.value}})}
               style={{width:"100%",padding:"7px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:7,color:C.text,fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
           </div>
-          <div>
+          <div style={{flexShrink:0}}>
             <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:4}}>DURATION</Mono>
             <div style={{display:"flex",gap:6}}>
               {[8,10,12].map(w=>(
@@ -2339,7 +2349,7 @@ No explanation, no markdown, just the JSON array.`;
       {days.map((day,i)=>(
         <div key={day.id} style={{marginBottom:8}}>
           <div onClick={dayReorderMode?undefined:()=>setExpandedDay(expandedDay===i?null:i)}
-            style={{background:C.card,border:`1px solid ${dayReorderMode?C.neon+"33":expandedDay===i?day.color+"55":C.border}`,borderLeft:`3px solid ${day.color}`,borderRadius:(!dayReorderMode&&expandedDay===i)?"10px 10px 0 0":10,padding:"13px 14px",cursor:dayReorderMode?"default":"pointer"}}>
+            style={{background:C.card,border:`1px solid ${dayReorderMode?C.neon+"33":expandedDay===i?getDayColor(day)+"55":C.border}`,borderLeft:`3px solid ${getDayColor(day)}`,borderRadius:(!dayReorderMode&&expandedDay===i)?"10px 10px 0 0":10,padding:"13px 14px",cursor:dayReorderMode?"default":"pointer"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div style={{flex:1}}>
                 <div style={{fontSize:14,fontWeight:600}}>{slotWeekday(i)||day.name||`Day ${i+1}`} — {day.label}</div>
@@ -2418,7 +2428,7 @@ No explanation, no markdown, just the JSON array.`;
           <div style={{marginBottom:12}}>
             {t.days.filter(d=>!d.isRest).map((d,i)=>(
               <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:`1px solid ${C.border}`}}>
-                <div style={{width:8,height:8,borderRadius:4,background:d.color,flexShrink:0}}/>
+                <div style={{width:8,height:8,borderRadius:4,background:getDayColor(d),flexShrink:0}}/>
                 <Mono style={{fontSize:11,color:C.muted,flex:1}}>{d.label}</Mono>
                 <Mono style={{fontSize:10,color:C.muted}}>{d.exercises.length} ex</Mono>
               </div>
@@ -2487,7 +2497,7 @@ No explanation, no markdown, just the JSON array.`;
       {presetPreview.days.map((d,i)=>(
         <div key={i} style={{borderBottom:`1px solid ${C.border}`,padding:"10px 0"}}>
           <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:6}}>
-            <div style={{width:8,height:8,borderRadius:4,background:d.color}}/>
+            <div style={{width:8,height:8,borderRadius:4,background:getDayColor(d)}}/>
             <div style={{fontSize:13,fontWeight:600}}>{d.label}</div>
             <Mono style={{fontSize:11,color:C.muted}}>{d.tag}</Mono>
           </div>
@@ -2632,7 +2642,7 @@ Use 7 days total (fill rest days with isRest:true and minimal exercises array wi
       {(result.days||[]).filter(d=>!d.isRest).map((d,i)=>(
         <div key={i} style={{padding:"10px 0",borderBottom:`1px solid ${C.border}`}}>
           <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:4}}>
-            <div style={{width:8,height:8,borderRadius:4,background:d.color||C.accent}}/>
+            <div style={{width:8,height:8,borderRadius:4,background:getDayColor(d)}}/>
             <div style={{fontSize:13,fontWeight:600}}>{d.label}</div>
           </div>
           {(d.exercises||[]).slice(0,3).map((e,j)=>(
