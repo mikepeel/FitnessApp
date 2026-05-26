@@ -1189,7 +1189,7 @@ export default function ForgeApp(){
     {!isOnline&&<div style={{background:"#f7c948",color:"#1a202c",padding:"8px 18px",fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"center",letterSpacing:"0.04em"}}>
       ⚠ Offline — workouts will sync when connection is restored
     </div>}
-    {minimizedWorkout&&<div onClick={()=>{setWorkoutDraft({loggedSets:minimizedWorkout.loggedSets,elapsed:bannerElapsed,startedAt:minimizedWorkout.startedAt,workout:minimizedWorkout.workout});setActiveWorkout(minimizedWorkout.workout);setMinimizedWorkout(null);}} style={{position:"fixed",top:"env(safe-area-inset-top,0px)",left:0,right:0,zIndex:100,background:C.neon,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",minHeight:44,cursor:"pointer",userSelect:"none"}}>
+    {minimizedWorkout&&<div onClick={()=>{setWorkoutDraft({loggedSets:minimizedWorkout.loggedSets,elapsed:bannerElapsed,startedAt:minimizedWorkout.startedAt,workout:minimizedWorkout.workout,exercises:minimizedWorkout.exercises,completedExIds:minimizedWorkout.completedExIds});setActiveWorkout(minimizedWorkout.workout);setMinimizedWorkout(null);}} style={{position:"fixed",top:"env(safe-area-inset-top,0px)",left:0,right:0,zIndex:100,background:C.neon,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",minHeight:44,cursor:"pointer",userSelect:"none"}}>
       <Mono style={{fontSize:12,color:"#0b0c0e",fontWeight:700}}>🔴 {minimizedWorkout.workout.label} in progress · {Math.floor(bannerElapsed/60)}:{String(bannerElapsed%60).padStart(2,"0")}</Mono>
       <Mono style={{fontSize:12,color:"#0b0c0e",fontWeight:700}}>View →</Mono>
     </div>}
@@ -1543,7 +1543,7 @@ function ExerciseLibraryModal({onSelect,onClose,C}){
 
 // -- WORKOUT SESSION -----------------------------------------------------------
 function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,savePlans,authUser,workoutDraft,onMinimize,onFinish,onCancel,C}){
-  const [exercises,setExercises]=useState(workout.exercises||[]);
+  const [exercises,setExercises]=useState(workoutDraft?.exercises||workout.exercises||[]);
   const [loggedSets,setLoggedSets]=useState(()=>{
     // If restoring from a saved draft, use draft data (clear prepop flags)
     if(workoutDraft?.loggedSets&&Object.keys(workoutDraft.loggedSets).length){
@@ -1576,7 +1576,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
     }
     return init;
   });
-  const [completedExIds,setCompletedExIds]=useState(new Set());
+  const [completedExIds,setCompletedExIds]=useState(()=>new Set(workoutDraft?.completedExIds||[]));
   const [showRest,setShowRest]=useState(false);
   const [notes,setNotes]=useState("");
   const [startTime]=useState(workoutDraft?.startedAt||new Date().toISOString());
@@ -1791,7 +1791,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
 
 
   return <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:C.serif,paddingBottom:100,scrollBehavior:"smooth"}}>
-    <div onPointerDown={e=>{dragStartYRef.current=e.clientY;setDragDelta(0);e.currentTarget.setPointerCapture(e.pointerId);}} onPointerMove={e=>{if(dragStartYRef.current===null)return;const d=e.clientY-dragStartYRef.current;setDragDelta(d>0?d:0);}} onPointerUp={e=>{const d=dragStartYRef.current!==null?e.clientY-dragStartYRef.current:0;dragStartYRef.current=null;setDragDelta(0);if(d>80)onMinimize({workout,loggedSets,elapsed,startedAt:startTime});}} onPointerCancel={()=>{dragStartYRef.current=null;setDragDelta(0);}} style={{height:28,display:"flex",alignItems:"center",justifyContent:"center",cursor:"grab",touchAction:"none",background:C.bg}}>
+    <div onPointerDown={e=>{dragStartYRef.current=e.clientY;setDragDelta(0);e.currentTarget.setPointerCapture(e.pointerId);}} onPointerMove={e=>{if(dragStartYRef.current===null)return;const d=e.clientY-dragStartYRef.current;setDragDelta(d>0?d:0);}} onPointerUp={e=>{const d=dragStartYRef.current!==null?e.clientY-dragStartYRef.current:0;dragStartYRef.current=null;setDragDelta(0);if(d>80)onMinimize({workout,loggedSets,elapsed,startedAt:startTime,exercises,completedExIds:[...completedExIds]});}} onPointerCancel={()=>{dragStartYRef.current=null;setDragDelta(0);}} style={{height:28,display:"flex",alignItems:"center",justifyContent:"center",cursor:"grab",touchAction:"none",background:C.bg}}>
       <div style={{width:40,height:4,borderRadius:2,background:dragDelta>60?C.neon:C.border,transition:"background 0.15s"}}/>
     </div>
     <div style={{background:C.surface,borderBottom:`2px solid ${C.neon}`,padding:"14px 18px",position:"sticky",top:0,zIndex:50,marginTop:0}}>
@@ -1804,7 +1804,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
           <Mono style={{fontSize:13,color:C.neon,fontWeight:700}}>{Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,"0")}</Mono>
           <Btn onClick={()=>setAddExModal(true)} variant="ghost" size="sm" C={C} style={{fontSize:11,color:C.neon,borderColor:C.neon+"44"}}>+ Add</Btn>
           <Btn onClick={()=>setShowEndMenu(true)} variant="ghost" size="sm" C={C} style={{fontSize:16,letterSpacing:"0.1em",padding:"5px 8px"}}>⋯</Btn>
-          <Btn onClick={()=>onMinimize({workout,loggedSets,elapsed,startedAt:startTime})} variant="ghost" size="sm" C={C}>✕</Btn>
+          <Btn onClick={()=>onMinimize({workout,loggedSets,elapsed,startedAt:startTime,exercises,completedExIds:[...completedExIds]})} variant="ghost" size="sm" C={C}>✕</Btn>
         </div>
       </div>
     </div>
@@ -1963,7 +1963,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
                       setLoggedSets(prev=>{
                         const cur=prev[ex.name]||{};
                         const updated={...cur,[n]:{...cur[n],prepop:false}};
-                        for(let i=n+1;i<=numSets;i++){if(cur[i]?.prepop)updated[i]={...cur[i],weight:w};}
+                        for(let i=n+1;i<=numSets;i++){if(cur[i]?.prepop){updated[i]={...cur[i],weight:w};}else if(!cur[i]?.weight&&!cur[i]?.reps){updated[i]={weight:w,reps:"",prepop:true};}}
                         return {...prev,[ex.name]:updated};
                       });
                       setSetStates(prev=>({...prev,[stateKey]:"confirmed"}));
