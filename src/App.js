@@ -1004,14 +1004,14 @@ export default function ForgeApp(){
           if(e2)console.error("loadPlans:",e2);else planRows=d2;
         }else if(error){console.error("loadPlans:",error);}else{planRows=data;}
       }
+      let mergedPlans={};
       if(planRows&&planRows.length>0){
-        const merged={};
         planRows.forEach(r=>{
           if(r.plan_key&&Array.isArray(r.days_json)&&r.days_json.length>0){
-            merged[r.plan_key]={name:r.name,subtitle:r.subtitle||"",description:r.description||"",supabaseId:r.id,days:r.days_json,startDate:r.start_date||null,durationWeeks:r.duration_weeks||10};
+            mergedPlans[r.plan_key]={name:r.name,subtitle:r.subtitle||"",description:r.description||"",supabaseId:r.id,days:r.days_json,startDate:r.start_date||null,durationWeeks:r.duration_weeks||10};
           }
         });
-        setPlans(merged);
+        setPlans(mergedPlans);
       }
       // Load profile (body stats + active plan key)
       const {data:prof}=await supabase.from("profiles").select("*").eq("id",u.id).single();
@@ -1019,7 +1019,12 @@ export default function ForgeApp(){
         try{ setBodyStatsGlobal(JSON.parse(prof.raw_user_meta_data.body_stats||"[]")); }catch{}
       }
       const savedPlanKey=prof?.active_plan_key||u.user_metadata?.active_plan_key;
-      if(savedPlanKey)setActivePlanKey(savedPlanKey);
+      const planKeys=Object.keys(mergedPlans);
+      const resolvedKey=(savedPlanKey&&mergedPlans[savedPlanKey])?savedPlanKey:(planKeys.length>0?planKeys[0]:null);
+      if(resolvedKey){
+        setActivePlanKey(resolvedKey);
+        if(resolvedKey!==savedPlanKey)supabase.auth.updateUser({data:{active_plan_key:resolvedKey}}).catch(e=>console.error("persistKey:",e));
+      }
       // Load workout draft
       try{
         const{data:draft,error:draftErr}=await supabase.from("workout_drafts")
@@ -2342,7 +2347,7 @@ No explanation, no markdown, just the JSON array.`;
         </div>
       </div>}
       {plan&&<div style={{display:"flex",justifyContent:"flex-end",marginBottom:8}}>
-        <Btn size="sm" variant="ghost" style={{color:dayReorderMode?C.neon:C.muted,borderColor:dayReorderMode?C.neon+"55":C.border}} onClick={()=>{setDayReorderMode(v=>!v);setExpandedDay(null);}} C={C}>
+        <Btn size="sm" variant="ghost" style={{color:dayReorderMode?C.neon:C.muted,borderColor:dayReorderMode?C.neon+"55":C.border}} onClick={()=>{const next=!dayReorderMode;setDayReorderMode(next);setExpandedDay(null);if(!next){setSaveToast("Day order saved");setTimeout(()=>setSaveToast(""),2500);}}} C={C}>
           {dayReorderMode?"✓ Done Reordering":"⇅ Reorder Days"}
         </Btn>
       </div>}
