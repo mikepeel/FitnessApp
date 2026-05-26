@@ -881,8 +881,9 @@ export default function ForgeApp(){
     if(!Array.isArray(s))return false;
     setSessions(s);
     try{
-      if(!authUser)return false;
-      const uid=authUser.id;
+      const{data:{user:u}}=await supabase.auth.getUser().catch(()=>({data:{user:null}}));
+      if(!u)return false;
+      const uid=u.id;
       const latest=s[s.length-1];
       if(latest&&!latest.supabaseId){
         const {data,error}=await supabase.from("workout_sessions").insert({
