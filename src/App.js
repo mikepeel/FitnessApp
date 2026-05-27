@@ -2772,7 +2772,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,onRer
 
   async function saveManualSession(){
     if(!manualSession.dayLabel){return;}
-    const dt=manualSession.date+"T12:00:00.000Z";
+    const dt=new Date(manualSession.date+"T12:00:00").toISOString();
     const setsArr=manualSession.exercises
       .filter(e=>e.name)
       .flatMap(e=>Array.from({length:parseInt(e.sets)||1},(_,si)=>({
