@@ -31,6 +31,10 @@ test.describe("rest timer", () => {
       await moreBtn.click();
       await page.getByRole("button", { name: "✕ Abandon" }).click();
       await page.getByRole("button", { name: "Abandon" }).click();
+      // Wait for the session to close and the Supabase deleteDraft request to
+      // complete before handing off to the next test. Without this, page.goto("/")
+      // in the next test can navigate away mid-DELETE, leaving the draft in Supabase.
+      await expect(page.getByRole("button", { name: /Workout/i })).toBeVisible({ timeout: 8000 });
     }
   });
 
