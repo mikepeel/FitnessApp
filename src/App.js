@@ -1601,6 +1601,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   const [aiModal,setAiModal]=useState(null);
   const [elapsed,setElapsed]=useState(workoutDraft?.elapsed||0);
   const [swapModal,setSwapModal]=useState(null);
+  const [swapCache,setSwapCache]=useState({});
   const [addExModal,setAddExModal]=useState(false);
   const [editExModal,setEditExModal]=useState(null);
   const [setTypes,setSetTypes]=useState({});
@@ -2046,7 +2047,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
       </div>
     </div>}
 
-    {swapModal&&<SwapExerciseModal exercise={swapModal} settings={settings} onSwap={(newData)=>swapExercise(swapModal,newData)} onClose={()=>setSwapModal(null)} C={C}/>}
+    {swapModal&&<SwapExerciseModal exercise={swapModal} settings={settings} onSwap={(newData)=>swapExercise(swapModal,newData)} onClose={()=>setSwapModal(null)} cachedSuggestions={swapCache[swapModal.name]||null} onCacheSuggestions={(name,data)=>setSwapCache(prev=>({...prev,[name]:data}))} C={C}/>}
 
     {/* Add exercise modal */}
     {addExModal&&<ExerciseLibraryModal onSelect={addExercise} onClose={()=>setAddExModal(false)} C={C}/>}
@@ -2077,15 +2078,15 @@ function UpgradePrompt({action,used,limit,C}){
 }
 
 // -- SWAP EXERCISE MODAL -------------------------------------------------------
-function SwapExerciseModal({exercise,settings,onSwap,onClose,C}){
+function SwapExerciseModal({exercise,settings,onSwap,onClose,cachedSuggestions,onCacheSuggestions,C}){
   const [query,setQuery]=useState("");
-  const [aiSuggestions,setAiSuggestions]=useState([]);
+  const [aiSuggestions,setAiSuggestions]=useState(cachedSuggestions||[]);
   const [loadingAI,setLoadingAI]=useState(false);
   const [swapUpgrade,setSwapUpgrade]=useState(null);
   const [custom,setCustom]=useState({name:"",sets:exercise.sets,reps:exercise.reps,note:"",muscle:exercise.muscle||""});
   const [tab,setTab]=useState("ai"); // ai | custom
 
-  useEffect(()=>{ loadAISuggestions(); },[]);// eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{ if(!cachedSuggestions)loadAISuggestions(); },[]);// eslint-disable-line react-hooks/exhaustive-deps
 
   async function loadAISuggestions(){
     setLoadingAI(true);
@@ -2099,6 +2100,7 @@ No markdown, no explanation, just the array.`;
       const text=data.content?.find(b=>b.type==="text")?.text||"[]";
       const parsed=JSON.parse(text.replace(/```json|```/g,"").trim());
       setAiSuggestions(parsed);
+      if(onCacheSuggestions)onCacheSuggestions(exercise.name,parsed);
     }catch{
       setAiSuggestions([
         {name:"Cable Lateral Raise",sets:exercise.sets,reps:exercise.reps,note:"Constant tension, joint-friendly",muscle:exercise.muscle||""},
