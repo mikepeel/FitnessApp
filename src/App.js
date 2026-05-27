@@ -2603,7 +2603,7 @@ Return ONLY a JSON object with this exact structure (no markdown, no explanation
       "name": "Monday",
       "label": "Push",
       "tag": "Chest . Shoulders . Triceps",
-      "color": "#ff5e1a",
+      "color": "#f7c948",
       "isRest": false,
       "exercises": [
         {"name": "Bench Press", "sets": "4", "reps": "8-12", "note": "brief tip", "muscle": "Chest"}
@@ -2611,7 +2611,7 @@ Return ONLY a JSON object with this exact structure (no markdown, no explanation
     }
   ]
 }
-Use 7 days total (fill rest days with isRest:true and minimal exercises array with one recovery item). Colors: use only these hex values: #ff5e1a, #3d9bff, #b06aff, #00d4aa, #ffb830. Make the plan practical and appropriate for the stated limitations.`;
+Use 7 days total (fill rest days with isRest:true and minimal exercises array with one recovery item). Colors: use only these hex values: #f7c948, #3d9bff, #b06aff, #00d4aa, #ffb830. Make the plan practical and appropriate for the stated limitations.`;
 
     try{
       const data=await callAI({action:"plan_builder",messages:[{role:"user",content:prompt}],maxTokens:2000});
