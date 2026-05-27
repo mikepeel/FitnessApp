@@ -1214,7 +1214,7 @@ export default function ForgeApp(){
     {tab==="plan"&&<PlanErrorBoundary C={C}><PlanTab plans={plans} activePlanKey={activePlanKey}
       setActivePlanKey={persistActivePlanKey}
       savePlans={savePlans} settings={settings} C={C}/></PlanErrorBoundary>}
-    {tab==="log"&&<HistoryTab sessions={sessions} saveSessions={saveSessions} savePRs={savePRs} prs={prs} C={C} onRerun={sess=>{
+    {tab==="log"&&<HistoryTab sessions={sessions} saveSessions={saveSessions} savePRs={savePRs} prs={prs} plans={plans} C={C} onRerun={sess=>{
       const day=(activePlan?.days||[]).find(d=>d.id===sess.dayId)||{...sess,exercises:Object.keys(sess.sets||{}).map(name=>({id:name,name,sets:"3",reps:"",muscle:"",note:""})),label:sess.dayLabel||"Workout"};
       setActiveWorkout({...day,_rerunSets:sess.sets});
       setTab("today");
@@ -2729,7 +2729,7 @@ function DayForm({onSave,onClose,C}){
 }
 
 // -- HISTORY -------------------------------------------------------------------
-function HistoryTab({sessions,saveSessions,savePRs,prs,C,onRerun}){
+function HistoryTab({sessions,saveSessions,savePRs,prs,plans,C,onRerun}){
   const todayStr=new Date().toLocaleDateString("en-CA");
   const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
   const yesterdayStr=yesterday.toLocaleDateString("en-CA");
@@ -2946,8 +2946,12 @@ function HistoryTab({sessions,saveSessions,savePRs,prs,C,onRerun}){
               {isExp&&<div style={{marginTop:12}}>
                 {s.notes&&<div style={{fontSize:12,color:C.muted,fontStyle:"italic",marginBottom:10,padding:"8px 10px",background:C.surface,borderRadius:6,lineHeight:1.5}}>"{s.notes}"</div>}
 
-                {/* Set summary */}
-                {[...new Set(allSets.map(x=>x.exName))].map(name=>{
+                {/* Set summary — sort by plan day exercise order when available */}
+                {(()=>{
+                  const planDay=Object.values(plans||{}).flatMap(p=>p.days||[]).find(d=>d.label===s.dayLabel||d.id===s.dayId);
+                  const exIdx=Object.fromEntries((planDay?.exercises||[]).map((e,i)=>[e.name,i]));
+                  return [...new Set(allSets.map(x=>x.exName))].sort((a,b)=>(exIdx[a]??999)-(exIdx[b]??999));
+                })().map(name=>{
                   const exSets=allSets.filter(x=>x.exName===name);
                   return <div key={name} style={{marginBottom:8,paddingBottom:8,borderBottom:`1px solid ${C.border}`}}>
                     <div style={{fontSize:13,fontWeight:600,marginBottom:4}}>{name}</div>
