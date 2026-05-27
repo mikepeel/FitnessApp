@@ -2762,6 +2762,7 @@ function HistoryTab({sessions,saveSessions,savePRs,prs,plans,C,onRerun}){
   const [expanded,setExpanded]=useState(mostRecentIdx);
   const [editingSession,setEditingSession]=useState(null);
   const [confirmDelete,setConfirmDelete]=useState(null);
+  const [deleteError,setDeleteError]=useState(null);
   const [addingSession,setAddingSession]=useState(false);
   const [manualSession,setManualSession]=useState({
     dayLabel:"",date:new Date().toLocaleDateString("en-CA"),
@@ -2838,12 +2839,19 @@ function HistoryTab({sessions,saveSessions,savePRs,prs,plans,C,onRerun}){
 
   async function deleteSession(sessId){
     const sess=sessions.find(s=>s.id===sessId);
+    if(!sess){setConfirmDelete(null);return;}
+    if(sess.supabaseId){
+      const{error}=await supabase.from("workout_sessions").delete().eq("id",sess.supabaseId);
+      if(error){
+        console.error("deleteSession:",error);
+        setDeleteError("Could not delete — check your connection and try again.");
+        setConfirmDelete(null);
+        return;
+      }
+    }
     const updatedSessions=sessions.filter(s=>s.id!==sessId);
     saveSessions(updatedSessions);
     recalcPRs(updatedSessions);
-    if(sess?.supabaseId){
-      supabase.from("workout_sessions").delete().eq("id",sess.supabaseId).catch(e=>console.error("deleteSession:",e));
-    }
     setConfirmDelete(null);
     setExpanded(null);
   }
@@ -2860,6 +2868,7 @@ function HistoryTab({sessions,saveSessions,savePRs,prs,plans,C,onRerun}){
         </div>
       </div>
     </div>
+    {deleteError&&<div onClick={()=>setDeleteError(null)} style={{background:C.red,color:"#fff",padding:"10px 18px",fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"center"}}>{deleteError} (tap to dismiss)</div>}
 
     {/* Manual Session Logger Modal */}
     {addingSession&&<div style={{margin:"12px 18px 0",background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"16px"}}>
