@@ -1060,7 +1060,7 @@ export default function ForgeApp(){
             if(matchDay){
               const secsSinceUpdate=Math.floor((Date.now()-new Date(draft.updated_at).getTime())/1000);
               const restoredElapsed=(draft.elapsed_seconds||0)+secsSinceUpdate;
-              setWorkoutDraft({loggedSets:draft.logged_sets||{},elapsed:restoredElapsed,startedAt:draft.started_at,workout:matchDay});
+              setWorkoutDraft({loggedSets:draft.logged_sets||{},elapsed:restoredElapsed,startedAt:draft.started_at,workout:matchDay,exercises:draft.exercises_json||null});
               setActiveWorkout(matchDay);
               await supabase.from("workout_drafts").delete().eq("user_id",u.id);
             }
@@ -1654,7 +1654,8 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
         started_at:startTime,
         logged_sets:setsSnapshot||loggedSets,
         elapsed_seconds:elapsed,
-        updated_at:new Date().toISOString()
+        updated_at:new Date().toISOString(),
+        exercises_json:exercises
       },{onConflict:"user_id"});
       if(error)console.error("saveDraft:",error);
     }catch(e){console.error("saveDraft:",e);}
