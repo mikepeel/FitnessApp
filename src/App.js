@@ -1682,6 +1682,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   function markExerciseDone(exId,exName,withRest=true){
     const isLastExercise=exercises.filter(e=>!completedExIds.has(e.id)).length===1;
     if(withRest&&!isLastExercise){setShowRest(true);setRestKey(k=>k+1);}
+    else if(!withRest){setShowRest(false);}
     setCompletedExIds(prev=>{
       const next=new Set(prev);
       next.add(exId);
