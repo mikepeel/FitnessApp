@@ -1397,7 +1397,7 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
         const today=new Date();
         const weekStart=new Date(today);weekStart.setDate(today.getDate()-today.getDay());
         const weekStr=weekStart.toLocaleDateString("en-CA");
-        const weekSess=sessions.filter(s=>s.completedAt>=weekStr);
+        const weekSess=sessions.filter(s=>s.completedAt&&new Date(s.completedAt).toLocaleDateString("en-CA")>=weekStr);
         const weekVol=weekSess.reduce((a,s)=>(a+(s.setsArr||[]).filter(x=>x.type!=="warmup").reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
         if(weekSess.length===0)return null;
         return <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"12px 14px",marginBottom:12,display:"flex",gap:16,alignItems:"center"}}>
@@ -3280,7 +3280,7 @@ function StatsTab({sessions,prs,settings,C,activePlan,bodyStatsInit=[],onBodySta
   // Weekly volume summary
   const weekStart = new Date(); weekStart.setDate(weekStart.getDate()-weekStart.getDay());
   const weekStr = weekStart.toLocaleDateString("en-CA");
-  const weekSessions = sessions.filter(s=>s.completedAt>=weekStr);
+  const weekSessions = sessions.filter(s=>s.completedAt&&new Date(s.completedAt).toLocaleDateString("en-CA")>=weekStr);
   const weekVol = weekSessions.reduce((a,s)=>(a+(s.setsArr||[]).filter(x=>x.type!=="warmup").reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
 
   // Muscle volume by group (last 7 days)
