@@ -65,7 +65,12 @@ const mkId = () => `id_${Math.random().toString(36).slice(2,9)}`;
 async function callAI({action,messages,maxTokens=800}){
   const{data:{session}}=await supabase.auth.getSession();
   const token=session?.access_token;
-  const res=await fetch("/api/ai",{method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${token||""}`},body:JSON.stringify({action,messages,max_tokens:maxTokens})});
+  const ctrl=new AbortController();
+  const tid=setTimeout(()=>ctrl.abort(),15000);
+  let res;
+  try{
+    res=await fetch("/api/ai",{method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${token||""}`},body:JSON.stringify({action,messages,max_tokens:maxTokens}),signal:ctrl.signal});
+  }finally{clearTimeout(tid);}
   if(res.status===402){const err=await res.json();return{upgradeRequired:true,...err};}
   if(!res.ok)throw new Error(`AI error: ${res.status}`);
   return res.json();
