@@ -604,10 +604,14 @@ function SectionLabel({children,C}){
 }
 
 function RestTimer({seconds,onDone,onSkip,C}){
+  const startTs=useRef(Date.now());
   const [rem,setRem]=useState(seconds);
   useEffect(()=>{
     if(rem<=0){onDone();return;}
-    const t=setTimeout(()=>setRem(r=>r-1),1000);
+    const t=setTimeout(()=>{
+      const elapsed=Math.floor((Date.now()-startTs.current)/1000);
+      setRem(Math.max(0,seconds-elapsed));
+    },1000);
     return()=>clearTimeout(t);
   },[rem]); // eslint-disable-line react-hooks/exhaustive-deps
   return <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"8px 12px",marginBottom:8,display:"flex",alignItems:"center",gap:12}}>
