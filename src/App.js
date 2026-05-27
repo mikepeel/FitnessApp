@@ -3553,7 +3553,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
             :coachUpgrade?<UpgradePrompt {...coachUpgrade} C={C}/>
             :<div>
               {trainerInsight&&<div style={{fontSize:13,lineHeight:1.8,color:C.text,marginBottom:14,padding:"12px",background:C.card,borderRadius:8}}>{trainerInsight}</div>}
-              <Btn size="sm" variant="ghost" C={C} onClick={()=>{setCoachUpgrade(null);loadTrainerInsight();}} style={{width:"100%"}}>
+              <Btn size="sm" variant="ghost" C={C} onClick={()=>{if(loadingInsight)return;setCoachUpgrade(null);loadTrainerInsight();}} style={{width:"100%"}}>
                 {trainerInsight?"↺ Refresh Insight":"✦ Get My Insight"}
               </Btn>
             </div>}
