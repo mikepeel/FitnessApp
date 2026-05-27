@@ -21,8 +21,8 @@ const getProgramStart = (sessions) => {
   return dates[0] || PROGRAM_START;
 };
 const programWeek = (sessions=[]) => {
-  const start = new Date(getProgramStart(sessions));
-  const now = new Date();
+  const start = new Date(getProgramStart(sessions)+"T12:00:00");
+  const now = new Date();now.setHours(12,0,0,0);
   const days = Math.floor((now - start) / 86400000);
   return Math.max(1, Math.ceil((days + 1) / 7));
 };
