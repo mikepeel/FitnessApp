@@ -2833,7 +2833,18 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,onRer
     recalcPRs(updatedSessions);
     if(updatedSession.supabaseId){
       const{error:updErr}=await supabase.from("workout_sessions").update({completed_at:updatedSession.completedAt,started_at:updatedSession.startedAt,notes:updatedSession.notes||"",sets_data:updatedSession.sets||{},partial:updatedSession.partial||false}).eq("id",updatedSession.supabaseId);
-      if(updErr)console.error("saveEdit update:",updErr);
+      if(updErr){console.error("saveEdit update:",updErr);return;}
+      // Sync logged_sets so isPR and set_type reflect the edit on next reload
+      const{data:{session:_sess}}=await supabase.auth.getSession().catch(()=>({data:{session:null}}));
+      const uid=_sess?.user?.id;
+      if(uid){
+        await supabase.from("logged_sets").delete().eq("session_id",updatedSession.supabaseId);
+        if(setsArr.length>0){
+          const setRows=setsArr.map(x=>({session_id:updatedSession.supabaseId,user_id:uid,exercise_name:x.exName,set_number:x.setNum,weight:parseFloat(x.weight)||null,reps:x.minutes?(parseInt(x.level)||null):(parseInt(x.reps)||null),minutes:parseFloat(x.minutes)||null,is_pr:x.isPR||false,set_type:x.type||"working"}));
+          const{error:lsErr}=await supabase.from("logged_sets").insert(setRows);
+          if(lsErr)console.error("saveEdit logged_sets:",lsErr);
+        }
+      }
     }
   }
 
