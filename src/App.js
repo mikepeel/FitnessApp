@@ -890,41 +890,42 @@ export default function ForgeApp(){
 
   const saveSessions=async(s)=>{
     if(!Array.isArray(s))return false;
-    setSessions(s);
     try{
       const{data:{session:_sess}}=await supabase.auth.getSession().catch(()=>({data:{session:null}}));
       const u=_sess?.user||authUser;
-      if(!u)return false;
-      const uid=u.id;
+      const uid=u?.id;
       const latest=s[s.length-1];
       if(latest&&!latest.supabaseId){
-        const {data,error}=await supabase.from("workout_sessions").insert({
-          user_id:uid, day_label:latest.dayLabel, day_id:null,
-          started_at:latest.startedAt, completed_at:latest.completedAt,
-          notes:latest.notes||"", sets_data:latest.sets||{},
+        // New session — all DB writes must succeed before updating local state
+        if(!uid)return false;
+        const{data,error}=await supabase.from("workout_sessions").insert({
+          user_id:uid,day_label:latest.dayLabel,day_id:null,
+          started_at:latest.startedAt,completed_at:latest.completedAt,
+          notes:latest.notes||"",sets_data:latest.sets||{},
           partial:latest.partial||false
         }).select("id");
-        if(error){ console.error("saveSessions insert error:",JSON.stringify(error)); return false; }
+        if(error){console.error("saveSessions insert error:",JSON.stringify(error));return false;}
         const insertedId=data?.[0]?.id;
-        if(insertedId){
-          setSessions(prev=>prev.map(sess=>sess===latest?{...sess,supabaseId:insertedId}:sess));
+        const confirmedSessions=insertedId?s.map(sess=>sess===latest?{...sess,supabaseId:insertedId}:sess):s;
+        setSessions(confirmedSessions);
+        if(insertedId&&(latest.setsArr||[]).length>0){
           const setRows=(latest.setsArr||[]).map(x=>({
-            session_id:insertedId, user_id:uid,
-            exercise_name:x.exName, set_number:x.setNum,
+            session_id:insertedId,user_id:uid,
+            exercise_name:x.exName,set_number:x.setNum,
             weight:parseFloat(x.weight)||null,
             reps:x.minutes?(parseInt(x.level)||null):(parseInt(x.reps)||null),
             minutes:parseFloat(x.minutes)||null,
-            is_pr:x.isPR||false,
-            set_type:x.type||"working"
+            is_pr:x.isPR||false,set_type:x.type||"working"
           }));
-          if(setRows.length>0){
-            const {error:setsErr}=await supabase.from("logged_sets").insert(setRows);
-            if(setsErr) console.error("saveSessions logged_sets error:",JSON.stringify(setsErr));
-          }
+          const{error:setsErr}=await supabase.from("logged_sets").insert(setRows);
+          if(setsErr){console.error("saveSessions logged_sets error:",JSON.stringify(setsErr));return"partial";}
         }
+      }else{
+        // No new session to insert (e.g. after delete) — state update only
+        setSessions(s);
       }
       return true;
-    }catch(e){ console.error("saveSessions exception:",JSON.stringify(e)); return false; }
+    }catch(e){console.error("saveSessions exception:",JSON.stringify(e));return false;}
   };
 
   const savePRs=async(p)=>{
@@ -1194,7 +1195,7 @@ export default function ForgeApp(){
   }
 
   if(workoutSummary){
-    return <WorkoutSummary session={workoutSummary.session} newPRs={workoutSummary.newPRs} previousPRs={workoutSummary.previousPRs} complianceStreak={complianceStreak} onClose={()=>{setWorkoutSummary(null);setActiveWorkout(null);}} C={C}/>;
+    return <WorkoutSummary session={workoutSummary.session} newPRs={workoutSummary.newPRs} previousPRs={workoutSummary.previousPRs} complianceStreak={complianceStreak} setsWarning={workoutSummary.setsWarning||false} onClose={()=>{setWorkoutSummary(null);setActiveWorkout(null);}} C={C}/>;
   }
 
   if(activeWorkout){
@@ -1202,7 +1203,7 @@ export default function ForgeApp(){
       plans={plans} activePlanKey={activePlanKey} savePlans={savePlans} authUser={authUser}
       workoutDraft={workoutDraft}
       onMinimize={(data)=>{minimizeTimeRef.current=Date.now();setBannerElapsed(data.elapsed);setMinimizedWorkout(data);setWorkoutDraft(null);setActiveWorkout(null);}}
-      onFinish={async(sess,newPRs)=>{const ok=await saveSessions([...sessions,sess]);if(ok){const prevPRs={...prs};setWorkoutDraft(null);setMinimizedWorkout(null);savePRs({...prs,...newPRs});if(!sess.partial){setWorkoutSummary({session:sess,newPRs,previousPRs:prevPRs});}else{setActiveWorkout(null);}}return ok;}}
+      onFinish={async(sess,newPRs)=>{const ok=await saveSessions([...sessions,sess]);if(ok){const prevPRs={...prs};setWorkoutDraft(null);setMinimizedWorkout(null);savePRs({...prs,...newPRs});if(!sess.partial){setWorkoutSummary({session:sess,newPRs,previousPRs:prevPRs,setsWarning:ok==="partial"});}else{setActiveWorkout(null);}}return ok;}}
       onCancel={()=>{setWorkoutDraft(null);setMinimizedWorkout(null);setActiveWorkout(null);}} C={C}/>;
   }
 
@@ -3778,7 +3779,7 @@ Plain text, no markdown, be concise.`;
   </Modal>;
 }
 
-function WorkoutSummary({session,newPRs,previousPRs,complianceStreak,onClose,C}){
+function WorkoutSummary({session,newPRs,previousPRs,complianceStreak,setsWarning,onClose,C}){
   const completedDate=new Date(session.completedAt);
   const durationMin=Math.max(1,Math.round((completedDate-new Date(session.startedAt))/60000));
   const dayName=completedDate.toLocaleDateString("en-US",{weekday:"long"});
@@ -3796,6 +3797,7 @@ function WorkoutSummary({session,newPRs,previousPRs,complianceStreak,onClose,C})
 
   return(
     <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'SF Mono','Courier New',monospace",paddingTop:"env(safe-area-inset-top,0px)",paddingBottom:"env(safe-area-inset-bottom,0px)",overflowY:"auto"}}>
+      {setsWarning&&<div style={{background:"#f7c948",padding:"10px 18px",textAlign:"center"}}><Mono style={{fontSize:12,color:"#0b0c0e",fontWeight:700}}>Workout saved — set details failed to sync. Check History and re-log if needed.</Mono></div>}
       {/* Header */}
       <div style={{background:"linear-gradient(150deg,#3ecf8e 0%,#2ebd80 100%)",padding:"36px 24px 32px",textAlign:"center",position:"relative",overflow:"hidden"}}>
         <div style={{position:"absolute",width:120,height:120,borderRadius:"50%",background:"rgba(255,255,255,0.08)",top:-30,right:-20,pointerEvents:"none"}}/>
