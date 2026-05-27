@@ -3310,7 +3310,7 @@ function StatsTab({sessions,prs,settings,C,activePlan,bodyStatsInit=[],onBodySta
     if(!selEx){if(allExNames.length)setSelEx(allExNames[0]);return;}
     const rel=sessions.filter(s=>s.completedAt&&(s.setsArr||[]).some(x=>x.exName===selEx));
     const grouped={};
-    rel.forEach(s=>{const d=s.completedAt.split("T")[0];const best=(s.setsArr||[]).filter(x=>x.exName===selEx&&x.type!=="warmup").reduce((m,x)=>Math.max(m,parseFloat(x.weight)||0),0);if(!grouped[d]||best>grouped[d])grouped[d]=best;});
+    rel.forEach(s=>{const d=new Date(s.completedAt).toLocaleDateString("en-CA");const best=(s.setsArr||[]).filter(x=>x.exName===selEx&&x.type!=="warmup").reduce((m,x)=>Math.max(m,parseFloat(x.weight)||0),0);if(!grouped[d]||best>grouped[d])grouped[d]=best;});
     setChartData(Object.entries(grouped).sort(([a],[b])=>a>b?1:-1).map(([d,w])=>({date:d.slice(5),weight:w,orm:Math.round(w*1.0333*1)})));
   },[selEx,sessions]);// eslint-disable-line react-hooks/exhaustive-deps
 
