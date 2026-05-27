@@ -2842,25 +2842,46 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,onRer
       }
     }
     const updatedSession={...updated,setsArr};
-    const updatedSessions=sessions.map(s=>s.id===updatedSession.id?updatedSession:s);
-    setSessions(updatedSessions);
-    recalcPRs(updatedSessions);
-    if(updatedSession.supabaseId){
-      const{error:updErr}=await supabase.from("workout_sessions").update({completed_at:updatedSession.completedAt,started_at:updatedSession.startedAt,notes:updatedSession.notes||"",sets_data:updatedSession.sets||{},partial:updatedSession.partial||false}).eq("id",updatedSession.supabaseId);
-      if(updErr){console.error("saveEdit update:",updErr);return;}
-      // Sync logged_sets so isPR and set_type reflect the edit on next reload
-      const{data:{session:_sess}}=await supabase.auth.getSession().catch(()=>({data:{session:null}}));
-      const uid=_sess?.user?.id;
-      if(uid){
-        const{error:delErr}=await supabase.from("logged_sets").delete().eq("session_id",updatedSession.supabaseId);
-        if(delErr){console.error("saveEdit logged_sets delete:",delErr);return;}
-        if(setsArr.length>0){
-          const setRows=setsArr.map(x=>({session_id:updatedSession.supabaseId,user_id:uid,exercise_name:x.exName,set_number:x.setNum,weight:parseFloat(x.weight)||null,reps:x.minutes?(parseInt(x.level)||null):(parseInt(x.reps)||null),minutes:parseFloat(x.minutes)||null,is_pr:x.isPR||false,set_type:x.type||"working"}));
-          const{error:lsErr}=await supabase.from("logged_sets").insert(setRows);
-          if(lsErr)console.error("saveEdit logged_sets:",lsErr);
+    if(!updatedSession.supabaseId){
+      // Manual session with no DB record — state update only
+      const updatedSessions=sessions.map(s=>s.id===updatedSession.id?updatedSession:s);
+      setSessions(updatedSessions);recalcPRs(updatedSessions);
+      return true;
+    }
+    const original=sessions.find(s=>s.id===updatedSession.id);
+    const{data:{session:_sess}}=await supabase.auth.getSession().catch(()=>({data:{session:null}}));
+    const uid=_sess?.user?.id;
+    // STEP 1: update workout_sessions
+    const{error:updErr}=await supabase.from("workout_sessions").update({completed_at:updatedSession.completedAt,started_at:updatedSession.startedAt,notes:updatedSession.notes||"",sets_data:updatedSession.sets||{},partial:updatedSession.partial||false}).eq("id",updatedSession.supabaseId);
+    if(updErr){console.error("saveEdit update:",updErr);return false;}
+    // STEP 2: delete then re-insert logged_sets — rollback on any failure
+    if(uid){
+      const{error:delErr}=await supabase.from("logged_sets").delete().eq("session_id",updatedSession.supabaseId);
+      if(delErr){
+        console.error("saveEdit delete:",delErr);
+        if(original)await supabase.from("workout_sessions").update({completed_at:original.completedAt,started_at:original.startedAt,notes:original.notes||"",sets_data:original.sets||{},partial:original.partial||false}).eq("id",updatedSession.supabaseId).catch(e=>console.error("saveEdit rollback session:",e));
+        return false;
+      }
+      if(setsArr.length>0){
+        const setRows=setsArr.map(x=>({session_id:updatedSession.supabaseId,user_id:uid,exercise_name:x.exName,set_number:x.setNum,weight:parseFloat(x.weight)||null,reps:x.minutes?(parseInt(x.level)||null):(parseInt(x.reps)||null),minutes:parseFloat(x.minutes)||null,is_pr:x.isPR||false,set_type:x.type||"working"}));
+        const{error:lsErr}=await supabase.from("logged_sets").insert(setRows);
+        if(lsErr){
+          console.error("saveEdit insert:",lsErr);
+          // Re-insert originals to restore previous sets, then rollback session
+          if(original&&(original.setsArr||[]).length>0){
+            const origRows=(original.setsArr||[]).map(x=>({session_id:updatedSession.supabaseId,user_id:uid,exercise_name:x.exName,set_number:x.setNum,weight:parseFloat(x.weight)||null,reps:x.minutes?(parseInt(x.level)||null):(parseInt(x.reps)||null),minutes:parseFloat(x.minutes)||null,is_pr:x.isPR||false,set_type:x.type||"working"}));
+            await supabase.from("logged_sets").insert(origRows).catch(e=>console.error("saveEdit sets rollback:",e));
+          }
+          if(original)await supabase.from("workout_sessions").update({completed_at:original.completedAt,started_at:original.startedAt,notes:original.notes||"",sets_data:original.sets||{},partial:original.partial||false}).eq("id",updatedSession.supabaseId).catch(e=>console.error("saveEdit session rollback:",e));
+          return false;
         }
       }
     }
+    // All DB writes confirmed — now update local state
+    const updatedSessions=sessions.map(s=>s.id===updatedSession.id?updatedSession:s);
+    setSessions(updatedSessions);
+    recalcPRs(updatedSessions);
+    return true;
   }
 
   async function deleteSession(sessId){
@@ -3051,6 +3072,7 @@ ${prCount>0?`★ ${prCount} new PR${prCount>1?"s":""}!`:""}
 // -- SESSION EDIT MODAL --------------------------------------------------------
 function SessionEditModal({session,onSave,onClose,C}){
   const [saving,setSaving]=useState(false);
+  const [saveError,setSaveError]=useState(null);
   const [editData,setEditData]=useState(()=>{
     // Build editable sets: { exName -> { setNum -> { weight, reps } } }
     const sets={};
@@ -3206,8 +3228,9 @@ function SessionEditModal({session,onSave,onClose,C}){
       <button onClick={()=>setEditData(p=>({...p,partial:false}))} style={{padding:"5px 10px",background:C.gold,border:"none",borderRadius:6,color:"#0b0c0e",fontSize:11,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",letterSpacing:"0.06em"}}>Mark as complete</button>
     </div>}
 
+    {saveError&&<div style={{marginBottom:10,padding:"10px 12px",background:C.danger+"22",border:`1px solid ${C.danger}44`,borderRadius:8,color:C.danger,fontSize:12,fontFamily:"'SF Mono','Courier New',monospace"}}>{saveError}</div>}
     <div style={{display:"flex",gap:10}}>
-      <Btn style={{flex:1}} C={C} disabled={saving} onClick={async()=>{setSaving(true);try{await onSave(editData);onClose();}finally{setSaving(false);}}}>
+      <Btn style={{flex:1}} C={C} disabled={saving} onClick={async()=>{setSaving(true);setSaveError(null);try{const ok=await onSave(editData);if(ok===false){setSaveError("Save failed — your original data is unchanged. Check connection and try again.");}else{onClose();}}catch(e){setSaveError("Save failed — your original data is unchanged. Check connection and try again.");}finally{setSaving(false);}}}>
         {saving?"Saving…":"Save Changes"}
       </Btn>
       <Btn variant="ghost" style={{flex:1}} C={C} disabled={saving} onClick={onClose}>Cancel</Btn>
