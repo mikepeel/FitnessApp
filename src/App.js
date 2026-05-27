@@ -487,6 +487,8 @@ const EXERCISE_LIBRARY = [
   {name:"Seated Calf Raise",muscle:"Legs",equipment:"Machine",cue:"Soleus emphasis, same pause principle, heavier loading"},
   {name:"Smith Machine Squat",muscle:"Legs",equipment:"Machine",cue:"Feet slightly forward, great for controlled technique work"},
   {name:"Pendulum Squat",muscle:"Legs",equipment:"Machine",cue:"Knees track perfectly, excellent for knee-sensitive trainees"},
+  {name:"Hip Adductor Machine",muscle:"Legs",equipment:"Machine",cue:"Controlled squeeze inward, slow eccentric, avoid slamming weight"},
+  {name:"Hip Abductor Machine",muscle:"Legs",equipment:"Machine",cue:"Drive knees outward against pad, hold at peak, slow return"},
   {name:"Glute Bridge",muscle:"Legs",equipment:"Bodyweight",cue:"Feet flat, push through heels, hold squeeze at top"},
   {name:"Donkey Kick",muscle:"Legs",equipment:"Bodyweight",cue:"Kick heel toward ceiling, squeeze glute fully at top"},
   {name:"Nordic Curl",muscle:"Legs",equipment:"Bodyweight",cue:"Feet anchored, lower torso slowly, pure eccentric work"},
