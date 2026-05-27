@@ -1214,7 +1214,7 @@ export default function ForgeApp(){
     {tab==="plan"&&<PlanErrorBoundary C={C}><PlanTab plans={plans} activePlanKey={activePlanKey}
       setActivePlanKey={persistActivePlanKey}
       savePlans={savePlans} settings={settings} C={C}/></PlanErrorBoundary>}
-    {tab==="log"&&<HistoryTab sessions={sessions} saveSessions={saveSessions} savePRs={savePRs} prs={prs} plans={plans} C={C} onRerun={sess=>{
+    {tab==="log"&&<HistoryTab sessions={sessions} saveSessions={saveSessions} setSessions={setSessions} savePRs={savePRs} prs={prs} plans={plans} C={C} onRerun={sess=>{
       const day=(activePlan?.days||[]).find(d=>d.id===sess.dayId)||{...sess,exercises:Object.keys(sess.sets||{}).map(name=>({id:name,name,sets:"3",reps:"",muscle:"",note:""})),label:sess.dayLabel||"Workout"};
       setActiveWorkout({...day,_rerunSets:sess.sets});
       setTab("today");
@@ -2734,7 +2734,7 @@ function DayForm({onSave,onClose,C}){
 }
 
 // -- HISTORY -------------------------------------------------------------------
-function HistoryTab({sessions,saveSessions,savePRs,prs,plans,C,onRerun}){
+function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,onRerun}){
   const todayStr=new Date().toLocaleDateString("en-CA");
   const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
   const yesterdayStr=yesterday.toLocaleDateString("en-CA");
@@ -2829,7 +2829,7 @@ function HistoryTab({sessions,saveSessions,savePRs,prs,plans,C,onRerun}){
     }
     const updatedSession={...updated,setsArr};
     const updatedSessions=sessions.map(s=>s.id===updatedSession.id?updatedSession:s);
-    await saveSessions(updatedSessions);
+    setSessions(updatedSessions);
     recalcPRs(updatedSessions);
     if(updatedSession.supabaseId){
       const{error:updErr}=await supabase.from("workout_sessions").update({completed_at:updatedSession.completedAt,started_at:updatedSession.startedAt,notes:updatedSession.notes||"",sets_data:updatedSession.sets||{},partial:updatedSession.partial||false}).eq("id",updatedSession.supabaseId);
