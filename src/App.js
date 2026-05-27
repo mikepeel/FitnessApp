@@ -3332,7 +3332,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
       if(data.upgradeRequired){setCoachUpgrade(data);setLoadingInsight(false);return;}
       setTrainerInsight(data.content?.find(b=>b.type==="text")?.text||"");
     }catch{
-      setTrainerInsight("Keep logging consistently to unlock personalized AI insights about your training patterns.");
+      setTrainerInsight("Unable to load AI insight right now. Tap Refresh to try again.");
     }
     setLoadingInsight(false);
   }
