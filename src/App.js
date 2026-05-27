@@ -2345,8 +2345,13 @@ No explanation, no markdown, just the JSON array.`;
         <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
           <div style={{flex:1,minWidth:0}}>
             <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:4}}>START DATE</Mono>
-            <input type="date" value={plan?.startDate||""} onChange={e=>savePlans({...plans,[activePlanKey]:{...plan,startDate:e.target.value}})}
-              style={{width:"100%",padding:"7px 8px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:7,color:C.text,fontSize:11,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
+            <div style={{position:"relative"}}>
+              <div style={{padding:"7px 8px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:7,fontSize:11,fontFamily:"'SF Mono','Courier New',monospace",color:plan?.startDate?C.text:C.faint,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",cursor:"pointer",userSelect:"none"}}>
+                {plan?.startDate?(()=>{const[y,m,d]=plan.startDate.split("-");return new Date(+y,+m-1,+d).toLocaleDateString("en",{month:"short",day:"numeric",year:"numeric"});})():"Tap to set"}
+              </div>
+              <input type="date" value={plan?.startDate||""} onChange={e=>savePlans({...plans,[activePlanKey]:{...plan,startDate:e.target.value}})}
+                style={{position:"absolute",inset:0,opacity:0,width:"100%",height:"100%",cursor:"pointer",zIndex:1}}/>
+            </div>
           </div>
           <div style={{flexShrink:0}}>
             <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:4}}>DURATION</Mono>
