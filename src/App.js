@@ -51,7 +51,7 @@ const THEMES = {
     bg:"#f7f9fc", surface:"#ffffff", card:"#ffffff", border:"#e2e8f0",
     accent:"#4f8ef7", neon:"#0ea66e", red:"#e53e6a", gold:"#d4a017",
     blue:"#4f8ef7", green:"#0ea66e", danger:"#e53e6a",
-    text:"#1a202c", muted:"#3d4f63", faint:"#7a8fa8", cardText:"#0d1117",
+    text:"#1a202c", muted:"#2d3748", faint:"#5a6a7e", cardText:"#0d1117",
     mono:"'SF Mono','Courier New',monospace",
     serif:"'Georgia','Times New Roman',serif",
     navBg:"#ffffff", gradTop:"linear-gradient(135deg,#4f8ef710 0%,#0ea66e08 100%)",
