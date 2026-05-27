@@ -1043,7 +1043,7 @@ export default function ForgeApp(){
             await supabase.from("workout_drafts").delete().eq("user_id",u.id);
           }else{
             // Within 3 hours — restore workout
-            const allDays=Object.values(plans).flatMap(p=>p.days||[]);
+            const allDays=Object.values(mergedPlans).flatMap(p=>p.days||[]);
             const matchDay=allDays.find(d=>d.id===draft.day_id)||allDays.find(d=>d.label===draft.day_label);
             if(matchDay){
               const secsSinceUpdate=Math.floor((Date.now()-new Date(draft.updated_at).getTime())/1000);
