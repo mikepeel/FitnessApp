@@ -3062,6 +3062,7 @@ function SessionEditModal({session,onSave,onClose,C}){
   }
 
   function updateDuration(mins){
+    if(mins===""){setDurationMins("");return;}
     const m=parseInt(mins)||1;
     setDurationMins(m);
     if(editData.completedAt){
@@ -3089,7 +3090,7 @@ function SessionEditModal({session,onSave,onClose,C}){
       <div style={{width:110,padding:"10px 14px",background:C.card,border:`1px solid ${C.border}`,borderRadius:8,flexShrink:0}}>
         <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:4,letterSpacing:"0.1em"}}>DURATION</Mono>
         <div style={{display:"flex",alignItems:"center",gap:6}}>
-          <input type="number" min="1" max="300" value={durationMins} onChange={e=>updateDuration(e.target.value)}
+          <input type="number" min="1" max="300" value={durationMins} onChange={e=>updateDuration(e.target.value)} onBlur={e=>{if(!e.target.value||parseInt(e.target.value)<1)updateDuration("1");}}
             style={{width:"100%",padding:"7px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:7,color:C.text,fontSize:16,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box",textAlign:"center"}}/>
           <Mono style={{fontSize:11,color:C.muted,flexShrink:0}}>min</Mono>
         </div>
