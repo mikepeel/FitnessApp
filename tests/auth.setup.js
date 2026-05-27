@@ -20,8 +20,19 @@ setup("authenticate as test user", async ({ page }) => {
   // Wait for nav bar (auth succeeded) then wait for plan data to load
   await expect(page.getByRole("button", { name: /Workout/i })).toBeVisible({ timeout: 20000 });
 
-  // Wait for Supabase data to finish — START buttons appear only after plans load
-  await expect(page.getByRole("button", { name: "START" }).first()).toBeVisible({ timeout: 15000 });
+  // After login, a draft may be restored and the workout session may open automatically.
+  // Wait for either the home page START button or the workout session ⋯ button.
+  const startBtn = page.getByRole("button", { name: "START" }).first();
+  const moreBtn = page.locator("button", { hasText: "⋯" }).first();
+  await expect(startBtn.or(moreBtn)).toBeVisible({ timeout: 15000 });
+
+  // If a draft was restored, abandon it so the home page is clean for tests
+  if (await moreBtn.isVisible()) {
+    await moreBtn.click();
+    await page.getByRole("button", { name: "✕ Abandon" }).click();
+    await page.getByRole("button", { name: "Abandon" }).click();
+    await expect(startBtn).toBeVisible({ timeout: 10000 });
+  }
 
   await page.context().storageState({ path: AUTH_FILE });
 });

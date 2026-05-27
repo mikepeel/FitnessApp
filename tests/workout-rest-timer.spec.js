@@ -11,10 +11,26 @@ test.describe("rest timer", () => {
   });
 
   test.afterEach(async ({ page }) => {
-    // Minimize the workout without saving so no session is created
-    const closeBtn = page.locator("button", { hasText: "✕" }).first();
-    if (await closeBtn.isVisible()) {
-      await closeBtn.click();
+    // Dismiss workout summary if shown (workout was completed unexpectedly)
+    const summaryClose = page.getByRole("button", { name: /CLOSE/ });
+    if (await summaryClose.isVisible()) {
+      await summaryClose.click();
+    }
+
+    // Re-open workout if minimized via the banner "View →" link
+    const viewBanner = page.locator("text=View →");
+    if (await viewBanner.isVisible()) {
+      await viewBanner.click();
+      await page.waitForTimeout(300);
+    }
+
+    // Abandon workout via ⋯ → ✕ Abandon → Abandon — this calls deleteDraft()
+    // so no draft is left in Supabase to bleed into the next test
+    const moreBtn = page.locator("button", { hasText: "⋯" }).first();
+    if (await moreBtn.isVisible()) {
+      await moreBtn.click();
+      await page.getByRole("button", { name: "✕ Abandon" }).click();
+      await page.getByRole("button", { name: "Abandon" }).click();
     }
   });
 
@@ -53,9 +69,11 @@ test.describe("rest timer", () => {
 
     // Wait 5 seconds so timer has visibly counted down
     await page.waitForTimeout(5000);
+    // Scope to REST widget parent to avoid picking up the workout elapsed timer
     const timerAfterSet1 = await page
-      .locator("text=/^0:\\d\\d$|^1:\\d\\d$/")
-      .first()
+      .getByText("REST", { exact: true })
+      .locator("..")
+      .getByText(/^[01]:\d\d$/)
       .textContent();
 
     // Confirm Set 2 — weight is pre-filled, just add reps
@@ -68,8 +86,9 @@ test.describe("rest timer", () => {
     // Timer should be HIGHER than where it was before Set 2 confirm (reset happened)
     await page.waitForTimeout(500);
     const timerAfterSet2 = await page
-      .locator("text=/^0:\\d\\d$|^1:\\d\\d$/")
-      .first()
+      .getByText("REST", { exact: true })
+      .locator("..")
+      .getByText(/^[01]:\d\d$/)
       .textContent();
 
     const toSeconds = (t) => {
@@ -98,9 +117,8 @@ test.describe("rest timer", () => {
     const minutesInput = page.getByPlaceholder("10");
     await minutesInput.fill("12");
 
-    // Confirm the cardio interval
-    // Use the last ✓ button (Stair Stepper's confirm)
-    const confirmBtns = page.getByRole("button", { name: "✓" });
+    // Confirm the cardio interval — exact:true excludes "COMPLETE WORKOUT ✓"
+    const confirmBtns = page.getByRole("button", { name: "✓", exact: true });
     await confirmBtns.last().click();
 
     // REST timer must NOT appear after cardio confirm
