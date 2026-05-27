@@ -1578,6 +1578,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   });
   const [completedExIds,setCompletedExIds]=useState(()=>new Set(workoutDraft?.completedExIds||[]));
   const [showRest,setShowRest]=useState(false);
+  const [restKey,setRestKey]=useState(0);
   const [notes,setNotes]=useState("");
   const [startTime]=useState(workoutDraft?.startedAt||new Date().toISOString());
   const startMs=useRef(workoutDraft?.elapsed ? Date.now()-(workoutDraft.elapsed*1000) : Date.now());
@@ -1678,7 +1679,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   // When all sets for an exercise are ticked, move it to the bottom
   function markExerciseDone(exId,exName,withRest=true){
     const isLastExercise=exercises.filter(e=>!completedExIds.has(e.id)).length===1;
-    if(withRest&&!isLastExercise)setShowRest(true);
+    if(withRest&&!isLastExercise){setShowRest(true);setRestKey(k=>k+1);}
     setCompletedExIds(prev=>{
       const next=new Set(prev);
       next.add(exId);
@@ -1812,7 +1813,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
       <Mono style={{fontSize:12,color:"#0b0c0e",fontWeight:700}}>Workout auto-saved after 3 hours</Mono>
     </div>}
     <div style={{padding:"14px 18px"}}>
-      {showRest&&settings.restTimer&&<RestTimer seconds={settings.restSeconds||90} onDone={()=>setShowRest(false)} onSkip={()=>setShowRest(false)} C={C}/>}
+      {showRest&&settings.restTimer&&<RestTimer key={restKey} seconds={settings.restSeconds||90} onDone={()=>setShowRest(false)} onSkip={()=>setShowRest(false)} C={C}/>}
 
       <div ref={topRef}/>
       {[...exercises].sort((a,b)=>{
@@ -1972,7 +1973,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
                       const allFilled=Array.from({length:numSets},(_,i)=>i+1).every(s=>myL[s]?.weight&&myL[s]?.reps);
                       if(n===numSets&&allFilled){markExerciseDone(ex.id,ex.name,!isWarmup);}
                       // REST TIMER: only triggered here, on explicit set confirmation
-                      else if(!isWarmup){setShowRest(true);}
+                      else if(!isWarmup){setShowRest(true);setRestKey(k=>k+1);}
                     }} style={{padding:"9px 4px",background:"transparent",border:`1px solid ${C.neon}44`,borderRadius:7,color:C.neon,cursor:"pointer",fontSize:14,fontWeight:700}}>✓</button>
                   ])
               ];
