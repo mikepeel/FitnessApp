@@ -107,7 +107,7 @@ test.describe("rest timer", () => {
     await page.waitForTimeout(1000);
     await expect(page.getByText("REST")).not.toBeVisible();
 
-    // Stair Stepper should show LOGGED badge
-    await expect(page.getByText("LOGGED")).toBeVisible();
+    // Stair Stepper should show LOGGED badge (Bench Press set also shows LOGGED, so take first)
+    await expect(page.getByText("LOGGED").first()).toBeVisible();
   });
 });

@@ -26,7 +26,7 @@ module.exports = defineConfig({
   use: {
     baseURL: "https://fitness-app-iota-pied.vercel.app",
     viewport: { width: 390, height: 844 },
-    ...devices["iPhone 12"],
+    browserName: "chromium",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
   },
@@ -35,11 +35,13 @@ module.exports = defineConfig({
     {
       name: "setup",
       testMatch: /auth\.setup\.js/,
+      use: { browserName: "chromium", viewport: { width: 390, height: 844 } },
     },
     {
       name: "chromium",
       use: {
-        ...devices["iPhone 12"],
+        browserName: "chromium",
+        viewport: { width: 390, height: 844 },
         storageState: "tests/.auth/state.json",
       },
       dependencies: ["setup"],

@@ -20,6 +20,15 @@ tests/.auth/
 playwright-report/
 test-results/
 
+# playwright MCP session logs and screenshots (dev tool only)
+.playwright-mcp/
+
+# Claude Code project settings (local only)
+.claude/
+
+# loose screenshots from manual testing
+*.png
+
 # misc
 .DS_Store
 npm-debug.log*

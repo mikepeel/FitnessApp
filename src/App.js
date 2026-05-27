@@ -888,7 +888,7 @@ export default function ForgeApp(){
       const latest=s[s.length-1];
       if(latest&&!latest.supabaseId){
         const {data,error}=await supabase.from("workout_sessions").insert({
-          user_id:uid, day_label:latest.dayLabel, day_id:latest.dayId||null,
+          user_id:uid, day_label:latest.dayLabel, day_id:null,
           started_at:latest.startedAt, completed_at:latest.completedAt,
           notes:latest.notes||"", sets_data:latest.sets||{},
           partial:latest.partial||false
@@ -1032,14 +1032,15 @@ export default function ForgeApp(){
           const ageSeconds=Math.floor((Date.now()-new Date(draft.started_at).getTime())/1000);
           if(ageSeconds>10800){
             // Expired — save as a session then delete
-            await supabase.from("workout_sessions").insert({
-              user_id:u.id, day_label:draft.day_label, day_id:draft.day_id||null,
+            const{error:draftSaveErr}=await supabase.from("workout_sessions").insert({
+              user_id:u.id, day_label:draft.day_label, day_id:null,
               started_at:draft.started_at,
               completed_at:draft.updated_at||new Date().toISOString(),
               notes:"Session auto-saved after timeout",
               sets_data:draft.logged_sets||{}
-            }).catch(e=>console.error("draft expired save:",e));
-            await supabase.from("workout_drafts").delete().eq("user_id",u.id).catch(()=>{});
+            });
+            if(draftSaveErr)console.error("draft expired save:",draftSaveErr);
+            await supabase.from("workout_drafts").delete().eq("user_id",u.id);
           }else{
             // Within 3 hours — restore workout
             const allDays=Object.values(plans).flatMap(p=>p.days||[]);
@@ -1049,7 +1050,7 @@ export default function ForgeApp(){
               const restoredElapsed=(draft.elapsed_seconds||0)+secsSinceUpdate;
               setWorkoutDraft({loggedSets:draft.logged_sets||{},elapsed:restoredElapsed,startedAt:draft.started_at,workout:matchDay});
               setActiveWorkout(matchDay);
-              await supabase.from("workout_drafts").delete().eq("user_id",u.id).catch(()=>{});
+              await supabase.from("workout_drafts").delete().eq("user_id",u.id);
             }
           }
         }

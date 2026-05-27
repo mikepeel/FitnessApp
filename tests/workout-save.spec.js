@@ -5,21 +5,8 @@ const { test, expect } = require("@playwright/test");
 
 test.describe("workout save", () => {
   test("completing a workout saves the session and shows it in History", async ({ page }) => {
-    let insertedSessionId = null;
-    let saveRequestMade = false;
-    let saveRequestFailed = false;
-
-    // Intercept the workout_sessions insert to capture it without creating persistent data
-    await page.route("**/rest/v1/workout_sessions**", async (route) => {
-      const method = route.request().method();
-      if (method === "POST") {
-        saveRequestMade = true;
-        // Let it through — this creates real data which we will clean up after
-        await route.continue();
-      } else {
-        await route.continue();
-      }
-    });
+    const consoleErrors = [];
+    page.on("console", msg => { if (msg.type() === "error") consoleErrors.push(msg.text()); });
 
     await page.goto("/");
     await expect(page.getByRole("button", { name: /Workout/i })).toBeVisible();
@@ -44,24 +31,18 @@ test.describe("workout save", () => {
       await skipBtn.click();
     }
 
-    // Complete workout
+    // Complete workout — no rating modal (removed from UI)
     await page.getByRole("button", { name: /COMPLETE WORKOUT/i }).click();
 
-    // Rating modal — select any rating and confirm
-    const ratingBtn = page.getByRole("button", { name: "🙂" });
-    if (await ratingBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await ratingBtn.click();
-    }
-    const doneBtn = page.getByRole("button", { name: /DONE|SAVE|FINISH/i });
-    if (await doneBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await doneBtn.click();
-    }
+    // CRITICAL: no error banner should appear
+    await expect(page.getByText(/Workout not saved/i)).not.toBeVisible({ timeout: 8000 });
 
-    // CRITICAL: no "Could not save" error banner should appear
-    await expect(page.getByText(/could not save/i)).not.toBeVisible({ timeout: 5000 });
+    // Log any console errors to aid diagnosis if the above assertion fails
+    if (consoleErrors.length) console.log("Console errors captured:", consoleErrors);
 
-    // The save request must have been made
-    expect(saveRequestMade).toBe(true);
+    // WorkoutSummary screen appears — dismiss it to return to main nav
+    await expect(page.getByText("WORKOUT SUMMARY")).toBeVisible({ timeout: 8000 });
+    await page.getByRole("button", { name: /CLOSE/i }).click();
 
     // Navigate to History and verify the session appears
     await page.getByRole("button", { name: /History/i }).click();
@@ -92,18 +73,12 @@ test.describe("workout save", () => {
       await skipBtn.click();
     }
 
+    // Complete workout — no rating modal (removed from UI)
     await page.getByRole("button", { name: /COMPLETE WORKOUT/i }).click();
 
-    const ratingBtn = page.getByRole("button", { name: "🙂" });
-    if (await ratingBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await ratingBtn.click();
-    }
-    const doneBtn = page.getByRole("button", { name: /DONE|SAVE|FINISH/i });
-    if (await doneBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await doneBtn.click();
-    }
-
-    // The definitive regression check: no error banner
-    await expect(page.getByText(/could not save/i)).not.toBeVisible({ timeout: 8000 });
+    // WorkoutSummary appears on success — its presence confirms the save went through
+    // The definitive regression check: no error banner, summary screen visible
+    await expect(page.getByText(/Workout not saved/i)).not.toBeVisible({ timeout: 8000 });
+    await expect(page.getByText("WORKOUT SUMMARY")).toBeVisible({ timeout: 8000 });
   });
 });

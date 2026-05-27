@@ -30,10 +30,32 @@ FitnessApp/
 
 ## Deploy Process
 1. Edit src/App.js (and public/index.html if needed)
-2. `git add src/App.js public/index.html`
-3. `git commit -m "description"`
-4. `git push origin main`
-5. Vercel auto-deploys in ~90 seconds
+2. `npm run build` — confirm clean compile
+3. `git add src/App.js public/index.html`
+4. `git commit -m "description"`
+5. `git push origin main`
+6. Vercel auto-deploys in ~90 seconds
+7. **For any UI-visible change**: wait for deploy, then run Playwright tests (see below) before declaring done
+
+## UI Testing with Playwright
+Playwright MCP is configured in `.claude.json`. Use it for all changes that affect visible UI.
+
+**Standard test flow after deploy:**
+1. Navigate to the live URL
+2. Log in (credentials via user)
+3. Screenshot full page to verify layout
+4. Test the specific changed component
+5. Check for regressions in adjacent tabs/features
+
+**What to test per change type:**
+- Layout changes → screenshot Plan/Workout tabs at mobile-equivalent width
+- Color/icon changes → screenshot nav bar and day cards
+- Scheduling changes → verify Workout tab shows correct day rotation
+- Data persistence → reload page, confirm data survived
+
+**Playwright tools available:** `browser_navigate`, `browser_snapshot`, `browser_click`, `browser_fill_form`, `browser_take_screenshot`
+
+**Fail criteria:** If a screenshot shows unexpected overlap, wrong colors, missing elements, or broken layout — stop, diagnose, fix before committing.
 
 ## Architecture
 Single React component file. Key functions in order:
