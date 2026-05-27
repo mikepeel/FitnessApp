@@ -1050,7 +1050,7 @@ export default function ForgeApp(){
               notes:"Session auto-saved after timeout",
               sets_data:draft.logged_sets||{}
             });
-            if(draftSaveErr)console.error("draft expired save:",draftSaveErr);
+            if(draftSaveErr){console.error("draft expired save:",draftSaveErr);return;}
             await supabase.from("workout_drafts").delete().eq("user_id",u.id);
           }else{
             // Within 3 hours — restore workout
