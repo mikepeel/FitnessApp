@@ -2846,7 +2846,8 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,onRer
       const{data:{session:_sess}}=await supabase.auth.getSession().catch(()=>({data:{session:null}}));
       const uid=_sess?.user?.id;
       if(uid){
-        await supabase.from("logged_sets").delete().eq("session_id",updatedSession.supabaseId);
+        const{error:delErr}=await supabase.from("logged_sets").delete().eq("session_id",updatedSession.supabaseId);
+        if(delErr){console.error("saveEdit logged_sets delete:",delErr);return;}
         if(setsArr.length>0){
           const setRows=setsArr.map(x=>({session_id:updatedSession.supabaseId,user_id:uid,exercise_name:x.exName,set_number:x.setNum,weight:parseFloat(x.weight)||null,reps:x.minutes?(parseInt(x.level)||null):(parseInt(x.reps)||null),minutes:parseFloat(x.minutes)||null,is_pr:x.isPR||false,set_type:x.type||"working"}));
           const{error:lsErr}=await supabase.from("logged_sets").insert(setRows);
