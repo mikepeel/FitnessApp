@@ -5,9 +5,6 @@ const { test, expect } = require("@playwright/test");
 
 test.describe("workout save", () => {
   test("completing a workout saves the session and shows it in History", async ({ page }) => {
-    const consoleErrors = [];
-    page.on("console", msg => { if (msg.type() === "error") consoleErrors.push(msg.text()); });
-
     await page.goto("/");
     await expect(page.getByRole("button", { name: /Workout/i })).toBeVisible();
 
@@ -36,9 +33,6 @@ test.describe("workout save", () => {
 
     // CRITICAL: no error banner should appear
     await expect(page.getByText(/Workout not saved/i)).not.toBeVisible({ timeout: 8000 });
-
-    // Log any console errors to aid diagnosis if the above assertion fails
-    if (consoleErrors.length) console.log("Console errors captured:", consoleErrors);
 
     // WorkoutSummary screen appears — dismiss it to return to main nav
     await expect(page.getByText("WORKOUT SUMMARY")).toBeVisible({ timeout: 8000 });

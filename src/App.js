@@ -1629,7 +1629,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
       const{error}=await supabase.from("workout_drafts").upsert({
         user_id:authUser.id,
         day_label:workout.label,
-        day_id:workout.id,
+        day_id:null,
         started_at:startTime,
         logged_sets:setsSnapshot||loggedSets,
         elapsed_seconds:elapsed,
