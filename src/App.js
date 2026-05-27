@@ -1102,8 +1102,8 @@ export default function ForgeApp(){
     const completed=sessions.filter(s=>s.completedAt&&!s.partial);
     if(!completed.length)return 0;
     const planDays=(plans[activePlanKey]?.days||[]);
+    const numDays=planDays.length;
     const toLD=d=>d.toLocaleDateString("en-CA");
-    // Use local date for progStart -- consistent with dateStr below
     const progStart=(()=>{
       const dates=sessions.filter(s=>s.completedAt).map(s=>toLD(new Date(s.completedAt))).sort();
       return dates[0]||PROGRAM_START;
@@ -1111,24 +1111,32 @@ export default function ForgeApp(){
     const today=new Date();
     today.setHours(12,0,0,0);
     const todayStr=toLD(today);
-    // Build map: day-of-week name -> plan day object
-    const planDayMap={};
-    for(const pd of planDays){if(pd.name)planDayMap[pd.name]=pd;}
+    // Use position-based slot (same logic as TodayTab) when plan has a startDate
+    const planStartDate=plans[activePlanKey]?.startDate;
+    const planStart=planStartDate?new Date(planStartDate+"T12:00:00"):null;
     let count=0;
     for(let i=0;i<=730;i++){
       const d=new Date(today);
       d.setDate(today.getDate()-i);
       const dateStr=toLD(d);
-      if(dateStr<progStart)break; // don't count before program started
-      const dowName=DOW[d.getDay()];
-      const planDay=planDayMap[dowName];
-      // Rest day or no plan day defined -- skip, don't count, don't break
+      if(dateStr<progStart)break;
+      let planDay=null;
+      if(planStart&&numDays>0){
+        const elapsed=Math.floor((d-planStart)/86400000);
+        if(elapsed>=0){planDay=planDays[elapsed%numDays];}
+      } else if(numDays>0){
+        // Fallback for plans without a startDate: use weekday-name map
+        const dowName=DOW[d.getDay()];
+        const planDayMap={};
+        for(const pd of planDays){if(pd.name)planDayMap[pd.name]=pd;}
+        planDay=planDayMap[dowName];
+      }
       if(!planDay||planDay.isRest){continue;}
-      // Workout day -- match by dayId OR dayLabel (consistent with rest of app)
-      const done=completed.some(s=>toLD(new Date(s.completedAt))===dateStr&&(s.dayId===planDay.id||s.dayLabel===planDay.label));
+      // Any completed session on this date counts (position-based plans don't fix labels to weekdays)
+      const done=completed.some(s=>toLD(new Date(s.completedAt))===dateStr);
       if(done){count++;}
-      else if(dateStr===todayStr){continue;} // today's workout not done yet -- don't break
-      else{break;} // missed workout day in the past -- streak broken
+      else if(dateStr===todayStr){continue;}
+      else{break;}
     }
     return count;
   })();
