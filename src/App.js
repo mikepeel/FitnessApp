@@ -3277,8 +3277,8 @@ function StatsTab({sessions,prs,settings,C,activePlan,bodyStatsInit=[],onBodySta
   const thisMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
   const lastMonthDate=new Date(now.getFullYear(),now.getMonth()-1,1);
   const lastMonth=`${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth()+1).padStart(2,"0")}`;
-  const thisMonthVol = sessions.filter(s=>s.completedAt?.startsWith(thisMonth)).reduce((a,s)=>(a+(s.setsArr||[]).filter(x=>x.type!=="warmup").reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
-  const lastMonthVol = sessions.filter(s=>s.completedAt?.startsWith(lastMonth)).reduce((a,s)=>(a+(s.setsArr||[]).filter(x=>x.type!=="warmup").reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
+  const thisMonthVol = sessions.filter(s=>s.completedAt&&new Date(s.completedAt).toLocaleDateString("en-CA").startsWith(thisMonth)).reduce((a,s)=>(a+(s.setsArr||[]).filter(x=>x.type!=="warmup").reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
+  const lastMonthVol = sessions.filter(s=>s.completedAt&&new Date(s.completedAt).toLocaleDateString("en-CA").startsWith(lastMonth)).reduce((a,s)=>(a+(s.setsArr||[]).filter(x=>x.type!=="warmup").reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
   const momChange = lastMonthVol>0 ? Math.round(((thisMonthVol-lastMonthVol)/lastMonthVol)*100) : null;
 
   // Weekly volume summary
