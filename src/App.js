@@ -1908,11 +1908,13 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
                   ✕
                 </button>}
                 <button onClick={()=>{
-                  if(!rowLog.minutes){setSetError(prev=>({...prev,[ex.name]:"Enter minutes first"}));return;}
+                  const placeholderMins=(ex.reps||"").match(/\d+/)?.[0]||"";
+                  const effectiveMins=rowLog.minutes||placeholderMins;
+                  if(!effectiveMins){setSetError(prev=>({...prev,[ex.name]:"Enter minutes first"}));return;}
                   setSetError(prev=>({...prev,[ex.name]:""}));
-                  setLoggedSets(prev=>({...prev,[ex.name]:{...(prev[ex.name]||{}),[n]:{...prev[ex.name]?.[n],minutes:rowLog.minutes,level:rowLog.level||"",done:true,prepop:false}}}));
+                  setLoggedSets(prev=>({...prev,[ex.name]:{...(prev[ex.name]||{}),[n]:{...prev[ex.name]?.[n],minutes:effectiveMins,level:rowLog.level||"",done:true,prepop:false}}}));
                   setSetStates(prev=>({...prev,[rowKey]:"confirmed"}));
-                  const draftSets={...loggedSets,[ex.name]:{...(loggedSets[ex.name]||{}),[n]:{...loggedSets[ex.name]?.[n],minutes:rowLog.minutes,level:rowLog.level||"",done:true,prepop:false}}};
+                  const draftSets={...loggedSets,[ex.name]:{...(loggedSets[ex.name]||{}),[n]:{...loggedSets[ex.name]?.[n],minutes:effectiveMins,level:rowLog.level||"",done:true,prepop:false}}};
                   saveDraft(draftSets);
                   const allConfirmed=intervalKeys.every(k=>{const rk=ex.id+"-"+k;return rk===rowKey||setStates[rk]==="confirmed";});
                   if(allConfirmed)markExerciseDone(ex.id,ex.name,false);
