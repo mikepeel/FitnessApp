@@ -13,8 +13,8 @@ module.exports = async function handler(req, res) {
   if(!authHeader?.startsWith("Bearer "))return res.status(401).json({error:"Unauthorized"});
   const token=authHeader.slice(7);
 
-  const supabaseUrl=process.env.REACT_APP_SUPABASE_URL;
-  const supabaseKey=process.env.REACT_APP_SUPABASE_ANON_KEY;
+  const supabaseUrl="https://ldbrabnvpiidrdkmjpbo.supabase.co";
+  const supabaseKey="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkYnJhYm52cGlpZHJka21qcGJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5NDMxOTQsImV4cCI6MjA5MzUxOTE5NH0.mJZINJgMl8QD-gTSc2LLikwc8OUloCTyfqoHqRe1xZI";
   const supabase=createClient(supabaseUrl,supabaseKey,{
     auth:{autoRefreshToken:false,persistSession:false},
     global:{headers:{Authorization:`Bearer ${token}`}}
@@ -49,7 +49,7 @@ module.exports = async function handler(req, res) {
     anthropicRes=await fetch("https://api.anthropic.com/v1/messages",{
       method:"POST",
       headers:{"Content-Type":"application/json","x-api-key":anthropicKey,"anthropic-version":"2023-06-01"},
-      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens,messages})
+      body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens,messages})
     });
   }catch(e){
     return res.status(502).json({error:"AI service unavailable"});
