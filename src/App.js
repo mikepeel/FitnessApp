@@ -16,7 +16,7 @@ const getProgramStart = (sessions) => {
   if(!sessions||!sessions.length) return PROGRAM_START;
   const dates = sessions
     .filter(s=>s.completedAt)
-    .map(s=>s.completedAt.split("T")[0])
+    .map(s=>new Date(s.completedAt).toLocaleDateString("en-CA"))
     .sort();
   return dates[0] || PROGRAM_START;
 };
