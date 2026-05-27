@@ -881,7 +881,8 @@ export default function ForgeApp(){
     if(!Array.isArray(s))return false;
     setSessions(s);
     try{
-      const{data:{user:u}}=await supabase.auth.getUser().catch(()=>({data:{user:null}}));
+      const{data:{session:_sess}}=await supabase.auth.getSession().catch(()=>({data:{session:null}}));
+      const u=_sess?.user||authUser;
       if(!u)return false;
       const uid=u.id;
       const latest=s[s.length-1];
