@@ -1778,7 +1778,10 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
     setSaving(true);setSaveError(null);
     const newPRs={};
     const setsArr=[];
-    for(const[exName,sets]of Object.entries(loggedSets)){
+    // Sort by plan exercise order so History always shows the same sequence as the workout plan
+    const exOrder=Object.fromEntries((workout.exercises||[]).map((e,i)=>[e.name,i]));
+    const sortedLogEntries=Object.entries(loggedSets).sort(([a],[b])=>(exOrder[a]??999)-(exOrder[b]??999));
+    for(const[exName,sets]of sortedLogEntries){
       for(const[sn,vals]of Object.entries(sets)){
         if(!vals.prepop&&(vals.weight||vals.reps||vals.minutes)){
           const w=parseFloat(vals.weight)||0;
@@ -1794,7 +1797,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
       writeToAppleHealth(startTime,new Date().toISOString(),vol);
     }
     const cleanSets={};
-    for(const[ex,exSets]of Object.entries(loggedSets)){const c={};for(const[n,v]of Object.entries(exSets)){if(!v.prepop)c[n]={weight:v.weight||"",reps:v.reps||"",minutes:v.minutes||"",level:v.level||""};}if(Object.keys(c).length)cleanSets[ex]=c;}
+    for(const[ex,exSets]of sortedLogEntries){const c={};for(const[n,v]of Object.entries(exSets)){if(!v.prepop)c[n]={weight:v.weight||"",reps:v.reps||"",minutes:v.minutes||"",level:v.level||""};}if(Object.keys(c).length)cleanSets[ex]=c;}
     const ok=await onFinish({id:Date.now().toString(),dayId:workout.id,dayLabel:workout.label,startedAt:startTime,completedAt:new Date().toISOString(),notes,sets:cleanSets,setsArr,partial:false},newPRs);
     if(ok){await deleteDraft();}else{setSaving(false);setSaveError("Workout not saved — check connection and tap Retry.");}
   }
