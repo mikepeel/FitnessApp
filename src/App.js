@@ -2634,7 +2634,7 @@ Use 7 days total (fill rest days with isRest:true and minimal exercises array wi
       };
       setResult(withIds);
     }catch(e){
-      setResult({error:"AI plan generation requires API access in the full build. For now, try one of the preset templates."});
+      setResult({error:"AI plan generation failed — check your connection and try again. Or choose a preset template below."});
     }
     setLoading(false);
   }
