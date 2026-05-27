@@ -2714,7 +2714,7 @@ function ExerciseForm({title,initial,onSave,onClose,isNew,C}){
 
 function DayForm({onSave,onClose,C}){
   const [d,setD]=useState({name:"",label:"",tag:"",color:"#4f8ef7",isRest:false});
-  const colors=["#ff5e1a","#3d9bff","#b06aff","#00d4aa","#ffb830"];
+  const colors=["#f06584","#3d9bff","#b06aff","#00d4aa","#ffb830"];
   return <div>
     <div style={{fontSize:16,fontWeight:600,marginBottom:18}}>Add Day</div>
     {[["Day Name (e.g. Monday)","name"],["Label (e.g. Push)","label"],["Tag (e.g. Chest . Back)","tag"]].map(([label,key])=>(
