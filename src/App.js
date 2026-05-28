@@ -1044,14 +1044,33 @@ export default function ForgeApp(){
           const ageSeconds=Math.floor((Date.now()-new Date(draft.started_at).getTime())/1000);
           if(ageSeconds>10800){
             // Expired — save as a session then delete
-            const{error:draftSaveErr}=await supabase.from("workout_sessions").insert({
+            const{data:savedSession,error:draftSaveErr}=await supabase.from("workout_sessions").insert({
               user_id:u.id, day_label:draft.day_label, day_id:null,
               started_at:draft.started_at,
               completed_at:draft.updated_at||new Date().toISOString(),
               notes:"Session auto-saved after timeout",
               sets_data:draft.logged_sets||{}
-            });
+            }).select("id").single();
             if(draftSaveErr){console.error("draft expired save:",draftSaveErr);return;}
+            const savedId=savedSession?.id;
+            if(savedId&&draft.logged_sets){
+              const setRows=[];
+              for(const[exName,sets]of Object.entries(draft.logged_sets)){
+                for(const[n,v]of Object.entries(sets)){
+                  const num=parseInt(n);
+                  if(!Number.isFinite(num)||!v.done)continue;
+                  setRows.push({session_id:savedId,user_id:u.id,exercise_name:exName,set_number:num,
+                    weight:parseFloat(v.weight)||null,
+                    reps:v.minutes?(parseInt(v.level)||null):(parseInt(v.reps)||null),
+                    minutes:parseFloat(v.minutes)||null,
+                    is_pr:false,set_type:"working"});
+                }
+              }
+              if(setRows.length>0){
+                const{error:setsErr}=await supabase.from("logged_sets").insert(setRows);
+                if(setsErr)console.error("draft expired logged_sets:",setsErr);
+              }
+            }
             await supabase.from("workout_drafts").delete().eq("user_id",u.id);
           }else{
             // Within 3 hours — restore workout
@@ -1060,7 +1079,14 @@ export default function ForgeApp(){
             if(matchDay){
               const secsSinceUpdate=Math.floor((Date.now()-new Date(draft.updated_at).getTime())/1000);
               const restoredElapsed=(draft.elapsed_seconds||0)+secsSinceUpdate;
-              setWorkoutDraft({loggedSets:draft.logged_sets||{},elapsed:restoredElapsed,startedAt:draft.started_at,workout:matchDay,exercises:draft.exercises_json||null});
+              const derivedCompletedExIds=(draft.exercises_json||[]).filter(ex=>{
+                const m=draft.logged_sets?.[ex.name]||{};
+                const isCardio=ex.muscle==="Cardio"||ex.muscle==="Recovery";
+                if(isCardio)return Object.values(m).some(v=>v.done&&(v.minutes||v.reps));
+                const numSets=parseInt(ex.sets)||3;
+                return Object.values(m).filter(v=>v.done).length>=numSets;
+              }).map(ex=>ex.id);
+              setWorkoutDraft({loggedSets:draft.logged_sets||{},elapsed:restoredElapsed,startedAt:draft.started_at,workout:matchDay,exercises:draft.exercises_json||null,completedExIds:derivedCompletedExIds});
               setActiveWorkout(matchDay);
               await supabase.from("workout_drafts").delete().eq("user_id",u.id);
             }
@@ -1620,6 +1646,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   const [saveError,setSaveError]=useState(null);
   const [autoSaveToast,setAutoSaveToast]=useState(false);
   const autoSavedRef=useRef(false);
+  const [autoFinishCountdown,setAutoFinishCountdown]=useState(null);
   const topRef=useRef(null);
   const lastActiveExRef=useRef(null);
   const dragStartYRef=useRef(null);
@@ -1635,6 +1662,14 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
     const t=setTimeout(()=>savePartialAndExit(),3000);
     return()=>clearTimeout(t);
   },[elapsed]);// eslint-disable-line
+
+  // Auto-finish countdown when all exercises are done
+  useEffect(()=>{
+    if(autoFinishCountdown===null)return;
+    if(autoFinishCountdown===0){finish();return;}
+    const t=setTimeout(()=>setAutoFinishCountdown(c=>c-1),1000);
+    return()=>clearTimeout(t);
+  },[autoFinishCountdown]);// eslint-disable-line
 
   const lastSessionForDay=sessions.filter(s=>s.dayId===workout.id&&s.completedAt).sort((a,b)=>new Date(b.completedAt)-new Date(a.completedAt))[0];
   const lastSets=lastSessionForDay?.sets||{};
@@ -1717,6 +1752,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
       const reordered=[...prev.slice(0,idx),...prev.slice(idx+1),prev[idx]];
       return reordered;
     });
+    if(isLastExercise){setAutoFinishCountdown(5);}
     // Smooth scroll to top of exercise list
     setTimeout(()=>{
       topRef.current?.scrollIntoView({behavior:"smooth",block:"start"});
@@ -1820,7 +1856,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
 
 
   return <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:C.serif,paddingBottom:100,scrollBehavior:"smooth"}}>
-    <div onPointerDown={e=>{dragStartYRef.current=e.clientY;setDragDelta(0);e.currentTarget.setPointerCapture(e.pointerId);}} onPointerMove={e=>{if(dragStartYRef.current===null)return;const d=e.clientY-dragStartYRef.current;setDragDelta(d>0?d:0);}} onPointerUp={e=>{const d=dragStartYRef.current!==null?e.clientY-dragStartYRef.current:0;dragStartYRef.current=null;setDragDelta(0);if(d>80)onMinimize({workout,loggedSets,elapsed,startedAt:startTime,exercises,completedExIds:[...completedExIds]});}} onPointerCancel={()=>{dragStartYRef.current=null;setDragDelta(0);}} style={{height:28,display:"flex",alignItems:"center",justifyContent:"center",cursor:"grab",touchAction:"none",background:C.bg}}>
+    <div onPointerDown={e=>{dragStartYRef.current=e.clientY;setDragDelta(0);e.currentTarget.setPointerCapture(e.pointerId);}} onPointerMove={e=>{if(dragStartYRef.current===null)return;const d=e.clientY-dragStartYRef.current;setDragDelta(d>0?d:0);}} onPointerUp={async e=>{const d=dragStartYRef.current!==null?e.clientY-dragStartYRef.current:0;dragStartYRef.current=null;setDragDelta(0);if(d>80){await saveDraft();onMinimize({workout,loggedSets,elapsed,startedAt:startTime,exercises,completedExIds:[...completedExIds]});}}} onPointerCancel={()=>{dragStartYRef.current=null;setDragDelta(0);}} style={{height:28,display:"flex",alignItems:"center",justifyContent:"center",cursor:"grab",touchAction:"none",background:C.bg}}>
       <div style={{width:40,height:4,borderRadius:2,background:dragDelta>60?C.neon:C.border,transition:"background 0.15s"}}/>
     </div>
     <div style={{background:C.surface,borderBottom:`2px solid ${C.neon}`,padding:"14px 18px",position:"sticky",top:0,zIndex:50,marginTop:0}}>
@@ -1833,12 +1869,16 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
           <Mono style={{fontSize:13,color:C.neon,fontWeight:700}}>{Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,"0")}</Mono>
           <Btn onClick={()=>setAddExModal(true)} variant="ghost" size="sm" C={C} style={{fontSize:11,color:C.neon,borderColor:C.neon+"44"}}>+ Add</Btn>
           <Btn onClick={()=>setShowEndMenu(true)} variant="ghost" size="sm" C={C} style={{fontSize:16,letterSpacing:"0.1em",padding:"5px 8px"}}>⋯</Btn>
-          <Btn onClick={()=>onMinimize({workout,loggedSets,elapsed,startedAt:startTime,exercises,completedExIds:[...completedExIds]})} variant="ghost" size="sm" C={C}>✕</Btn>
+          <Btn onClick={async()=>{await saveDraft();onMinimize({workout,loggedSets,elapsed,startedAt:startTime,exercises,completedExIds:[...completedExIds]});}} variant="ghost" size="sm" C={C}>✕</Btn>
         </div>
       </div>
     </div>
     {autoSaveToast&&<div style={{background:C.gold,padding:"10px 18px",textAlign:"center"}}>
       <Mono style={{fontSize:12,color:"#0b0c0e",fontWeight:700}}>Workout auto-saved after 3 hours</Mono>
+    </div>}
+    {autoFinishCountdown!==null&&<div style={{background:C.neon,padding:"10px 18px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+      <Mono style={{fontSize:12,color:"#0b0c0e",fontWeight:700}}>All done! Completing in {autoFinishCountdown}s…</Mono>
+      <Btn onClick={()=>setAutoFinishCountdown(null)} variant="ghost" size="sm" C={C} style={{fontSize:11,color:"#0b0c0e",borderColor:"#0b0c0e44",padding:"3px 10px"}}>CANCEL</Btn>
     </div>}
     <div style={{padding:"14px 18px"}}>
       {showRest&&settings.restTimer&&<RestTimer key={restKey} seconds={settings.restSeconds||90} onDone={()=>setShowRest(false)} onSkip={()=>setShowRest(false)} C={C}/>}
