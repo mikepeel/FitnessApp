@@ -2853,10 +2853,8 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,onRer
       sets:setsMap, setsArr,
       manual:true
     };
-    const updated=[newSess,...sessions].sort((a,b)=>new Date(b.completedAt)-new Date(a.completedAt));
-    const ok=await saveSessions(updated);
-    recalcPRs(updated);
-    if(ok){
+    const ok=await saveSessions([...sessions,newSess]);
+    if(ok){recalcPRs([...sessions,newSess]);
       setAddingSession(false);
       setManualSession({dayLabel:"",date:new Date().toLocaleDateString("en-CA"),duration:"",notes:"",exercises:[{name:"",sets:"3",reps:"10",weight:""}]});
     }
