@@ -2924,7 +2924,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,onRer
       </div>
       <div style={{display:"flex",gap:5}}>
         {[["1m","1M"],["3m","3M"],["6m","6M"],["all","ALL"]].map(([k,label])=>(
-          <button key={k} onClick={()=>setHistoryFilter(k)} style={{padding:"5px 13px",borderRadius:6,border:`1px solid ${historyFilter===k?C.accent+"66":C.border}`,background:historyFilter===k?C.accent+"20":"transparent",color:historyFilter===k?C.accent:C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:10,cursor:"pointer",letterSpacing:"0.06em"}}>{label}</button>
+          <button key={k} onClick={()=>setHistoryFilter(k)} style={{padding:"7px 14px",borderRadius:7,border:historyFilter===k?"none":`1px solid ${C.border}`,background:historyFilter===k?C.accent:"transparent",color:historyFilter===k?"#fff":C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:12,fontWeight:700,cursor:"pointer"}}>{label}</button>
         ))}
       </div>
     </div>
