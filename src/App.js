@@ -1341,8 +1341,7 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
     : (sessions.length > 0 ? `WEEK ${programWeek(sessions)}` : "");
 
   return <div>
-    <div style={{background:C.bg,borderBottom:`1px solid ${C.border}`,padding:"16px 14px 14px",position:"relative",overflow:"hidden"}}>
-      <div style={{position:"absolute",top:0,left:0,right:0,bottom:0,background:C.gradTop,pointerEvents:"none"}}/>
+    <div style={{background:C.bg,borderBottom:`1px solid ${C.border}`,padding:"16px 14px 14px"}}>
       {/* Row 1: greeting / day / date — theme toggle */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8,position:"relative"}}>
         <div>
