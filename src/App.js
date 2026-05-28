@@ -1375,12 +1375,6 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
           <span style={{fontSize:10,color:C.muted,marginLeft:"auto"}}>Start your streak today</span>
         )}
       </div>
-      {/* Smart Start Today button — hidden once today's workout is done */}
-      {todayDay&&!todaySessions.some(s=>s.dayLabel===todayDay.label)&&<div style={{paddingTop:12,position:"relative"}}>
-        <button onClick={()=>onStart(todayDay)} style={{width:"100%",padding:"10px",background:themeMode==="dark"?"#f7c948":"#d4a017",border:"none",borderRadius:12,color:themeMode==="dark"?"#1a202c":"#ffffff",fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",fontWeight:800,letterSpacing:"0.08em",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 8px rgba(0,0,0,0.15)"}}>
-          START {todayDay.label.toUpperCase()}
-        </button>
-      </div>}
     </div>
     <div style={{padding:"14px 18px"}}>
       {!plan&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"20px",textAlign:"center",marginBottom:14}}>
@@ -1471,9 +1465,10 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
               {doneSess&&dayVol&&dayVol.sets>0&&<Mono style={{fontSize:11,color:C.neon+"bb",display:"block",marginTop:4}}>{dayVol.sets} sets · {dayVol.vol>0?`${Math.round(dayVol.vol).toLocaleString()} lbs`:"logged"}</Mono>}
               {day.isRest&&isToday&&<div style={{fontSize:12,color:C.neon,fontStyle:"italic",marginTop:6,lineHeight:1.5}}>"{quote}"</div>}
             </div>
-            {!day.isRest&&!doneSess&&!isFutureStart&&<Btn onClick={()=>onStart(day)} size="sm" C={C} style={{marginLeft:10,background:C.neon,color:"#fff",fontWeight:700,letterSpacing:"0.1em"}}>START</Btn>}
+            {!isToday&&!day.isRest&&!doneSess&&!isFutureStart&&<Btn onClick={()=>onStart(day)} size="sm" C={C} style={{marginLeft:10,background:C.neon,color:"#fff",fontWeight:700,letterSpacing:"0.1em"}}>START</Btn>}
             {!day.isRest&&doneSess&&!isToday&&<Btn onClick={()=>onStart(day)} size="sm" variant="ghost" C={C} style={{marginLeft:10,fontSize:10,color:C.muted,borderColor:C.border}}>↺ Again</Btn>}
           </div>
+          {isToday&&!doneSess&&!day.isRest&&!isFutureStart&&<button onClick={()=>onStart(day)} style={{width:"100%",padding:"11px",background:themeMode==="dark"?"#f7c948":"#d4a017",border:"none",borderRadius:10,color:themeMode==="dark"?"#1a202c":"#ffffff",fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",fontWeight:800,letterSpacing:"0.08em",cursor:"pointer",marginTop:12,boxShadow:"0 2px 8px rgba(0,0,0,0.15)"}}>START {day.label.toUpperCase()}</button>}
         </div>;
       })}
     </div>
