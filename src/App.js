@@ -3881,8 +3881,9 @@ function WorkoutSummary({session,newPRs,previousPRs,complianceStreak,setsWarning
           </div>
         </div>
         <div style={{fontSize:22,fontWeight:800,color:"#fff",letterSpacing:"0.04em",marginBottom:6}}>WORKOUT SUMMARY</div>
-        <div style={{fontSize:16,fontWeight:700,color:"rgba(255,255,255,0.95)",marginBottom:4}}>{session.dayLabel}</div>
-        <div style={{fontSize:12,color:"rgba(255,255,255,0.88)"}}>{dayName} · {dateStr} · {durationMin} min</div>
+        <div style={{fontSize:16,fontWeight:700,color:"#fff",marginBottom:6}}>{session.dayLabel}</div>
+        <div style={{fontSize:15,fontWeight:600,color:"#fff",marginBottom:3}}>{dayName}, {dateStr}</div>
+        <div style={{fontSize:13,fontWeight:500,color:"rgba(255,255,255,0.9)",letterSpacing:"0.08em"}}>{durationMin} MIN</div>
       </div>
 
       {/* Content */}
