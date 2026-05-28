@@ -1830,7 +1830,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
     <div onPointerDown={e=>{dragStartYRef.current=e.clientY;setDragDelta(0);e.currentTarget.setPointerCapture(e.pointerId);}} onPointerMove={e=>{if(dragStartYRef.current===null)return;const d=e.clientY-dragStartYRef.current;setDragDelta(d>0?d:0);}} onPointerUp={async e=>{const d=dragStartYRef.current!==null?e.clientY-dragStartYRef.current:0;dragStartYRef.current=null;setDragDelta(0);if(d>80){await saveDraft();onMinimize({workout,loggedSets,elapsed,startedAt:startTime,exercises,completedExIds:[...completedExIds]});}}} onPointerCancel={()=>{dragStartYRef.current=null;setDragDelta(0);}} style={{height:28,display:"flex",alignItems:"center",justifyContent:"center",cursor:"grab",touchAction:"none",background:C.bg}}>
       <div style={{width:40,height:4,borderRadius:2,background:dragDelta>60?C.neon:C.border,transition:"background 0.15s"}}/>
     </div>
-    <div style={{background:C.surface,borderBottom:`2px solid ${C.neon}`,padding:"14px 18px",position:"sticky",top:0,zIndex:50,marginTop:0}}>
+    <div style={{background:C.bg,borderBottom:`2px solid ${C.neon}`,padding:"14px 18px",position:"sticky",top:0,zIndex:50,marginTop:0}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div>
           <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>{workout.label}</div>
@@ -2334,7 +2334,7 @@ No explanation, no markdown, just the JSON array.`;
   }
 
   return <div>
-    <div style={{background:C.surface,borderBottom:`2px solid ${C.accent}`,padding:"16px 18px 14px"}}>
+    <div style={{background:C.bg,borderBottom:`2px solid ${C.accent}`,padding:"16px 18px 14px"}}>
       <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em",marginBottom:10}}>Plan Editor</div>
       {/* View switcher */}
       <div style={{display:"flex",gap:6,marginBottom:10,background:C.card,padding:4,borderRadius:10}}>
@@ -2912,7 +2912,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,onRer
   }
 
   return <div>
-    <div style={{background:C.surface,borderBottom:`2px solid ${C.accent}`,padding:"16px 18px 14px"}}>
+    <div style={{background:C.bg,borderBottom:`2px solid ${C.accent}`,padding:"16px 18px 14px"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
         <div>
           <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>Workout History</div>
@@ -3387,7 +3387,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
   const tabStyle=(active)=>({flex:1,padding:"7px 4px",borderRadius:7,border:"none",background:active?C.accent:"transparent",color:active?"#fff":C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:10,cursor:"pointer",letterSpacing:"0.04em"});
 
   return <div>
-    <div style={{background:C.surface,borderBottom:`1px solid ${C.border}`,padding:"16px 18px 14px"}}>
+    <div style={{background:C.bg,borderBottom:`1px solid ${C.border}`,padding:"16px 18px 14px"}}>
       <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em",marginBottom:2}}>Progress</div>
       <Mono style={{fontSize:11,color:C.muted,display:"block",marginBottom:12}}>{(()=>{const wk=planWeekOf(activePlan);const tot=activePlan?.durationWeeks||10;return wk?`Week ${Math.min(wk,tot)} of ${tot} in your program`:`Week ${programWeek(sessions)} of your program`;})()}</Mono>
       <div style={{display:"flex",gap:4,background:C.card,padding:4,borderRadius:10}}>
@@ -3655,7 +3655,7 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
   ];
 
   return <div>
-    <div style={{background:C.surface,borderBottom:`2px solid ${C.accent}`,padding:"16px 18px"}}>
+    <div style={{background:C.bg,borderBottom:`2px solid ${C.accent}`,padding:"16px 18px"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>Settings</div>
         <div style={{display:"flex",gap:8}}>
