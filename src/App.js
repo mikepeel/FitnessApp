@@ -1341,57 +1341,42 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
     : (sessions.length > 0 ? `WEEK ${programWeek(sessions)}` : "");
 
   return <div>
-    <div style={{background:C.surface,borderBottom:`1px solid ${C.border}`,padding:"16px 18px 14px",position:"relative",overflow:"hidden"}}>
+    <div style={{background:C.surface,borderBottom:`1px solid ${C.border}`,padding:"16px 14px 14px",position:"relative",overflow:"hidden"}}>
       <div style={{position:"absolute",top:0,left:0,right:0,bottom:0,background:C.gradTop,pointerEvents:"none"}}/>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",position:"relative"}}>
+      {/* Row 1: greeting / day / date — theme toggle */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8,position:"relative"}}>
         <div>
-          <div style={{fontSize:13,color:C.muted,marginBottom:10}}>Hello, <span style={{color:C.text,fontWeight:600}}>{userName}</span> 👋</div>
+          <div style={{fontSize:12,color:C.muted,marginBottom:4}}>Hello, <span style={{fontWeight:600}}>{userName}</span> 👋</div>
           <div style={{fontSize:22,letterSpacing:"-0.03em",fontWeight:800}}>{new Date().toLocaleDateString("en",{weekday:"long"})}</div>
-          <Mono style={{fontSize:11,color:C.muted}}>{new Date().toLocaleDateString("en",{month:"short",day:"numeric",year:"numeric"})}</Mono>
+          <div style={{fontSize:13,color:C.muted,marginTop:1}}>{new Date().toLocaleDateString("en",{month:"short",day:"numeric",year:"numeric"})}</div>
         </div>
-        <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6}}>
-          <button onClick={toggleTheme} style={{background:"transparent",border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",padding:"5px 10px",fontSize:14}}>
-            {themeMode==="dark"?"☀️":"🌙"}
-          </button>
-          <div style={{textAlign:"right",display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
-            {weekLabel&&<Mono style={{fontSize:10,color:isProgramComplete?C.gold:C.accent,letterSpacing:"0.1em"}}>{weekLabel}</Mono>}
-            {settings.streakTracking&&(
-              complianceStreak>=30
-                ?<div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:1}}>
-                    <Mono style={{fontSize:16,color:C.gold,fontWeight:800}}>🏆 {complianceStreak}</Mono>
-                    <span style={{fontSize:9,color:C.muted}}>workouts · consecutive</span>
-                  </div>
-                :complianceStreak>=7
-                ?<div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:1}}>
-                    <div style={{display:"flex",alignItems:"center",gap:4}}>
-                      <span style={{fontSize:18}}>🔥</span>
-                      <Mono style={{fontSize:18,color:C.gold,fontWeight:800}}>{complianceStreak}</Mono>
-                    </div>
-                    <span style={{fontSize:9,color:C.muted}}>WORKOUT STREAK</span>
-                  </div>
-                :complianceStreak>0
-                ?<div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:1}}>
-                    <div style={{display:"flex",alignItems:"center",gap:4}}>
-                      <span style={{fontSize:18}}>🔥</span>
-                      <Mono style={{fontSize:18,color:C.neon,fontWeight:800}}>{complianceStreak}</Mono>
-                    </div>
-                    <span style={{fontSize:9,color:C.muted}}>WORKOUT STREAK</span>
-                  </div>
-                :<span style={{fontSize:10,color:C.muted}}>Start your streak today</span>
-            )}
-            {todaySessions.length>0&&<Pill color={C.neon} C={C}>Done today</Pill>}
-          </div>
-        </div>
+        <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",marginTop:2,display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
+          <span style={{fontSize:11}}>◐</span>{themeMode==="dark"?"DARK":"LIGHT"}
+        </button>
       </div>
-      <div style={{display:"flex",gap:6,marginTop:12,flexWrap:"wrap",position:"relative"}}>
-        {Object.keys(plans).map(k=>(
-          <button key={k} onClick={()=>setActivePlanKey(k)} style={{padding:"6px 12px",borderRadius:6,fontFamily:"'SF Mono','Courier New',monospace",fontSize:11,cursor:"pointer",border:activePlanKey===k?"none":`1px solid ${C.border}`,background:activePlanKey===k?C.accent:"transparent",color:activePlanKey===k?"#fff":C.muted,letterSpacing:"0.04em"}}>
-            {plans[k]?.name}
-          </button>
-        ))}
+      {/* Row 2: plan + week badge — streak pill */}
+      <div style={{display:"flex",alignItems:"center",gap:8,position:"relative"}}>
+        {plan&&(
+          <div style={{display:"flex",alignItems:"center",gap:6,background:C.accent+"15",border:`1px solid ${C.accent}33`,borderRadius:6,padding:"4px 10px",whiteSpace:"nowrap",flexShrink:0}}>
+            <span style={{fontSize:11,color:C.accent,fontWeight:600,letterSpacing:"0.02em"}}>{plan.name}</span>
+            {weekLabel&&<>
+              <span style={{width:3,height:3,background:C.accent+"66",borderRadius:"50%",display:"inline-block"}}/>
+              <span style={{fontSize:11,color:isProgramComplete?C.gold:C.accent+"aa",fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.06em"}}>{weekLabel}</span>
+            </>}
+          </div>
+        )}
+        {settings.streakTracking&&complianceStreak>0&&(
+          <div style={{display:"flex",alignItems:"center",gap:5,background:C.gold+"12",border:`1px solid ${C.gold}30`,borderRadius:6,padding:"4px 10px",marginLeft:"auto",flexShrink:0,whiteSpace:"nowrap"}}>
+            <span style={{fontSize:12}}>🏆</span>
+            <span style={{fontSize:11,color:C.gold,fontWeight:600}}>{complianceStreak} session streak!</span>
+          </div>
+        )}
+        {settings.streakTracking&&complianceStreak===0&&(
+          <span style={{fontSize:10,color:C.muted,marginLeft:"auto"}}>Start your streak today</span>
+        )}
       </div>
       {/* Smart Start Today button — hidden once today's workout is done */}
-      {todayDay&&!todaySessions.some(s=>s.dayLabel===todayDay.label)&&<div style={{padding:"12px 18px 0",position:"relative"}}>
+      {todayDay&&!todaySessions.some(s=>s.dayLabel===todayDay.label)&&<div style={{paddingTop:12,position:"relative"}}>
         <button onClick={()=>onStart(todayDay)} style={{width:"100%",padding:"10px",background:themeMode==="dark"?"#f7c948":"#d4a017",border:"none",borderRadius:12,color:themeMode==="dark"?"#1a202c":"#ffffff",fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",fontWeight:800,letterSpacing:"0.08em",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 8px rgba(0,0,0,0.15)"}}>
           START {todayDay.label.toUpperCase()}
         </button>
@@ -1426,22 +1411,6 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
           <button onClick={onGoToPlan} style={{flex:1,padding:"9px",borderRadius:8,border:"none",background:C.gold,color:"#1a202c",fontSize:11,fontFamily:"'SF Mono','Courier New',monospace",fontWeight:700,cursor:"pointer"}}>Start New Plan</button>
         </div>
       </div>}
-      {/* Weekly volume summary - show every Monday or always */}
-      {(()=>{
-        const today=new Date();
-        const weekStart=new Date(today);weekStart.setDate(today.getDate()-today.getDay());
-        const weekStr=weekStart.toLocaleDateString("en-CA");
-        const weekSess=sessions.filter(s=>s.completedAt&&new Date(s.completedAt).toLocaleDateString("en-CA")>=weekStr);
-        const weekVol=weekSess.reduce((a,s)=>(a+(s.setsArr||[]).filter(x=>x.type!=="warmup").reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
-        if(weekSess.length===0)return null;
-        return <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"12px 14px",marginBottom:12,display:"flex",gap:16,alignItems:"center"}}>
-          <div style={{flex:1}}>
-            <Mono style={{fontSize:9,color:C.muted,letterSpacing:"0.1em",display:"block",marginBottom:2}}>THIS WEEK</Mono>
-            <div style={{fontSize:13,fontWeight:600}}>{weekSess.length} session{weekSess.length!==1?"s":""} · {weekVol>0?`${Math.round(weekVol/1000)}k lbs`:"just started"}</div>
-          </div>
-          <div style={{fontSize:22}}>{"💪"}</div>
-        </div>;
-      })()}
       {plan&&isFutureStart&&<div style={{background:C.accent+"15",border:`1px solid ${C.accent}40`,borderRadius:10,padding:"14px",marginBottom:14}}>
         <Mono style={{fontSize:10,color:C.accent,letterSpacing:"0.1em",display:"block",marginBottom:6}}>STARTS IN {daysUntilStart} DAY{daysUntilStart!==1?"S":""} · {startDate.toLocaleDateString("en",{weekday:"long",month:"long",day:"numeric"})}</Mono>
         <div style={{fontSize:13,fontWeight:600,color:C.text,marginBottom:10}}>Upcoming rotation</div>
