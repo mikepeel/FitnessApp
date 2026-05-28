@@ -1646,6 +1646,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   const [saveError,setSaveError]=useState(null);
   const [autoSaveToast,setAutoSaveToast]=useState(false);
   const autoSavedRef=useRef(false);
+  const finishCalledRef=useRef(false);
   const [autoFinishCountdown,setAutoFinishCountdown]=useState(null);
   const topRef=useRef(null);
   const lastActiveExRef=useRef(null);
@@ -1824,7 +1825,8 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   }
 
   async function finish(){
-    if(saving)return;
+    if(saving||finishCalledRef.current)return;
+    finishCalledRef.current=true;
     setSaving(true);setSaveError(null);
     const newPRs={};
     const setsArr=[];
@@ -1849,7 +1851,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
     const cleanSets={};
     for(const[ex,exSets]of sortedLogEntries){const c={};for(const[n,v]of Object.entries(exSets)){if(!v.prepop)c[n]={weight:v.weight||"",reps:v.reps||"",minutes:v.minutes||"",level:v.level||""};}if(Object.keys(c).length)cleanSets[ex]=c;}
     const ok=await onFinish({id:Date.now().toString(),dayId:workout.id,dayLabel:workout.label,startedAt:startTime,completedAt:new Date().toISOString(),notes,sets:cleanSets,setsArr,partial:false},newPRs);
-    if(ok){await deleteDraft();}else{setSaving(false);setSaveError("Workout not saved — check connection and tap Retry.");}
+    if(ok){await deleteDraft();}else{finishCalledRef.current=false;setSaving(false);setSaveError("Workout not saved — check connection and tap Retry.");}
   }
 
   const inputStyle={padding:"9px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:7,color:C.text,fontSize:14,fontFamily:"'SF Mono','Courier New',monospace",width:"100%",boxSizing:"border-box"};
