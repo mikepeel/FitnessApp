@@ -1360,8 +1360,8 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
           <div style={{display:"flex",alignItems:"center",gap:6,background:C.accent+"15",border:`1px solid ${C.accent}33`,borderRadius:6,padding:"4px 10px",whiteSpace:"nowrap",flexShrink:0}}>
             <span style={{fontSize:11,color:C.accent,fontWeight:600,letterSpacing:"0.02em"}}>{plan.name}</span>
             {weekLabel&&<>
-              <span style={{width:3,height:3,background:C.accent+"66",borderRadius:"50%",display:"inline-block"}}/>
-              <span style={{fontSize:11,color:isProgramComplete?C.gold:C.accent+"aa",fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.06em"}}>{weekLabel}</span>
+              <span style={{width:3,height:3,background:C.accent+"99",borderRadius:"50%",display:"inline-block"}}/>
+              <span style={{fontSize:11,color:isProgramComplete?C.gold:C.accent,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.04em"}}>{weekLabel}</span>
             </>}
           </div>
         )}
