@@ -2765,6 +2765,10 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,onRer
   const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
   const yesterdayStr=yesterday.toLocaleDateString("en-CA");
 
+  const [expanded,setExpanded]=useState(null);
+  const [historyFilter,setHistoryFilter]=useState("3m");
+  const [editingSession,setEditingSession]=useState(null);
+
   // Sort all sessions newest first -- include ALL sessions, even if completedAt is missing
   const sorted=[...sessions]
     .filter(s=>s.completedAt||s.startedAt)
@@ -2781,10 +2785,6 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,onRer
     acc[m].push(s);
     return acc;
   },{});
-
-  const [expanded,setExpanded]=useState(null);
-  const [historyFilter,setHistoryFilter]=useState("3m");
-  const [editingSession,setEditingSession]=useState(null);
   const [confirmDelete,setConfirmDelete]=useState(null);
   const [deleteError,setDeleteError]=useState(null);
   const [addingSession,setAddingSession]=useState(false);
