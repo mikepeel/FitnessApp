@@ -758,20 +758,20 @@ function AuthScreen({C,onAuth,themeMode,toggleTheme}){
       {/* Form */}
       <div style={{background:"#1e2530",border:"1px solid #3a4456",borderRadius:16,padding:"24px"}}>
         {mode==="signup"&&<div style={{marginBottom:14}}>
-          <div style={{fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",color:"#9ba3b0",letterSpacing:"0.12em",marginBottom:6}}>NAME (optional)</div>
+          <div style={{fontSize:10,color:"#9ba3b0",letterSpacing:"0.12em",marginBottom:6}}>NAME (optional)</div>
           <input value={name} onChange={e=>setName(e.target.value)} placeholder="Your name"
             style={inputStyle} autoComplete="name"/>
         </div>}
 
         <div style={{marginBottom:14}}>
-          <div style={{fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",color:"#9ba3b0",letterSpacing:"0.12em",marginBottom:6}}>EMAIL</div>
+          <div style={{fontSize:10,color:"#9ba3b0",letterSpacing:"0.12em",marginBottom:6}}>EMAIL</div>
           <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com"
             style={inputStyle} autoComplete="email"
             onKeyDown={e=>e.key==="Enter"&&handleSubmit()}/>
         </div>
 
         {mode!=="reset"&&<div style={{marginBottom:20}}>
-          <div style={{fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",color:"#9ba3b0",letterSpacing:"0.12em",marginBottom:6}}>PASSWORD</div>
+          <div style={{fontSize:10,color:"#9ba3b0",letterSpacing:"0.12em",marginBottom:6}}>PASSWORD</div>
           <input type="password" value={password} onChange={e=>setPassword(e.target.value)}
             placeholder={mode==="signup"?"At least 6 characters":"Your password"}
             style={inputStyle} autoComplete={mode==="signup"?"new-password":"current-password"}
@@ -1359,7 +1359,7 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
               complianceStreak>=30
                 ?<div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:1}}>
                     <Mono style={{fontSize:16,color:C.gold,fontWeight:800}}>🏆 {complianceStreak}</Mono>
-                    <Mono style={{fontSize:9,color:C.muted}}>workouts · consecutive</Mono>
+                    <span style={{fontSize:9,color:C.muted}}>workouts · consecutive</span>
                   </div>
                 :complianceStreak>=7
                 ?<div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:1}}>
@@ -1367,7 +1367,7 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
                       <span style={{fontSize:18}}>🔥</span>
                       <Mono style={{fontSize:18,color:C.gold,fontWeight:800}}>{complianceStreak}</Mono>
                     </div>
-                    <Mono style={{fontSize:9,color:C.muted}}>WORKOUT STREAK</Mono>
+                    <span style={{fontSize:9,color:C.muted}}>WORKOUT STREAK</span>
                   </div>
                 :complianceStreak>0
                 ?<div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:1}}>
@@ -1375,9 +1375,9 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
                       <span style={{fontSize:18}}>🔥</span>
                       <Mono style={{fontSize:18,color:C.neon,fontWeight:800}}>{complianceStreak}</Mono>
                     </div>
-                    <Mono style={{fontSize:9,color:C.muted}}>WORKOUT STREAK</Mono>
+                    <span style={{fontSize:9,color:C.muted}}>WORKOUT STREAK</span>
                   </div>
-                :<Mono style={{fontSize:10,color:C.muted}}>Start your streak today</Mono>
+                :<span style={{fontSize:10,color:C.muted}}>Start your streak today</span>
             )}
             {todaySessions.length>0&&<Pill color={C.neon} C={C}>Done today</Pill>}
           </div>
@@ -1401,26 +1401,26 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
       {!plan&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"20px",textAlign:"center",marginBottom:14}}>
         <div style={{fontSize:18,marginBottom:8}}>💪</div>
         <div style={{fontSize:15,fontWeight:700,marginBottom:6}}>No plan set up yet</div>
-        <Mono style={{fontSize:11,color:C.muted,display:"block",marginBottom:14}}>Pick a template to get started or build a custom plan.</Mono>
+        <div style={{fontSize:11,color:C.muted,marginBottom:14}}>Pick a template to get started or build a custom plan.</div>
         <button onClick={onGoToPlan} style={{padding:"10px 20px",borderRadius:8,border:"none",background:C.accent,color:"#fff",fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",fontWeight:700,cursor:"pointer",letterSpacing:"0.04em"}}>Browse Templates</button>
       </div>}
       {deloadDue&&<div style={{background:C.gold+"15",border:`1px solid ${C.gold}55`,borderRadius:10,padding:"12px 14px",marginBottom:14}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
           <div style={{flex:1}}>
             <div style={{fontSize:13,color:C.gold,fontWeight:700,marginBottom:4}}>⚠ Deload Week Recommended</div>
-            <Mono style={{fontSize:11,color:C.muted,lineHeight:1.6,display:"block"}}>
+            <div style={{fontSize:11,color:C.muted,lineHeight:1.6}}>
               You've logged 10+ sessions over 6+ weeks of consistent training. A deload week lets joints recover and consolidates strength gains.
-            </Mono>
-            <Mono style={{fontSize:11,color:C.gold,display:"block",marginTop:6,lineHeight:1.6}}>
+            </div>
+            <div style={{fontSize:11,color:C.gold,marginTop:6,lineHeight:1.6}}>
               This week: drop all weights to 60%, keep same exercises and sets. Resume normal load next week.
-            </Mono>
+            </div>
           </div>
           <button onClick={onDeloadDismiss} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:18,padding:"0 0 0 12px",flexShrink:0,lineHeight:1}}>✕</button>
         </div>
       </div>}
       {isProgramComplete&&!dismissedComplete&&<div style={{background:C.gold+"15",border:`1px solid ${C.gold}55`,borderRadius:10,padding:"14px",marginBottom:14}}>
         <div style={{fontSize:13,color:C.gold,fontWeight:700,marginBottom:4}}>🏆 PROGRAM COMPLETE · WEEK {wkTotal} OF {wkTotal}</div>
-        <Mono style={{fontSize:11,color:C.muted,display:"block",lineHeight:1.6,marginBottom:10}}>You've completed your {wkTotal}-week program. What's next?</Mono>
+        <div style={{fontSize:11,color:C.muted,lineHeight:1.6,marginBottom:10}}>You've completed your {wkTotal}-week program. What's next?</div>
         <div style={{display:"flex",gap:8}}>
           <button onClick={()=>setDismissedComplete(true)} style={{flex:1,padding:"9px",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",color:C.muted,fontSize:11,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer"}}>Continue As Is</button>
           <button onClick={onGoToPlan} style={{flex:1,padding:"9px",borderRadius:8,border:"none",background:C.gold,color:"#1a202c",fontSize:11,fontFamily:"'SF Mono','Courier New',monospace",fontWeight:700,cursor:"pointer"}}>Start New Plan</button>
@@ -1497,8 +1497,8 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
                 {isToday&&!doneSess&&<Pill color={C.neon}>Today</Pill>}
                 {(doneSess||(day.isRest&&isPast))&&<Pill color={C.neon}>✓ Done</Pill>}
               </div>
-              <Mono style={{fontSize:11,color:C.muted}}>{calDateDisplay} · {day.tag}</Mono>
-              {!day.isRest&&!doneSess&&<Mono style={{fontSize:11,color:C.muted,display:"block",marginTop:1}}>{day.exercises.length} exercises</Mono>}
+              <div style={{fontSize:11,color:C.muted}}>{calDateDisplay} · {day.tag}</div>
+              {!day.isRest&&!doneSess&&<div style={{fontSize:11,color:C.muted,marginTop:1}}>{day.exercises.length} exercises</div>}
               {doneSess&&dayVol&&dayVol.sets>0&&<Mono style={{fontSize:11,color:C.neon+"bb",display:"block",marginTop:4}}>{dayVol.sets} sets · {dayVol.vol>0?`${Math.round(dayVol.vol).toLocaleString()} lbs`:"logged"}</Mono>}
               {day.isRest&&isToday&&<div style={{fontSize:12,color:C.neon,fontStyle:"italic",marginTop:6,lineHeight:1.5}}>"{quote}"</div>}
             </div>
@@ -3708,7 +3708,7 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
         <div key={f.key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"13px 0",borderBottom:`1px solid ${C.border}`}}>
           <div style={{flex:1,paddingRight:16}}>
             <div style={{fontSize:14}}>{f.label}</div>
-            <Mono style={{fontSize:11,color:C.muted}}>{f.desc}</Mono>
+            <div style={{fontSize:11,color:C.muted,marginTop:2}}>{f.desc}</div>
           </div>
           <Toggle on={!!local[f.key]} onToggle={()=>setLocal(p=>({...p,[f.key]:!p[f.key]}))} C={C}/>
         </div>
