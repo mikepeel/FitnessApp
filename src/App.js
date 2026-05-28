@@ -1558,7 +1558,7 @@ function ExerciseLibraryModal({onSelect,onClose,C}){
           <button key={m} onClick={()=>setMuscleFilter(muscleFilter===m?null:m)} style={{padding:"5px 9px",borderRadius:5,border:`1px solid ${muscleFilter===m?C.accent+"66":C.border}`,background:muscleFilter===m?C.accent+"20":"transparent",color:muscleFilter===m?C.accent:C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:9,cursor:"pointer",letterSpacing:"0.06em"}}>{m.toUpperCase()}</button>
         ))}
       </div>
-      <Mono style={{fontSize:9,color:C.faint,display:"block",marginBottom:8,letterSpacing:"0.08em"}}>{filtered.length} EXERCISES</Mono>
+      <Mono style={{fontSize:11,color:C.muted,display:"block",marginBottom:8,letterSpacing:"0.08em"}}>{filtered.length} EXERCISES</Mono>
       {filtered.map((ex,i)=>(
         <div key={i} onClick={()=>onSelect({name:ex.name,muscle:ex.muscle,sets:ex.muscle==="Cardio"?"--":"3",reps:ex.muscle==="Cardio"?"30 min":"10-12",note:ex.cue})}
           style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",marginBottom:6,cursor:"pointer"}}>
@@ -1927,8 +1927,8 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
               </div>
               <Mono style={{fontSize:11,color:C.muted}}>{isCardio?"Duration goal:":ex.sets+" sets ."} {ex.reps}{!isCardio&&ex.muscle?` . ${ex.muscle}`:""}</Mono>
               {ex.note&&<div style={{fontSize:11,color:C.muted,marginTop:2}}>{ex.note}</div>}
-              {!isCardio&&last&&<Mono style={{fontSize:11,color:C.faint,display:"block",marginTop:2}}>Last: {last[1]?.weight||"--"}lbs × {last[1]?.reps||"--"}</Mono>}
-              {isCardio&&last&&last[1]?.minutes&&<Mono style={{fontSize:11,color:C.faint,display:"block",marginTop:2}}>Last: {last[1].minutes} min</Mono>}
+              {!isCardio&&last&&<Mono style={{fontSize:11,color:C.muted,display:"block",marginTop:2}}>Last: {last[1]?.weight||"--"}lbs × {last[1]?.reps||"--"}</Mono>}
+              {isCardio&&last&&last[1]?.minutes&&<Mono style={{fontSize:11,color:C.muted,display:"block",marginTop:2}}>Last: {last[1].minutes} min</Mono>}
               {myPR&&<Mono style={{fontSize:11,color:C.red,display:"block"}}>PR: {myPR.weight}lbs</Mono>}
               {!isCardio&&settings.plateCalc&&w0&&<PlateCalc weight={w0} C={C}/>}
             </div>
@@ -1954,7 +1954,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
                   <span style={{color:C.neon,fontSize:14,fontWeight:800}}>✓</span>
                   <Mono style={{color:C.neon,fontSize:12,fontWeight:700}}>Interval {n}</Mono>
                   <Mono style={{color:C.text,fontSize:14,fontWeight:700}}>{rowLog.minutes} min{rowLog.level?` · L${rowLog.level}`:""}</Mono>
-                  <Mono style={{color:C.faint,fontSize:10,marginLeft:"auto"}}>tap to edit</Mono>
+                  <Mono style={{color:C.muted,fontSize:11,marginLeft:"auto"}}>tap to edit</Mono>
                 </div>;
               }
               return <div key={n} style={{display:"flex",gap:8,alignItems:"center"}}>
@@ -2025,7 +2025,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
                       <span style={{color:C.neon,fontSize:11,fontWeight:800}}>✓</span>
                       <Mono style={{color:C.neon,fontSize:12,fontWeight:700}}>{n}</Mono>
                       <Mono style={{color:C.text,fontSize:13,fontWeight:600,flex:1}}>{myLog[n]?.weight} lbs × {myLog[n]?.reps}</Mono>
-                      <Mono style={{color:C.faint,fontSize:9}}>tap to edit</Mono>
+                      <Mono style={{color:C.muted,fontSize:11}}>tap to edit</Mono>
                     </div>]
                   :[
                     <Mono key={`n${n}`} style={{fontSize:12,color:setRowState==="inprogress"?C.text:C.muted,textAlign:"center",fontWeight:setRowState==="inprogress"?700:400}}>{n}</Mono>,
@@ -2128,7 +2128,7 @@ function UpgradePrompt({action,used,limit,C}){
     <Mono style={{fontSize:11,color:C.muted,display:"block",marginBottom:8}}>{used}/{limit} {name} used this month</Mono>
     <Mono style={{fontSize:12,color:C.text,display:"block",marginBottom:4}}>Upgrade to Pro for unlimited AI</Mono>
     <Mono style={{fontSize:11,color:C.muted,display:"block",marginBottom:4}}>$2.99/mo · $19.99/yr · $49.99 lifetime</Mono>
-    <Mono style={{fontSize:10,color:C.faint,display:"block",marginTop:8}}>Subscriptions launching soon</Mono>
+    <Mono style={{fontSize:10,color:C.muted,display:"block",marginTop:8}}>Subscriptions launching soon</Mono>
   </div>;
 }
 
@@ -2985,7 +2985,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,onRer
             style={{background:"transparent",border:"none",color:C.neon,cursor:"pointer",fontSize:12,fontFamily:"'SF Mono','Courier New',monospace"}}>+ Add Exercise</button>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr auto",gap:5,marginBottom:4}}>
-          {["Exercise","Sets","Reps","lbs",""].map(h=><Mono key={h} style={{fontSize:9,color:C.faint,textAlign:"center"}}>{h}</Mono>)}
+          {["Exercise","Sets","Reps","lbs",""].map(h=><Mono key={h} style={{fontSize:9,color:C.muted,textAlign:"center"}}>{h}</Mono>)}
         </div>
         {manualSession.exercises.map((ex,ei)=>(
           <div key={ei} style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr auto",gap:5,marginBottom:6,alignItems:"center"}}>
@@ -3017,7 +3017,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,onRer
     </div>}
 
     <div style={{padding:"14px 18px"}}>
-      {sorted.length===0&&<div style={{textAlign:"center",padding:"40px 20px"}}><div style={{color:C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:13,marginBottom:12}}>No sessions found in your log.</div><div style={{fontSize:12,color:C.faint,fontFamily:"'SF Mono','Courier New',monospace",lineHeight:1.7}}>If you completed a workout and don't see it here,<br/>tap Debug above to inspect your storage.</div></div>}
+      {sorted.length===0&&<div style={{textAlign:"center",padding:"40px 20px"}}><div style={{color:C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:13,marginBottom:12}}>No sessions found in your log.</div><div style={{fontSize:12,color:C.muted,fontFamily:"'SF Mono','Courier New',monospace",lineHeight:1.7}}>If you completed a workout and don't see it here,<br/>tap Debug above to inspect your storage.</div></div>}
       {Object.entries(grouped).map(([month,msess])=>(
         <div key={month} style={{marginBottom:24}}>
           <SectionLabel C={C}>{new Date(month+"-02").toLocaleDateString("en",{month:"long",year:"numeric"})} . {msess.length} sessions</SectionLabel>
@@ -3751,7 +3751,7 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
           <Toggle on={!!local.appleHealth} onToggle={handleHealthToggle} C={C}/>
         </div>
         {healthMsg&&<Mono style={{fontSize:11,color:C.neon,display:"block",marginTop:8}}>{healthMsg}</Mono>}
-        {!isIOSSafari&&<Mono style={{fontSize:10,color:C.faint,display:"block",marginTop:6}}>Available on iPhone via Safari</Mono>}
+        {!isIOSSafari&&<Mono style={{fontSize:10,color:C.muted,display:"block",marginTop:6}}>Available on iPhone via Safari</Mono>}
       </div>
 
       {local.aiRecs&&<div style={{marginTop:16,padding:"14px",background:C.card,border:`1px solid ${C.border}`,borderRadius:12}}>
