@@ -1672,6 +1672,12 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
     return()=>clearTimeout(t);
   },[autoFinishCountdown]);// eslint-disable-line
 
+  // Heartbeat: persist draft every 30s as a backstop against iOS app kill
+  useEffect(()=>{
+    const t=setInterval(()=>{saveDraft();},30000);
+    return()=>clearInterval(t);
+  },[]);// eslint-disable-line
+
   const lastSessionForDay=sessions.filter(s=>s.dayId===workout.id&&s.completedAt).sort((a,b)=>new Date(b.completedAt)-new Date(a.completedAt))[0];
   const lastSets=lastSessionForDay?.sets||{};
 
