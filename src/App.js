@@ -1462,7 +1462,7 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
               </div>
               <div style={{fontSize:11,color:C.muted}}>{calDateDisplay} · {day.tag}</div>
               {!day.isRest&&!doneSess&&<div style={{fontSize:11,color:C.muted,marginTop:1}}>{day.exercises.length} exercises</div>}
-              {doneSess&&dayVol&&dayVol.sets>0&&<Mono style={{fontSize:11,color:C.neon+"bb",display:"block",marginTop:4}}>{dayVol.sets} sets · {dayVol.vol>0?`${Math.round(dayVol.vol).toLocaleString()} lbs`:"logged"}</Mono>}
+              {doneSess&&dayVol&&dayVol.sets>0&&<Mono style={{fontSize:11,color:C.neon,display:"block",marginTop:4}}>{dayVol.sets} sets · {dayVol.vol>0?`${Math.round(dayVol.vol).toLocaleString()} lbs`:"logged"}</Mono>}
               {day.isRest&&isToday&&<div style={{fontSize:12,color:C.neon,fontStyle:"italic",marginTop:6,lineHeight:1.5}}>"{quote}"</div>}
             </div>
             {!isToday&&!day.isRest&&!doneSess&&!isFutureStart&&<Btn onClick={()=>onStart(day)} size="sm" C={C} style={{marginLeft:10,background:C.neon,color:"#fff",fontWeight:700,letterSpacing:"0.1em"}}>START</Btn>}
