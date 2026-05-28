@@ -2771,21 +2771,19 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,onRer
     .map(s=>({...s,completedAt:s.completedAt||s.startedAt}))
     .sort((a,b)=>new Date(b.completedAt)-new Date(a.completedAt));
 
-  const grouped=sorted.reduce((acc,s)=>{
+  const cutoffDays={"1m":30,"3m":90,"6m":180}[historyFilter];
+  const cutoff=cutoffDays?new Date(Date.now()-cutoffDays*24*60*60*1000):null;
+  const filteredSorted=cutoff?sorted.filter(s=>new Date(s.completedAt)>=cutoff):sorted;
+
+  const grouped=filteredSorted.reduce((acc,s)=>{
     const m=s.completedAt.slice(0,7);
     if(!acc[m])acc[m]=[];
     acc[m].push(s);
     return acc;
   },{});
 
-  // Auto-expand most recent session
-  const mostRecentIdx=(()=>{
-    if(!sorted.length)return null;
-    const m=sorted[0].completedAt.slice(0,7);
-    return `${m}-0`;
-  })();
-
-  const [expanded,setExpanded]=useState(mostRecentIdx);
+  const [expanded,setExpanded]=useState(null);
+  const [historyFilter,setHistoryFilter]=useState("3m");
   const [editingSession,setEditingSession]=useState(null);
   const [confirmDelete,setConfirmDelete]=useState(null);
   const [deleteError,setDeleteError]=useState(null);
@@ -2914,15 +2912,20 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,onRer
   }
 
   return <div>
-    <div style={{background:C.surface,borderBottom:`2px solid ${C.accent}`,padding:"16px 18px"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+    <div style={{background:C.surface,borderBottom:`2px solid ${C.accent}`,padding:"16px 18px 14px"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
         <div>
           <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>Workout History</div>
-          <Mono style={{fontSize:11,color:C.muted}}>{sorted.length} sessions . {Object.keys(grouped).length} months</Mono>
+          <Mono style={{fontSize:11,color:C.muted}}>{filteredSorted.length} session{filteredSorted.length!==1?"s":""}{historyFilter!=="all"?` · last ${historyFilter.toUpperCase()}`:" · all time"}</Mono>
         </div>
         <div style={{display:"flex",gap:6,alignItems:"center",marginTop:2}}>
           <Btn size="sm" C={C} onClick={()=>setAddingSession(a=>!a)} style={{background:C.neon,color:"#fff",fontWeight:700,padding:"6px 10px",fontSize:11}}>+ Log</Btn>
         </div>
+      </div>
+      <div style={{display:"flex",gap:5}}>
+        {[["1m","1M"],["3m","3M"],["6m","6M"],["all","ALL"]].map(([k,label])=>(
+          <button key={k} onClick={()=>setHistoryFilter(k)} style={{padding:"5px 13px",borderRadius:6,border:`1px solid ${historyFilter===k?C.accent+"66":C.border}`,background:historyFilter===k?C.accent+"20":"transparent",color:historyFilter===k?C.accent:C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:10,cursor:"pointer",letterSpacing:"0.06em"}}>{label}</button>
+        ))}
       </div>
     </div>
     {deleteError&&<div onClick={()=>setDeleteError(null)} style={{background:C.red,color:"#fff",padding:"10px 18px",fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"center"}}>{deleteError} (tap to dismiss)</div>}
