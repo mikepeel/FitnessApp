@@ -2971,12 +2971,12 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,onRer
         <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:4}}>WORKOUT NAME</Mono>
         <input value={manualSession.dayLabel} onChange={e=>setManualSession(p=>({...p,dayLabel:e.target.value}))}
           placeholder="e.g. Chest & Triceps"
-          style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
+          style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
       </div>
       <div style={{marginBottom:10}}>
         <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:4}}>DATE</Mono>
         <input type="date" value={manualSession.date} onChange={e=>setManualSession(p=>({...p,date:e.target.value}))}
-          style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
+          style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
       </div>
       <div style={{marginBottom:12}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
@@ -2990,13 +2990,13 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,onRer
         {manualSession.exercises.map((ex,ei)=>(
           <div key={ei} style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr auto",gap:5,marginBottom:6,alignItems:"center"}}>
             <input value={ex.name} onChange={e=>setManualSession(p=>({...p,exercises:p.exercises.map((x,i)=>i===ei?{...x,name:e.target.value}:x)}))}
-              placeholder="Exercise name" style={{padding:"7px 8px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,color:C.text,fontSize:12,fontFamily:"'SF Mono','Courier New',monospace"}}/>
+              placeholder="Exercise name" style={{padding:"7px 8px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace"}}/>
             <input value={ex.sets} onChange={e=>setManualSession(p=>({...p,exercises:p.exercises.map((x,i)=>i===ei?{...x,sets:e.target.value}:x)}))}
-              style={{padding:"7px 4px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,color:C.text,fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"center"}}/>
+              style={{padding:"7px 4px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"center"}}/>
             <input value={ex.reps} onChange={e=>setManualSession(p=>({...p,exercises:p.exercises.map((x,i)=>i===ei?{...x,reps:e.target.value}:x)}))}
-              style={{padding:"7px 4px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,color:C.text,fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"center"}}/>
+              style={{padding:"7px 4px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"center"}}/>
             <input value={ex.weight} onChange={e=>setManualSession(p=>({...p,exercises:p.exercises.map((x,i)=>i===ei?{...x,weight:e.target.value}:x)}))}
-              style={{padding:"7px 4px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,color:C.text,fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"center"}}/>
+              style={{padding:"7px 4px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"center"}}/>
             {manualSession.exercises.length>1
               ?<button onClick={()=>setManualSession(p=>({...p,exercises:p.exercises.filter((_,i)=>i!==ei)}))}
                 style={{background:"transparent",border:"none",color:C.red,cursor:"pointer",fontSize:14,padding:"0 2px"}}>✕</button>
@@ -3008,7 +3008,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,onRer
         <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:4}}>NOTES (optional)</Mono>
         <textarea value={manualSession.notes} onChange={e=>setManualSession(p=>({...p,notes:e.target.value}))}
           placeholder="How did it go?"
-          style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box",resize:"none",height:56}}/>
+          style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box",resize:"none",height:56}}/>
       </div>
       <div style={{display:"flex",gap:8}}>
         <Btn C={C} style={{flex:1,background:C.neon,color:"#fff",fontWeight:700}} onClick={saveManualSession}>Save Session</Btn>
