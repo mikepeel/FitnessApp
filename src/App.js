@@ -2786,7 +2786,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
   const filteredSorted=cutoff?sorted.filter(s=>new Date(s.completedAt)>=cutoff):sorted;
 
   const grouped=filteredSorted.reduce((acc,s)=>{
-    const m=s.completedAt.slice(0,7);
+    const m=new Date(s.completedAt).toLocaleDateString("en-CA").slice(0,7);
     if(!acc[m])acc[m]=[];
     acc[m].push(s);
     return acc;
@@ -3147,14 +3147,17 @@ function SessionEditModal({session,onSave,onClose,C}){
 
   const inputStyle={padding:"8px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",width:"100%",boxSizing:"border-box"};
 
-  // Parse completedAt into a local date string for the input (YYYY-MM-DD)
-  const dateVal=editData.completedAt?editData.completedAt.split("T")[0]:"";
+  // Parse completedAt into a LOCAL date string for the input (YYYY-MM-DD)
+  const dateVal=editData.completedAt?new Date(editData.completedAt).toLocaleDateString("en-CA"):"";
 
   function updateDate(val){
     if(!val)return;
-    const time=editData.completedAt?.split("T")[1]||"10:00:00.000Z";
-    const newCompleted=`${val}T${time}`;
-    const newStarted=new Date(new Date(newCompleted).getTime()-(durationMins*60000)).toISOString();
+    // Apply the picked local date while preserving the original local time-of-day
+    const [y,mo,d]=val.split("-").map(Number);
+    const nd=editData.completedAt?new Date(editData.completedAt):new Date();
+    nd.setFullYear(y,mo-1,d);
+    const newCompleted=nd.toISOString();
+    const newStarted=new Date(nd.getTime()-(durationMins*60000)).toISOString();
     setEditData(prev=>({...prev,completedAt:newCompleted,startedAt:newStarted}));
   }
 
@@ -3370,7 +3373,7 @@ function StatsTab({sessions,prs,settings,C,activePlan,toggleTheme,themeMode,body
 
   async function loadTrainerInsight(){
     setLoadingInsight(true);
-    const recentSessions=sessions.slice(0,5).map(s=>({day:s.dayLabel,date:s.completedAt?.split("T")[0],sets:(s.setsArr||[]).length}));
+    const recentSessions=sessions.slice(0,5).map(s=>({day:s.dayLabel,date:s.completedAt?new Date(s.completedAt).toLocaleDateString("en-CA"):undefined,sets:(s.setsArr||[]).length}));
     const topPRs=prList.slice(0,5).map(([n,p])=>(`${n}: ${p.weight}lbs`));
     const prompt=`You are a personal trainer AI.${aiProfileContext(settings)} Analyze this user's recent workout data and provide ONE specific, actionable insight in 2-3 sentences. Be direct and personalized.
 
