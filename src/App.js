@@ -2767,10 +2767,6 @@ function DayForm({onSave,onClose,C}){
 
 // -- HISTORY -------------------------------------------------------------------
 function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggleTheme,themeMode,onRerun}){
-  const todayStr=new Date().toLocaleDateString("en-CA");
-  const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
-  const yesterdayStr=yesterday.toLocaleDateString("en-CA");
-
   const [expanded,setExpanded]=useState(null);
   const [historyFilter,setHistoryFilter]=useState("3m");
   const [editingSession,setEditingSession]=useState(null);
@@ -3011,11 +3007,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
                     {newPRs.length>0&&<Pill color={C.red}>★ {newPRs.length} PR{newPRs.length>1?"s":""}</Pill>}
                   </div>
                   <Mono style={{fontSize:11,color:C.muted}}>
-                    {(()=>{
-                      const d=new Date(s.completedAt).toLocaleDateString("en-CA");
-                      const label=d===todayStr?"Today":d===yesterdayStr?"Yesterday":new Date(s.completedAt).toLocaleDateString("en",{weekday:"long",month:"short",day:"numeric"});
-                      return label;
-                    })()}
+                    {new Date(s.completedAt).toLocaleDateString("en",{weekday:"long",month:"short",day:"numeric",year:"numeric"})}
                     {dur?` . ${dur}min`:""}
                     {vol>0?` . ${Math.round(vol).toLocaleString()} lbs`:""}
                   </Mono>
