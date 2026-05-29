@@ -1262,7 +1262,7 @@ export default function ForgeApp(){
       const {data:{user:u}}=await supabase.auth.getUser().catch(()=>({data:{user:null}}));
       if(u)await supabase.auth.updateUser({data:{body_stats:JSON.stringify(stats)}}).catch(()=>{});
     }}/>}
-    {tab==="more"&&<MoreTab settings={settings} saveSettings={saveSettings} plans={plans} sessions={sessions} prs={prs} C={C} toggleTheme={toggleTheme} themeMode={themeMode}/>}
+    {tab==="more"&&<MoreTab settings={settings} saveSettings={saveSettings} plans={plans} sessions={sessions} prs={prs} C={C} toggleTheme={toggleTheme} themeMode={themeMode} authUser={authUser}/>}
     <nav style={{position:"fixed",bottom:0,left:0,right:0,background:C.navBg,borderTop:`1px solid ${C.border}`,display:"flex",zIndex:100,paddingBottom:"env(safe-area-inset-bottom)"}}>
       {tabs.map(t=>(
         <button key={t.key} onClick={()=>setTab(t.key)} style={{flex:1,padding:"10px 4px 8px",background:"none",border:"none",color:tab===t.key?(themeMode==="dark"?C.gold:C.accent):C.muted,cursor:"pointer",fontSize:9,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.06em",textTransform:"uppercase",display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
@@ -3623,13 +3623,33 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
 
 
 // -- MORE / SETTINGS -----------------------------------------------------------
-function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMode}){
+function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMode,authUser}){
   const [local,setLocal]=useState({...settings});
   const [saved,setSaved]=useState(false);
   const [healthMsg,setHealthMsg]=useState("");
+  const [displayName,setDisplayName]=useState(authUser?.user_metadata?.display_name||authUser?.email?.split("@")[0]||"");
+  const [nameMsg,setNameMsg]=useState("");
+  const [pwMsg,setPwMsg]=useState("");
   const isIOSSafari=typeof navigator!=="undefined"&&/iPhone|iPad|iPod/.test(navigator.userAgent)&&/Safari/.test(navigator.userAgent)&&!/Chrome|CriOS|FxiOS/.test(navigator.userAgent);
 
   function save(){saveSettings(local);setSaved(true);setTimeout(()=>setSaved(false),2000);}
+
+  async function saveDisplayName(){
+    if(!displayName.trim())return;
+    try{
+      const {error}=await supabase.auth.updateUser({data:{display_name:displayName.trim()}});
+      if(error)throw error;
+      setNameMsg("Saved ✓");setTimeout(()=>setNameMsg(""),2500);
+    }catch(e){console.error("saveDisplayName:",e);setNameMsg("Error saving — try again");}
+  }
+
+  async function sendPasswordReset(){
+    try{
+      const {error}=await supabase.auth.resetPasswordForEmail(authUser?.email,{redirectTo:window.location.origin});
+      if(error)throw error;
+      setPwMsg("Reset link sent to "+authUser?.email);setTimeout(()=>setPwMsg(""),4000);
+    }catch(e){console.error("pwReset:",e);setPwMsg("Error — try again");}
+  }
 
   async function handleHealthToggle(){
     const next=!local.appleHealth;
@@ -3677,7 +3697,32 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
       </div>
     </div>
     <div style={{padding:"14px 18px"}}>
-      <SectionLabel C={C}>Features</SectionLabel>
+      <SectionLabel C={C}>Account</SectionLabel>
+      <div style={{padding:"13px 0",borderBottom:`1px solid ${C.border}`}}>
+        <div style={{fontSize:11,color:C.muted,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8,fontWeight:600}}>Display Name</div>
+        <div style={{display:"flex",gap:8}}>
+          <input value={displayName} onChange={e=>setDisplayName(e.target.value)}
+            onKeyDown={e=>e.key==="Enter"&&saveDisplayName()}
+            style={{flex:1,padding:"10px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",outline:"none",boxSizing:"border-box"}}/>
+          <Btn onClick={saveDisplayName} C={C} size="sm">Save</Btn>
+        </div>
+        {nameMsg&&<Mono style={{fontSize:11,color:C.neon,display:"block",marginTop:6}}>{nameMsg}</Mono>}
+      </div>
+      <div style={{padding:"13px 0",borderBottom:`1px solid ${C.border}`}}>
+        <div style={{fontSize:11,color:C.muted,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:4,fontWeight:600}}>Email</div>
+        <Mono style={{fontSize:13,color:C.text}}>{authUser?.email}</Mono>
+      </div>
+      <div style={{padding:"13px 0",borderBottom:`1px solid ${C.border}`}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <div style={{fontSize:14}}>Password</div>
+            <div style={{fontSize:11,color:C.muted,marginTop:2}}>Send a reset link to your email</div>
+          </div>
+          <Btn onClick={sendPasswordReset} C={C} size="sm" variant="ghost">Reset</Btn>
+        </div>
+        {pwMsg&&<Mono style={{fontSize:11,color:C.neon,display:"block",marginTop:6}}>{pwMsg}</Mono>}
+      </div>
+      <div style={{marginTop:18}}><SectionLabel C={C}>Features</SectionLabel></div>
       {features.map(f=>(
         <div key={f.key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"13px 0",borderBottom:`1px solid ${C.border}`}}>
           <div style={{flex:1,paddingRight:16}}>
