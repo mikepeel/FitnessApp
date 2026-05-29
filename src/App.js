@@ -1777,6 +1777,9 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
         return next;
       });
     }
+    // If removing this exercise leaves all remaining exercises done, start auto-complete
+    const remaining=updated.filter(e=>!completedExIds.has(e.id));
+    if(updated.length>0&&remaining.length===0){setAutoFinishCountdown(5);}
   }
 
   function updateExercise(exId,data){
@@ -2010,7 +2013,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
                         return {...prev,[ex.name]:updated};
                       });
                       setSetStates(prev=>({...prev,[stateKey]:"confirmed"}));
-                      const myL=loggedSets[ex.name]||{};
+                      const myL=draftSets[ex.name]||{};
                       const allFilled=Array.from({length:numSets},(_,i)=>i+1).every(s=>myL[s]?.weight&&myL[s]?.reps);
                       if(n===numSets&&allFilled){markExerciseDone(ex.id,ex.name,!isWarmup);}
                       // REST TIMER: only triggered here, on explicit set confirmation
