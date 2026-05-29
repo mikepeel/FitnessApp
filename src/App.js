@@ -3012,7 +3012,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
                   </div>
                   <Mono style={{fontSize:11,color:C.muted}}>
                     {(()=>{
-                      const d=s.completedAt.split("T")[0];
+                      const d=new Date(s.completedAt).toLocaleDateString("en-CA");
                       const label=d===todayStr?"Today":d===yesterdayStr?"Yesterday":new Date(s.completedAt).toLocaleDateString("en",{weekday:"long",month:"short",day:"numeric"});
                       return label;
                     })()}
