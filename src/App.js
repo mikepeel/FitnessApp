@@ -1251,13 +1251,13 @@ export default function ForgeApp(){
       onGoToPlan={()=>setTab("plan")}/>}
     {tab==="plan"&&<PlanErrorBoundary C={C}><PlanTab plans={plans} activePlanKey={activePlanKey}
       setActivePlanKey={persistActivePlanKey}
-      savePlans={savePlans} settings={settings} C={C}/></PlanErrorBoundary>}
-    {tab==="log"&&<HistoryTab sessions={sessions} saveSessions={saveSessions} setSessions={setSessions} savePRs={savePRs} prs={prs} plans={plans} C={C} onRerun={sess=>{
+      savePlans={savePlans} settings={settings} C={C} toggleTheme={toggleTheme} themeMode={themeMode}/></PlanErrorBoundary>}
+    {tab==="log"&&<HistoryTab sessions={sessions} saveSessions={saveSessions} setSessions={setSessions} savePRs={savePRs} prs={prs} plans={plans} C={C} toggleTheme={toggleTheme} themeMode={themeMode} onRerun={sess=>{
       const day=(activePlan?.days||[]).find(d=>d.id===sess.dayId)||{...sess,exercises:Object.keys(sess.sets||{}).map(name=>({id:name,name,sets:"3",reps:"",muscle:"",note:""})),label:sess.dayLabel||"Workout"};
       setActiveWorkout({...day,_rerunSets:sess.sets});
       setTab("today");
     }}/>}
-    {tab==="stats"&&<StatsTab sessions={sessions} prs={prs} settings={settings} C={C} activePlan={activePlan} bodyStatsInit={bodyStatsGlobal} onBodyStatsChange={async(stats)=>{
+    {tab==="stats"&&<StatsTab sessions={sessions} prs={prs} settings={settings} C={C} activePlan={activePlan} toggleTheme={toggleTheme} themeMode={themeMode} bodyStatsInit={bodyStatsGlobal} onBodyStatsChange={async(stats)=>{
       setBodyStatsGlobal(stats);
       const {data:{user:u}}=await supabase.auth.getUser().catch(()=>({data:{user:null}}));
       if(u)await supabase.auth.updateUser({data:{body_stats:JSON.stringify(stats)}}).catch(()=>{});
@@ -2203,7 +2203,7 @@ class PlanErrorBoundary extends Component{
 }
 
 // -- PLAN TAB ------------------------------------------------------------------
-function PlanTab({plans,activePlanKey,setActivePlanKey,savePlans,settings,C}){
+function PlanTab({plans,activePlanKey,setActivePlanKey,savePlans,settings,C,toggleTheme,themeMode}){
   const [view,setView]=useState("mine"); // mine | presets | ai
   const [expandedDay,setExpandedDay]=useState(null);
   const [editEx,setEditEx]=useState(null);
@@ -2338,7 +2338,10 @@ No explanation, no markdown, just the JSON array.`;
 
   return <div>
     <div style={{background:C.bg,borderBottom:`2px solid ${C.accent}`,padding:"16px 18px 14px"}}>
-      <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em",marginBottom:10}}>Plan Editor</div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+        <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>Plan Editor</div>
+        <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}><span style={{fontSize:11}}>◐</span>{themeMode==="dark"?"DARK":"LIGHT"}</button>
+      </div>
       {/* View switcher */}
       <div style={{display:"flex",gap:6,marginBottom:10,background:C.card,padding:4,borderRadius:10}}>
         {[["mine","My Plans"],["presets","Templates"],["ai","✦ AI Builder"]].map(([k,label])=>(
@@ -2763,7 +2766,7 @@ function DayForm({onSave,onClose,C}){
 }
 
 // -- HISTORY -------------------------------------------------------------------
-function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,onRerun}){
+function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggleTheme,themeMode,onRerun}){
   const todayStr=new Date().toLocaleDateString("en-CA");
   const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
   const yesterdayStr=yesterday.toLocaleDateString("en-CA");
@@ -2922,6 +2925,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,onRer
           <Mono style={{fontSize:11,color:C.muted}}>{filteredSorted.length} session{filteredSorted.length!==1?"s":""}{historyFilter!=="all"?` · last ${historyFilter.toUpperCase()}`:" · all time"}</Mono>
         </div>
         <div style={{display:"flex",gap:6,alignItems:"center",marginTop:2}}>
+          <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}><span style={{fontSize:11}}>◐</span>{themeMode==="dark"?"DARK":"LIGHT"}</button>
           <Btn size="sm" C={C} onClick={()=>setAddingSession(a=>!a)} style={{background:C.neon,color:"#fff",fontWeight:700,padding:"6px 10px",fontSize:11}}>+ Log</Btn>
         </div>
       </div>
@@ -3303,7 +3307,7 @@ function getStrengthScore(exName, maxWeight){
   return Math.min(level, 4);
 }
 
-function StatsTab({sessions,prs,settings,C,activePlan,bodyStatsInit=[],onBodyStatsChange}){
+function StatsTab({sessions,prs,settings,C,activePlan,toggleTheme,themeMode,bodyStatsInit=[],onBodyStatsChange}){
   const [selEx,setSelEx]=useState(null);
   const [chartData,setChartData]=useState([]);
   const [statsView,setStatsView]=useState("overview"); // overview | progress | muscles | body | trainer
@@ -3391,7 +3395,10 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
 
   return <div>
     <div style={{background:C.bg,borderBottom:`1px solid ${C.border}`,padding:"16px 18px 14px"}}>
-      <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em",marginBottom:2}}>Progress</div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
+        <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>Progress</div>
+        <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}><span style={{fontSize:11}}>◐</span>{themeMode==="dark"?"DARK":"LIGHT"}</button>
+      </div>
       <Mono style={{fontSize:11,color:C.muted,display:"block",marginBottom:12}}>{(()=>{const wk=planWeekOf(activePlan);const tot=activePlan?.durationWeeks||10;return wk?`Week ${Math.min(wk,tot)} of ${tot} in your program`:`Week ${programWeek(sessions)} of your program`;})()}</Mono>
       <div style={{display:"flex",gap:4,background:C.card,padding:4,borderRadius:10}}>
         {[["overview","Overview"],["progress","Progress"],["muscles","Muscles"],["body","Body"],["trainer","✦ Coach"]].map(([k,label])=>(
@@ -3662,9 +3669,7 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>Settings</div>
         <div style={{display:"flex",gap:8}}>
-          <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,cursor:"pointer",padding:"7px 12px",fontSize:13}}>
-            {themeMode==="dark"?"☀️":"🌙"}
-          </button>
+          <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}><span style={{fontSize:11}}>◐</span>{themeMode==="dark"?"DARK":"LIGHT"}</button>
           <button onClick={async()=>{try{await supabase.auth.signOut();}catch(e){console.error("signOut:",e);}}} style={{background:"transparent",border:`1px solid ${C.danger}44`,borderRadius:8,color:C.danger,cursor:"pointer",padding:"7px 12px",fontSize:11,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.04em"}}>
             Sign Out
           </button>
