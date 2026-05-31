@@ -1629,6 +1629,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   const finishCalledRef=useRef(false);
   const [autoFinishCountdown,setAutoFinishCountdown]=useState(null);
   const topRef=useRef(null);
+  const restAnchorRef=useRef(null);
   const lastActiveExRef=useRef(null);
   const dragStartYRef=useRef(null);
   const [dragDelta,setDragDelta]=useState(0);
@@ -1740,9 +1741,9 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
       return reordered;
     });
     if(isLastExercise){setAutoFinishCountdown(5);}
-    // Smooth scroll to top of exercise list
+    // Smooth scroll so the rest timer + next active exercise are both in view
     setTimeout(()=>{
-      topRef.current?.scrollIntoView({behavior:"smooth",block:"start"});
+      (restAnchorRef.current||topRef.current)?.scrollIntoView({behavior:"smooth",block:"start"});
     },100);
   }
 
@@ -1872,6 +1873,8 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
       <Btn onClick={()=>setAutoFinishCountdown(null)} variant="ghost" size="sm" C={C} style={{fontSize:11,color:"#0b0c0e",borderColor:"#0b0c0e44",padding:"3px 10px"}}>CANCEL</Btn>
     </div>}
     <div style={{padding:"14px 18px"}}>
+      {/* Scroll target so set-confirm brings the rest timer + active exercise into view */}
+      <div ref={restAnchorRef} style={{scrollMarginTop:80}}/>
       {showRest&&settings.restTimer&&<RestTimer key={restKey} seconds={settings.restSeconds||90} onDone={()=>setShowRest(false)} onSkip={()=>setShowRest(false)} C={C}/>}
 
       <div ref={topRef}/>
@@ -2034,7 +2037,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
                       const allFilled=Array.from({length:numSets},(_,i)=>i+1).every(s=>myL[s]?.weight&&myL[s]?.reps);
                       if(n===numSets&&allFilled){markExerciseDone(ex.id,ex.name,!isWarmup);}
                       // REST TIMER: only triggered here, on explicit set confirmation
-                      else if(!isWarmup){setShowRest(true);setRestKey(k=>k+1);}
+                      else if(!isWarmup){setShowRest(true);setRestKey(k=>k+1);setTimeout(()=>restAnchorRef.current?.scrollIntoView({behavior:"smooth",block:"start"}),100);}
                     }} style={{padding:"9px 4px",background:"transparent",border:`1px solid ${C.neon}44`,borderRadius:7,color:C.neon,cursor:"pointer",fontSize:14,fontWeight:700}}>✓</button>
                   ])
               ];
