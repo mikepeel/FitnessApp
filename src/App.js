@@ -1556,13 +1556,14 @@ function ExerciseLibraryModal({onSelect,onClose,C}){
 function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,savePlans,authUser,workoutDraft,onMinimize,onFinish,onCancel,C}){
   const [exercises,setExercises]=useState(workoutDraft?.exercises||workout.exercises||[]);
   const [loggedSets,setLoggedSets]=useState(()=>{
-    // If restoring from a saved draft, use draft data (clear prepop flags)
+    // If restoring from a saved draft, use draft data AS-IS — preserve prepop flags
+    // so untouched suggestions stay "suggested" and don't appear as entered values
     if(workoutDraft?.loggedSets&&Object.keys(workoutDraft.loggedSets).length){
       const restored={};
       for(const[ex,sets] of Object.entries(workoutDraft.loggedSets)){
         restored[ex]={};
         for(const[n,vals] of Object.entries(sets)){
-          restored[ex][n]={...vals,prepop:false};
+          restored[ex][n]={...vals};
         }
       }
       return restored;
@@ -1602,7 +1603,23 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   const [setTypes,setSetTypes]=useState({});
   const [setError,setSetError]=useState({});
   const [extraSets,setExtraSets]=useState({});
-  const [setStates,setSetStates]=useState({});
+  const [setStates,setSetStates]=useState(()=>{
+    // On restore, mark genuinely-entered sets (have a value and not a prepop suggestion)
+    // as "confirmed" so the green ✓ state survives minimize/reopen
+    const st={};
+    if(workoutDraft?.loggedSets){
+      const idByName=Object.fromEntries((workoutDraft?.exercises||workout.exercises||[]).map(e=>[e.name,e.id]));
+      for(const[exName,sets] of Object.entries(workoutDraft.loggedSets)){
+        const exId=idByName[exName];
+        if(!exId)continue;
+        for(const[n,vals] of Object.entries(sets)){
+          const hasVal=vals.minutes?!!vals.minutes:!!(vals.weight&&vals.reps);
+          if(hasVal&&!vals.prepop)st[`${exId}-${n}`]="confirmed";
+        }
+      }
+    }
+    return st;
+  });
   const [showEndMenu,setShowEndMenu]=useState(false);
   const [showAbandonConfirm,setShowAbandonConfirm]=useState(false);
   const [saving,setSaving]=useState(false);
