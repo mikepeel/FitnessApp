@@ -2415,11 +2415,6 @@ No explanation, no markdown, just the JSON array.`;
           </div>
         </div>
       </div>}
-      {plan&&<div style={{display:"flex",justifyContent:"flex-end",marginBottom:8}}>
-        <Btn size="sm" variant="ghost" style={{color:dayReorderMode?C.neon:C.muted,borderColor:dayReorderMode?C.neon+"55":C.border}} onClick={()=>{const next=!dayReorderMode;setDayReorderMode(next);setExpandedDay(null);if(!next){setSaveToast("Day order saved");setTimeout(()=>setSaveToast(""),2500);}}} C={C}>
-          {dayReorderMode?"✓ Done Reordering":"⇅ Reorder Days"}
-        </Btn>
-      </div>}
       {days.map((day,i)=>(
         <div key={day.id} style={{marginBottom:8}}>
           <div onClick={dayReorderMode?undefined:()=>setExpandedDay(expandedDay===i?null:i)}
@@ -2484,7 +2479,12 @@ No explanation, no markdown, just the JSON array.`;
           </div>}
         </div>
       ))}
-      <Btn variant="ghost" style={{width:"100%",marginTop:6}} onClick={()=>setAddDayModal(true)} C={C}>+ Add Day</Btn>
+      <div style={{display:"flex",gap:8,marginTop:6}}>
+        <Btn variant="ghost" style={{flex:1}} onClick={()=>setAddDayModal(true)} C={C}>+ Add Day</Btn>
+        {days.length>1&&<Btn variant="ghost" style={{flex:1,color:dayReorderMode?C.neon:C.muted,borderColor:dayReorderMode?C.neon+"55":C.border}} onClick={()=>{const next=!dayReorderMode;setDayReorderMode(next);setExpandedDay(null);if(!next){setSaveToast("Day order saved");setTimeout(()=>setSaveToast(""),2500);}}} C={C}>
+          {dayReorderMode?"✓ Done Reordering":"⇅ Reorder Days"}
+        </Btn>}
+      </div>
     </div>}
 
     {/* PRESET TEMPLATES */}
