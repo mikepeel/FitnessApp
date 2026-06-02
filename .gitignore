@@ -29,6 +29,10 @@ test-results/
 # loose screenshots from manual testing
 *.png
 
+# design mockups & QA scratch notes (local working files, not part of the app)
+mockup-*.html
+qa-audit-findings*.md
+
 # misc
 .DS_Store
 npm-debug.log*
