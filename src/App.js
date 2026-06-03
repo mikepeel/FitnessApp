@@ -2785,6 +2785,33 @@ function DayForm({onSave,onClose,C}){
   </div>;
 }
 
+// Rename an exercise key within a session's sets object (merges + renumbers if the target name already exists)
+function renameInSets(setsObj,oldName,newName){
+  if(!setsObj||!setsObj[oldName]||oldName===newName)return setsObj;
+  const sets={...setsObj};
+  const moving=sets[oldName];
+  delete sets[oldName];
+  if(sets[newName]){
+    const merged={...sets[newName]};
+    let next=Math.max(0,...Object.keys(merged).map(Number))+1;
+    for(const k of Object.keys(moving)){merged[next++]=moving[k];}
+    sets[newName]=merged;
+  }else{
+    sets[newName]=moving;
+  }
+  return sets;
+}
+// Rebuild a flat setsArr from a sets object (mirrors saveEdit's logic — keeps set numbers consistent)
+function setsToArr(setsObj){
+  const arr=[];
+  for(const[exName,sets]of Object.entries(setsObj||{})){
+    for(const[sn,v]of Object.entries(sets)){
+      if(v.weight||v.reps||v.minutes)arr.push({exName,setNum:parseInt(sn),weight:v.weight||"",reps:v.reps||"",minutes:v.minutes||"",level:v.level||"",isPR:v.isPR||false,type:v.type||"working"});
+    }
+  }
+  return arr;
+}
+
 // -- HISTORY -------------------------------------------------------------------
 function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggleTheme,themeMode,onRerun}){
   const [expanded,setExpanded]=useState(null);
@@ -2912,6 +2939,41 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
     setSessions(updatedSessions);
     recalcPRs(updatedSessions);
     return true;
+  }
+
+  // Rename an exercise across ALL other sessions (the edited session is handled by saveEdit).
+  // Writes sets_data + logged_sets per affected session, then refreshes state + PRs.
+  async function renameExerciseEverywhere(oldName,newName,skipId){
+    try{
+      const{data:{session:_s}}=await supabase.auth.getSession().catch(()=>({data:{session:null}}));
+      const uid=_s?.user?.id;
+      const affected=sessions.filter(s=>s.id!==skipId&&s.sets&&s.sets[oldName]);
+      for(const s of affected){
+        const ns=renameInSets(s.sets,oldName,newName);
+        const arr=setsToArr(ns);
+        if(s.supabaseId&&uid){
+          const{error:e1}=await supabase.from("workout_sessions").update({sets_data:ns}).eq("id",s.supabaseId);
+          if(e1){console.error("renameAll session:",e1);return false;}
+          const{error:e2}=await supabase.from("logged_sets").delete().eq("session_id",s.supabaseId);
+          if(e2){console.error("renameAll delete:",e2);return false;}
+          if(arr.length){
+            const rows=arr.map(x=>({session_id:s.supabaseId,user_id:uid,exercise_name:x.exName,set_number:x.setNum,weight:parseFloat(x.weight)||null,reps:x.minutes?(parseInt(x.level)||null):(parseInt(x.reps)||null),minutes:parseFloat(x.minutes)||null,is_pr:x.isPR||false,set_type:x.type||"working"}));
+            const{error:e3}=await supabase.from("logged_sets").insert(rows);
+            if(e3){console.error("renameAll insert:",e3);return false;}
+          }
+        }
+      }
+      // Refresh state from the freshest sessions (functional updater) so the just-saved edit isn't clobbered
+      setSessions(prev=>{
+        const next=prev.map(s=>{
+          if(s.sets&&s.sets[oldName]){const ns=renameInSets(s.sets,oldName,newName);return {...s,sets:ns,setsArr:setsToArr(ns)};}
+          return s;
+        });
+        setTimeout(()=>recalcPRs(next),0);
+        return next;
+      });
+      return true;
+    }catch(e){console.error("renameExerciseEverywhere:",e);return false;}
   }
 
   async function deleteSession(sessId){
@@ -3086,7 +3148,7 @@ ${prCount>0?`★ ${prCount} new PR${prCount>1?"s":""}!`:""}
     </div>
 
     {/* Edit modal */}
-    {editingSession&&<SessionEditModal session={editingSession} onSave={saveEdit} onClose={()=>setEditingSession(null)} C={C}/>}
+    {editingSession&&<SessionEditModal session={editingSession} onSave={saveEdit} onClose={()=>setEditingSession(null)} allSessions={sessions} onRenameAll={renameExerciseEverywhere} C={C}/>}
 
     {/* Delete confirm */}
     {confirmDelete&&<Modal onClose={()=>setConfirmDelete(null)} C={C}>
@@ -3103,9 +3165,13 @@ ${prCount>0?`★ ${prCount} new PR${prCount>1?"s":""}!`:""}
 }
 
 // -- SESSION EDIT MODAL --------------------------------------------------------
-function SessionEditModal({session,onSave,onClose,C}){
+function SessionEditModal({session,onSave,onClose,allSessions=[],onRenameAll,C}){
   const [saving,setSaving]=useState(false);
   const [saveError,setSaveError]=useState(null);
+  const [editingName,setEditingName]=useState(null); // exName currently being renamed
+  const [nameDraft,setNameDraft]=useState(""); // controlled value of the rename input
+  const [renames,setRenames]=useState([]); // [{from,to}] applied this session
+  const [applyAllPrompt,setApplyAllPrompt]=useState(null); // renames with matches in other sessions
   const [editData,setEditData]=useState(()=>{
     // Build editable sets: { exName -> { setNum -> { weight, reps } } }
     const sets={};
@@ -3156,6 +3222,19 @@ function SessionEditModal({session,onSave,onClose,C}){
     setEditData(prev=>({...prev,sets:{...prev.sets,[newExName.trim()]:{1:{weight:"",reps:"",isPR:false}}}}));
     setNewExName("");
     setAddingEx(false);
+  }
+
+  function renameExercise(oldName,rawNew){
+    const newName=(rawNew||"").trim();
+    setEditingName(null);
+    if(!newName||newName===oldName)return;
+    setEditData(prev=>({...prev,sets:renameInSets(prev.sets,oldName,newName)}));
+    // Track the rename (collapse chains so X→A→B records as X→B), drop no-ops
+    setRenames(prev=>{
+      const chained=prev.some(r=>r.to===oldName);
+      const next=chained?prev.map(r=>r.to===oldName?{...r,to:newName}:r):[...prev,{from:oldName,to:newName}];
+      return next.filter(r=>r.from!==r.to);
+    });
   }
 
   const inputStyle={padding:"8px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",width:"100%",boxSizing:"border-box"};
@@ -3216,8 +3295,19 @@ function SessionEditModal({session,onSave,onClose,C}){
       const setNums=Object.keys(sets).map(Number).sort((a,b)=>a-b);
       const isCardioEx=isCardioName(exName)||Object.values(sets).some(s=>s.minutes);
       return <div key={exName} style={{marginBottom:14,paddingBottom:14,borderBottom:`1px solid ${C.border}`}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-          <div style={{fontSize:13,fontWeight:700,color:C.text}}>{exName}</div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8,gap:8}}>
+          {editingName===exName
+            ?<div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}>
+               <input autoFocus value={nameDraft} onChange={e=>setNameDraft(e.target.value)}
+                 onKeyDown={e=>{if(e.key==="Enter")renameExercise(exName,nameDraft);else if(e.key==="Escape")setEditingName(null);}}
+                 style={{...inputStyle,flex:1,fontWeight:700}}/>
+               <button onClick={()=>renameExercise(exName,nameDraft)} title="Confirm rename" style={{background:"transparent",border:"none",color:C.neon,cursor:"pointer",fontSize:15,flexShrink:0}}>✓</button>
+               <button onClick={()=>setEditingName(null)} title="Cancel" style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:14,flexShrink:0}}>✕</button>
+             </div>
+            :<div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}>
+               <div style={{fontSize:13,fontWeight:700,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{exName}</div>
+               <button onClick={()=>{setEditingName(exName);setNameDraft(exName);}} title="Rename exercise" style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:12,padding:"2px 4px",flexShrink:0}}>✎</button>
+             </div>}
           {isCardioEx&&<Pill color={C.green}>Cardio</Pill>}
         </div>
         {/* Set rows — cardio: minutes + level, strength: weight + reps */}
@@ -3265,12 +3355,26 @@ function SessionEditModal({session,onSave,onClose,C}){
     </div>}
 
     {saveError&&<div style={{marginBottom:10,padding:"10px 12px",background:C.danger+"22",border:`1px solid ${C.danger}44`,borderRadius:8,color:C.danger,fontSize:12,fontFamily:"'SF Mono','Courier New',monospace"}}>{saveError}</div>}
-    <div style={{display:"flex",gap:10}}>
-      <Btn style={{flex:1}} C={C} disabled={saving} onClick={async()=>{setSaving(true);setSaveError(null);try{const ok=await onSave(editData);if(ok===false){setSaveError("Save failed — your original data is unchanged. Check connection and try again.");}else{onClose();}}catch(e){setSaveError("Save failed — your original data is unchanged. Check connection and try again.");}finally{setSaving(false);}}}>
-        {saving?"Saving…":"Save Changes"}
-      </Btn>
-      <Btn variant="ghost" style={{flex:1}} C={C} disabled={saving} onClick={onClose}>Cancel</Btn>
-    </div>
+    {applyAllPrompt
+      ?<div style={{padding:"12px 14px",background:C.accent+"12",border:`1px solid ${C.accent}44`,borderRadius:8}}>
+        <Mono style={{fontSize:12,color:C.text,fontWeight:700,display:"block",marginBottom:6}}>Saved ✓ — apply rename to other sessions?</Mono>
+        <div style={{marginBottom:10}}>
+          {applyAllPrompt.map(r=>{
+            const count=allSessions.filter(s=>s.id!==session.id&&s.sets&&s.sets[r.from]).length;
+            return <Mono key={r.from} style={{fontSize:11,color:C.muted,display:"block",marginBottom:2}}>"{r.from}" → "{r.to}" · {count} other session{count!==1?"s":""}</Mono>;
+          })}
+        </div>
+        <div style={{display:"flex",gap:10}}>
+          <Btn style={{flex:1}} C={C} disabled={saving} onClick={async()=>{setSaving(true);try{for(const r of applyAllPrompt){await onRenameAll(r.from,r.to,session.id);}}catch(e){console.error("apply rename all:",e);}finally{setSaving(false);}onClose();}}>{saving?"Applying…":"Apply to all"}</Btn>
+          <Btn variant="ghost" style={{flex:1}} C={C} disabled={saving} onClick={onClose}>Just this session</Btn>
+        </div>
+      </div>
+      :<div style={{display:"flex",gap:10}}>
+        <Btn style={{flex:1}} C={C} disabled={saving} onClick={async()=>{setSaving(true);setSaveError(null);try{const ok=await onSave(editData);if(ok===false){setSaveError("Save failed — your original data is unchanged. Check connection and try again.");}else{const pending=renames.filter(r=>allSessions.some(s=>s.id!==session.id&&s.sets&&s.sets[r.from]));if(pending.length&&onRenameAll){setApplyAllPrompt(pending);}else{onClose();}}}catch(e){setSaveError("Save failed — your original data is unchanged. Check connection and try again.");}finally{setSaving(false);}}}>
+          {saving?"Saving…":"Save Changes"}
+        </Btn>
+        <Btn variant="ghost" style={{flex:1}} C={C} disabled={saving} onClick={onClose}>Cancel</Btn>
+      </div>}
   </Modal>;
 }
 
