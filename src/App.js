@@ -3121,12 +3121,24 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
                   return [...new Set(allSets.map(x=>x.exName))].sort((a,b)=>(exIdx[a]??999)-(exIdx[b]??999));
                 })().map(name=>{
                   const exSets=allSets.filter(x=>x.exName===name);
+                  // Collapse consecutive identical strength sets (same type+weight+reps) into one row,
+                  // preserving order. Cardio intervals stay per-row (each interval is distinct).
+                  const groups=[];
+                  for(const x of exSets){
+                    const isCardioSet=!!x.minutes;
+                    const last=groups[groups.length-1];
+                    if(last&&!isCardioSet&&!last.cardio&&last.type===(x.type||"working")&&last.weight===(x.weight||"")&&last.reps===(x.reps||"")){
+                      last.count++; last.isPR=last.isPR||x.isPR;
+                    }else{
+                      groups.push({cardio:isCardioSet,type:x.type||"working",weight:x.weight||"",reps:x.reps||"",minutes:x.minutes||"",level:x.level||"",setNum:x.setNum,isPR:x.isPR||false,count:1});
+                    }
+                  }
                   return <div key={name} style={{marginBottom:8,paddingBottom:8,borderBottom:`1px solid ${C.border}`}}>
                     <div style={{fontSize:13,fontWeight:600,marginBottom:4}}>{name}</div>
                     <div style={{display:"grid",gap:6}}>
-                      {exSets.map((x,j)=>(
-                        <Mono key={j} style={{fontSize:11,background:C.surface,padding:"8px 10px",borderRadius:8,color:x.isPR?C.red:x.minutes?C.green:C.muted,opacity:x.type==="warmup"?0.6:1}}>
-                          {x.type==="warmup"?"W ":""}{x.minutes?`Interval ${x.setNum}: ${x.minutes} min${x.level?` · L${x.level}`:""}`:""}{!x.minutes&&x.weight?`${x.weight}lbs`:""}{!x.minutes&&x.weight&&x.reps?" × ":""}{!x.minutes&&x.reps?`${x.reps}r`:""}{x.isPR?" ★":""}
+                      {groups.map((g,j)=>(
+                        <Mono key={j} style={{fontSize:11,background:C.surface,padding:"8px 10px",borderRadius:8,color:g.isPR?C.red:g.cardio?C.green:C.muted,opacity:g.type==="warmup"?0.6:1}}>
+                          {g.type==="warmup"?"W ":""}{g.cardio?`Interval ${g.setNum}: ${g.minutes} min${g.level?` · L${g.level}`:""}`:""}{!g.cardio&&g.count>1?`${g.count} × `:""}{!g.cardio&&g.weight?`${g.weight}lbs`:""}{!g.cardio&&g.weight&&g.reps?" × ":""}{!g.cardio&&g.reps?`${g.reps}r`:""}{g.isPR?" ★":""}
                         </Mono>
                       ))}
                       {(() => {
