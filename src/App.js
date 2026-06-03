@@ -2887,6 +2887,18 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
       }
     }
     savePRs(newPRs);
+    // Clean up orphaned PR rows for exercise names no longer present in any session
+    // (e.g. after a rename) — newPRs is the complete recomputed set, so anything else is stale
+    (async()=>{
+      try{
+        const{data:{user:u}}=await supabase.auth.getUser();
+        if(!u)return;
+        const{data:rows}=await supabase.from("personal_records").select("exercise_name").eq("user_id",u.id);
+        const keep=new Set(Object.keys(newPRs));
+        const orphans=(rows||[]).map(r=>r.exercise_name).filter(n=>!keep.has(n));
+        if(orphans.length)await supabase.from("personal_records").delete().eq("user_id",u.id).in("exercise_name",orphans);
+      }catch(e){console.error("recalcPRs orphan cleanup:",e);}
+    })();
   }
 
   async function saveEdit(updated){
