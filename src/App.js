@@ -3014,6 +3014,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
             const idx=`${month}-${i}`;
             const allSets=s.setsArr||[];
             const vol=allSets.filter(x=>x.type!=="warmup").reduce((a,x)=>(a+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0);
+            const setCount=allSets.filter(x=>x.type!=="warmup").length;
             const dur=s.completedAt&&s.startedAt?Math.round((new Date(s.completedAt)-new Date(s.startedAt))/60000):null;
             const newPRs=allSets.filter(x=>x.isPR);
             const isExp=expanded===idx;
@@ -3029,8 +3030,8 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
                   <Mono style={{fontSize:11,color:C.muted}}>
                     {new Date(s.completedAt).toLocaleDateString("en",{weekday:"long",month:"short",day:"numeric",year:"numeric"})}
                     {dur?` . ${dur}min`:""}
-                    {vol>0?` . ${Math.round(vol).toLocaleString()} lbs`:""}
                   </Mono>
+                  {setCount>0&&<Mono style={{fontSize:11,color:C.neon,fontWeight:700,marginTop:3,display:"block"}}>{setCount} set{setCount!==1?"s":""}{vol>0?` · ${Math.round(vol).toLocaleString()} lbs`:""}</Mono>}
                 </div>
                 <Mono style={{color:C.muted,fontSize:12,marginLeft:8}}>{isExp?"▲":"▼"}</Mono>
               </div>
