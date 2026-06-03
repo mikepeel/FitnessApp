@@ -56,7 +56,7 @@ const THEMES = {
     blue:"#4f8ef7", green:"#0ea66e", danger:"#e53e6a",
     // Darkened accent text colors — all meet WCAG AA (>=4.5:1) on white; vivid tokens above
     // stay for fills/borders/buttons/glows so the UI keeps its pop.
-    accentInk:"#2b6cb0", blueInk:"#2b6cb0", neonInk:"#08784f", greenInk:"#08784f", goldInk:"#8a6d0a", redInk:"#c01f4d", dangerInk:"#c01f4d",
+    accentInk:"#2b6cb0", blueInk:"#2b6cb0", neonInk:"#076b42", greenInk:"#076b42", goldInk:"#8a6d0a", redInk:"#c01f4d", dangerInk:"#c01f4d",
     text:"#1a202c", muted:"#2d3748", faint:"#5a6a7e", cardText:"#0d1117",
     mono:"'SF Mono','Courier New',monospace",
     serif:"'Georgia','Times New Roman',serif",
@@ -3677,13 +3677,14 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
             const score=getStrengthScore(name,pr.weight);
             const level=STRENGTH_LEVELS[score];
             const colors=["#8a96a8","#4f8ef7","#3ecf8e","#f7c948","#f06584"];
+            const txt=[C.faint,C.blueInk,C.greenInk,C.goldInk,C.redInk]; // AA-safe text (vivid in dark, darkened in light)
             return <div key={name} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
               <div style={{flex:1}}>
                 <div style={{fontSize:12}}>{name}</div>
                 <Mono style={{fontSize:10,color:C.muted}}>{pr.weight} lbs PR</Mono>
               </div>
               <div style={{padding:"3px 10px",borderRadius:12,background:colors[score]+"22",border:`1px solid ${colors[score]}44`}}>
-                <Mono style={{fontSize:10,color:colors[score],fontWeight:700}}>{level}</Mono>
+                <Mono style={{fontSize:10,color:txt[score],fontWeight:700}}>{level}</Mono>
               </div>
             </div>;
           })}
