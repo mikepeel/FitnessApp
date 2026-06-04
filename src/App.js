@@ -3461,9 +3461,22 @@ function getStrengthScore(exName, maxWeight){
   return Math.min(level, 4);
 }
 
+// Lightweight inline SVG sparkline (used in the Progress "All" overview — cheap to render for many lifts)
+function Sparkline({data,color}){
+  if(!data||data.length<2)return null;
+  const w=320,h=56,pad=6;
+  const ws=data.map(d=>d.weight),min=Math.min(...ws),max=Math.max(...ws),range=(max-min)||1;
+  const pts=data.map((d,i)=>{const x=pad+(i/(data.length-1))*(w-2*pad);const y=h-pad-((d.weight-min)/range)*(h-2*pad);return `${x.toFixed(1)},${y.toFixed(1)}`;});
+  const [lx,ly]=pts[pts.length-1].split(",");
+  return <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{display:"block",width:"100%",height:56}}>
+    <polyline fill="none" stroke={color} strokeWidth="2.5" points={pts.join(" ")}/>
+    <circle cx={lx} cy={ly} r="3.5" fill={color}/>
+  </svg>;
+}
+
 function StatsTab({sessions,prs,settings,C,activePlan,toggleTheme,themeMode,bodyStatsInit=[],onBodyStatsChange}){
-  const [selEx,setSelEx]=useState(null);
-  const [chartData,setChartData]=useState([]);
+  const [selEx,setSelEx]=useState(null); // null = "All exercises"
+  const [progressView,setProgressView]=useState("chart"); // chart | table
   const [statsView,setStatsView]=useState("overview"); // overview | progress | muscles | body | trainer
   const [bodyStats,setBodyStats]=useState(bodyStatsInit||[]);
   const [newBodyStat,setNewBodyStat]=useState({weight:"",chest:"",waist:"",hips:"",arms:"",date:new Date().toLocaleDateString("en-CA")});
@@ -3473,6 +3486,13 @@ function StatsTab({sessions,prs,settings,C,activePlan,toggleTheme,themeMode,body
   const [coachUpgrade,setCoachUpgrade]=useState(null);
 
   const allExNames=[...new Set(sessions.flatMap(s=>(s.setsArr||[]).map(x=>x.exName)))].sort();
+  // Per-day best-weight series for one exercise (used by Progress charts + tables)
+  const seriesFor=(name)=>{
+    const grouped={};
+    sessions.forEach(s=>{ if(!s.completedAt)return; const best=(s.setsArr||[]).filter(x=>x.exName===name&&x.type!=="warmup").reduce((m,x)=>Math.max(m,parseFloat(x.weight)||0),0); if(best>0){const d=new Date(s.completedAt).toLocaleDateString("en-CA"); if(!grouped[d]||best>grouped[d])grouped[d]=best;} });
+    return Object.entries(grouped).sort(([a],[b])=>a>b?1:-1).map(([d,w])=>({date:d.slice(5),weight:w,orm:Math.round(w*1.0333)}));
+  };
+  const chartData=selEx?seriesFor(selEx):[];
   const prList=Object.entries(prs).sort((a,b)=>b[1].weight-a[1].weight);
   const totalVol=sessions.reduce((a,s)=>(a+(s.setsArr||[]).filter(x=>x.type!=="warmup").reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
 
@@ -3514,13 +3534,6 @@ function StatsTab({sessions,prs,settings,C,activePlan,toggleTheme,themeMode,body
   const muscleOrder=["Chest","Back","Shoulders","Biceps","Triceps","Legs","Abs","Cardio"];
   const maxMuscleVol=Math.max(...Object.values(muscleVolMapped),1);
 
-  useEffect(()=>{
-    if(!selEx){if(allExNames.length)setSelEx(allExNames[0]);return;}
-    const rel=sessions.filter(s=>s.completedAt&&(s.setsArr||[]).some(x=>x.exName===selEx));
-    const grouped={};
-    rel.forEach(s=>{const d=new Date(s.completedAt).toLocaleDateString("en-CA");const best=(s.setsArr||[]).filter(x=>x.exName===selEx&&x.type!=="warmup").reduce((m,x)=>Math.max(m,parseFloat(x.weight)||0),0);if(!grouped[d]||best>grouped[d])grouped[d]=best;});
-    setChartData(Object.entries(grouped).sort(([a],[b])=>a>b?1:-1).map(([d,w])=>({date:d.slice(5),weight:w,orm:Math.round(w*1.0333*1)})));
-  },[selEx,sessions]);// eslint-disable-line react-hooks/exhaustive-deps
 
   async function loadTrainerInsight(){
     setLoadingInsight(true);
@@ -3604,56 +3617,112 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
       </div>}
 
       {/* PROGRESS */}
-      {statsView==="progress"&&<div>
-        <SectionLabel C={C}>Exercise Progress</SectionLabel>
-        <select value={selEx||""} onChange={e=>setSelEx(e.target.value)}
-          style={{width:"100%",padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",marginBottom:14}}>
-          {allExNames.map(n=><option key={n} value={n}>{n}</option>)}
-        </select>
-        {chartData.length>1?<div>
-          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"14px 8px",marginBottom:12}}>
-            <div style={{fontSize:13,fontWeight:600,marginBottom:4,paddingLeft:8}}>{selEx} — Max Weight</div>
-            <ResponsiveContainer width="100%" height={160}>
-              <LineChart data={chartData} margin={{top:4,right:12,left:-10,bottom:0}}>
-                <CartesianGrid strokeDasharray="3 3" stroke={C.border}/>
-                <XAxis dataKey="date" tick={{fill:C.muted,fontSize:9,fontFamily:"'SF Mono','Courier New',monospace"}}/>
-                <YAxis tick={{fill:C.muted,fontSize:9,fontFamily:"'SF Mono','Courier New',monospace"}}/>
-                <Tooltip contentStyle={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,fontFamily:"'SF Mono','Courier New',monospace",fontSize:11,color:C.text}}/>
-                <Line type="monotone" dataKey="weight" stroke={C.accent} strokeWidth={2} dot={{fill:C.accent,r:3}} activeDot={{r:5}}/>
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-          {/* Est 1RM chart */}
-          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"14px 8px",marginBottom:12}}>
-            <div style={{fontSize:13,fontWeight:600,marginBottom:4,paddingLeft:8}}>{selEx} — Est. 1RM Trend</div>
-            <ResponsiveContainer width="100%" height={140}>
-              <LineChart data={chartData.map(d=>({...d,orm:d.weight?Math.round(d.weight*1.0333*1):0}))} margin={{top:4,right:12,left:-10,bottom:0}}>
-                <CartesianGrid strokeDasharray="3 3" stroke={C.border}/>
-                <XAxis dataKey="date" tick={{fill:C.muted,fontSize:9,fontFamily:"'SF Mono','Courier New',monospace"}}/>
-                <YAxis tick={{fill:C.muted,fontSize:9,fontFamily:"'SF Mono','Courier New',monospace"}}/>
-                <Tooltip contentStyle={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,fontFamily:"'SF Mono','Courier New',monospace",fontSize:11,color:C.text}}/>
-                <Line type="monotone" dataKey="orm" stroke={C.gold} strokeWidth={2} dot={{fill:C.gold,r:3}} activeDot={{r:5}}/>
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-          {/* Strength score for this exercise */}
-          {prs[selEx]&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"14px",marginBottom:12}}>
-            <SectionLabel C={C}>Strength Level</SectionLabel>
-            <div style={{display:"flex",gap:4}}>
-              {STRENGTH_LEVELS.map((level,i)=>{
-                const score=getStrengthScore(selEx,prs[selEx]?.weight);
-                return <div key={level} style={{flex:1,textAlign:"center"}}>
-                  <div style={{height:8,borderRadius:4,background:i<=score?C.accent:C.border,marginBottom:4,transition:"background .3s"}}/>
-                  <Mono style={{fontSize:8,color:i<=score?C.accentInk:C.faint}}>{level.slice(0,3)}</Mono>
-                </div>;
-              })}
+      {statsView==="progress"&&(()=>{
+        const mono="'SF Mono','Courier New',monospace";
+        const cardSt={background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"13px 14px",marginBottom:10};
+        const thSt={color:C.faint,fontWeight:600,padding:"4px 6px",fontSize:9,letterSpacing:"0.08em",borderBottom:`1px solid ${C.border}`,fontFamily:mono};
+        const tdSt={padding:"5px 6px",borderBottom:`1px solid ${C.border}`,fontFamily:mono,fontSize:11};
+        const tableSt={width:"100%",borderCollapse:"collapse",marginTop:6};
+        const emptySt={textAlign:"center",padding:"24px",color:C.muted,fontFamily:mono,fontSize:12};
+        return <div>
+          <SectionLabel C={C}>{selEx?"Exercise Progress":"Progress — All Lifts"}</SectionLabel>
+          {/* Controls: exercise selector + chart/table toggle */}
+          <div style={{display:"flex",gap:8,marginBottom:14}}>
+            <select value={selEx||""} onChange={e=>setSelEx(e.target.value||null)}
+              style={{flex:1,minWidth:0,padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:13,fontFamily:mono}}>
+              <option value="">All exercises</option>
+              {allExNames.map(n=><option key={n} value={n}>{n}</option>)}
+            </select>
+            <div style={{display:"flex",background:C.card,border:`1px solid ${C.border}`,borderRadius:8,overflow:"hidden",flexShrink:0}}>
+              {[["chart","◊ Chart"],["table","▦ Table"]].map(([k,lbl])=>(
+                <button key={k} onClick={()=>setProgressView(k)} style={{padding:"9px 12px",background:progressView===k?C.accentBtn:"transparent",color:progressView===k?"#fff":C.muted,border:"none",fontFamily:mono,fontSize:11,fontWeight:progressView===k?700:400,cursor:"pointer",letterSpacing:"0.04em"}}>{lbl}</button>
+              ))}
             </div>
-            <Mono style={{fontSize:12,color:C.accentInk,display:"block",marginTop:8,textAlign:"center",fontWeight:700}}>
-              {STRENGTH_LEVELS[getStrengthScore(selEx,prs[selEx]?.weight)]} — {prs[selEx]?.weight} lbs
-            </Mono>
+          </div>
+
+          {!selEx ? (()=>{
+            // ===== ALL MODE — one compact card per lift (tap to drill in) =====
+            const lifts=allExNames.map(n=>({name:n,series:seriesFor(n)})).filter(x=>x.series.length>0);
+            if(!lifts.length) return <div style={emptySt}>Log weighted sessions to see progress.</div>;
+            return lifts.map(({name,series})=>{
+              const first=series[0].weight,cur=series[series.length-1].weight,delta=Math.round(cur-first);
+              const pr=prs[name]?.weight||Math.max(...series.map(s=>s.weight));
+              return <div key={name} onClick={()=>setSelEx(name)} style={{...cardSt,cursor:"pointer",position:"relative"}}>
+                <div style={{position:"absolute",right:12,top:10,color:C.faint,fontSize:18,lineHeight:1}}>›</div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8,paddingRight:18,gap:8}}>
+                  <span style={{fontSize:14,fontWeight:700}}>{name}</span>
+                  <span style={{fontFamily:mono,fontSize:11,flexShrink:0,whiteSpace:"nowrap"}}>
+                    <span style={{color:C.goldInk,fontWeight:700}}>PR {pr}</span>
+                    {delta!==0&&<span style={{color:delta>0?C.neonInk:C.dangerInk,fontWeight:700}}>&nbsp; {delta>0?`▲ +${delta}`:`▼ ${delta}`}</span>}
+                  </span>
+                </div>
+                {progressView==="chart"
+                  ? (series.length>=2?<Sparkline data={series} color={C.accent}/>:<Mono style={{fontSize:11,color:C.muted,padding:"4px 2px",display:"block"}}>One session — need 2+ for a trend</Mono>)
+                  : <table style={tableSt}><tbody>
+                      <tr><th style={{...thSt,textAlign:"left"}}>DATE</th><th style={{...thSt,textAlign:"right"}}>MAX</th><th style={{...thSt,textAlign:"right"}}>EST 1RM</th></tr>
+                      {series.slice(-4).map((d,i,arr)=>{const hi=i===arr.length-1;return <tr key={d.date}>
+                        <td style={tdSt}>{d.date}</td>
+                        <td style={{...tdSt,textAlign:"right",color:hi?C.neonInk:C.text,fontWeight:hi?700:400}}>{d.weight}</td>
+                        <td style={{...tdSt,textAlign:"right",color:hi?C.neonInk:C.muted}}>{d.orm}</td>
+                      </tr>;})}
+                    </tbody></table>}
+                <Mono style={{fontSize:10,color:C.muted,marginTop:6,display:"block"}}>{series.length} session{series.length!==1?"s":""} · {first} → {cur} lbs</Mono>
+              </div>;
+            });
+          })() : <div>
+            {/* ===== DRILL-DOWN (single exercise) ===== */}
+            <button onClick={()=>setSelEx(null)} style={{background:"transparent",border:"none",color:C.accentInk,fontFamily:mono,fontSize:11,cursor:"pointer",padding:"0 0 12px",display:"block"}}>‹ All exercises</button>
+            {progressView==="chart"
+              ? (chartData.length>1?<div>
+                  <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"14px 8px",marginBottom:12}}>
+                    <div style={{fontSize:13,fontWeight:600,marginBottom:4,paddingLeft:8}}>{selEx} — Max Weight</div>
+                    <ResponsiveContainer width="100%" height={160}>
+                      <LineChart data={chartData} margin={{top:4,right:12,left:-10,bottom:0}}>
+                        <CartesianGrid strokeDasharray="3 3" stroke={C.border}/>
+                        <XAxis dataKey="date" tick={{fill:C.muted,fontSize:9,fontFamily:mono}}/>
+                        <YAxis tick={{fill:C.muted,fontSize:9,fontFamily:mono}}/>
+                        <Tooltip contentStyle={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,fontFamily:mono,fontSize:11,color:C.text}}/>
+                        <Line type="monotone" dataKey="weight" stroke={C.accent} strokeWidth={2} dot={{fill:C.accent,r:3}} activeDot={{r:5}}/>
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"14px 8px",marginBottom:12}}>
+                    <div style={{fontSize:13,fontWeight:600,marginBottom:4,paddingLeft:8}}>{selEx} — Est. 1RM Trend</div>
+                    <ResponsiveContainer width="100%" height={140}>
+                      <LineChart data={chartData} margin={{top:4,right:12,left:-10,bottom:0}}>
+                        <CartesianGrid strokeDasharray="3 3" stroke={C.border}/>
+                        <XAxis dataKey="date" tick={{fill:C.muted,fontSize:9,fontFamily:mono}}/>
+                        <YAxis tick={{fill:C.muted,fontSize:9,fontFamily:mono}}/>
+                        <Tooltip contentStyle={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,fontFamily:mono,fontSize:11,color:C.text}}/>
+                        <Line type="monotone" dataKey="orm" stroke={C.gold} strokeWidth={2} dot={{fill:C.gold,r:3}} activeDot={{r:5}}/>
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                  {prs[selEx]&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"14px",marginBottom:12}}>
+                    <SectionLabel C={C}>Strength Level</SectionLabel>
+                    <div style={{display:"flex",gap:4}}>
+                      {STRENGTH_LEVELS.map((level,i)=>{const score=getStrengthScore(selEx,prs[selEx]?.weight);return <div key={level} style={{flex:1,textAlign:"center"}}>
+                        <div style={{height:8,borderRadius:4,background:i<=score?C.accent:C.border,marginBottom:4,transition:"background .3s"}}/>
+                        <Mono style={{fontSize:8,color:i<=score?C.accentInk:C.faint}}>{level.slice(0,3)}</Mono>
+                      </div>;})}
+                    </div>
+                    <Mono style={{fontSize:12,color:C.accentInk,display:"block",marginTop:8,textAlign:"center",fontWeight:700}}>{STRENGTH_LEVELS[getStrengthScore(selEx,prs[selEx]?.weight)]} — {prs[selEx]?.weight} lbs</Mono>
+                  </div>}
+                </div>:<div style={emptySt}>Log 2+ weighted sessions of {selEx} to see your trend.</div>)
+              : (chartData.length>=1?<div style={cardSt}>
+                  <div style={{fontSize:13,fontWeight:600,marginBottom:2}}>{selEx} — Session History</div>
+                  <table style={tableSt}><tbody>
+                    <tr><th style={{...thSt,textAlign:"left"}}>DATE</th><th style={{...thSt,textAlign:"right"}}>MAX</th><th style={{...thSt,textAlign:"right"}}>EST 1RM</th></tr>
+                    {[...chartData].reverse().map((d,i)=>{const hi=i===0;return <tr key={d.date}>
+                      <td style={tdSt}>{d.date}</td>
+                      <td style={{...tdSt,textAlign:"right",color:hi?C.neonInk:C.text,fontWeight:hi?700:400}}>{d.weight}</td>
+                      <td style={{...tdSt,textAlign:"right",color:hi?C.neonInk:C.muted}}>{d.orm}</td>
+                    </tr>;})}
+                  </tbody></table>
+                </div>:<div style={emptySt}>Log weighted sessions of {selEx} to see data.</div>)}
           </div>}
-        </div>:<div style={{textAlign:"center",padding:"24px",color:C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:12}}>Log more sessions to see your trend.</div>}
-      </div>}
+        </div>;
+      })()}
 
       {/* MUSCLE VOLUME DASHBOARD */}
       {statsView==="muscles"&&<div>
