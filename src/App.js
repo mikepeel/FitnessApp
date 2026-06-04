@@ -44,7 +44,7 @@ const THEMES = {
     blue:"#4f8ef7", green:"#3ecf8e", danger:"#f06584",
     // "ink" = accent colors used as TEXT. On dark backgrounds the vivid tokens read fine,
     // so ink == vivid here; in light mode (below) ink is darkened to meet WCAG AA on white.
-    accentInk:"#4f8ef7", blueInk:"#4f8ef7", neonInk:"#3ecf8e", greenInk:"#3ecf8e", goldInk:"#f7c948", redInk:"#ff8099", dangerInk:"#ff8099",
+    accentInk:"#66a0ff", blueInk:"#66a0ff", neonInk:"#3ecf8e", greenInk:"#3ecf8e", goldInk:"#f7c948", redInk:"#ff8099", dangerInk:"#ff8099",
     // Solid-fill button/selector colors — deep enough for white text in BOTH modes
     accentBtn:"#2b6cb0", neonBtn:"#0a7a4f",
     text:"#e8edf4", muted:"#b0bac8", faint:"#6a7585", cardText:"#f2f5fa",
@@ -587,7 +587,7 @@ function Toggle({on,onToggle,C}){
 }
 
 function Pill({children,color,style={}}){
-  return <span style={{fontSize:9,fontFamily:"'SF Mono','Courier New',monospace",background:color+"20",color,padding:"2px 10px 2px 8px",borderRadius:3,letterSpacing:"0.1em",textTransform:"uppercase",fontWeight:700,border:`1px solid ${color}40`,...style}}>{children}</span>;
+  return <span style={{fontSize:9,fontFamily:"'SF Mono','Courier New',monospace",background:color+"16",color,padding:"2px 10px 2px 8px",borderRadius:3,letterSpacing:"0.1em",textTransform:"uppercase",fontWeight:700,border:`1px solid ${color}40`,...style}}>{children}</span>;
 }
 
 function Btn({children,onClick,variant="primary",size="md",style={},disabled=false,C}){
