@@ -44,7 +44,9 @@ const THEMES = {
     blue:"#4f8ef7", green:"#3ecf8e", danger:"#f06584",
     // "ink" = accent colors used as TEXT. On dark backgrounds the vivid tokens read fine,
     // so ink == vivid here; in light mode (below) ink is darkened to meet WCAG AA on white.
-    accentInk:"#4f8ef7", blueInk:"#4f8ef7", neonInk:"#3ecf8e", greenInk:"#3ecf8e", goldInk:"#f7c948", redInk:"#f06584", dangerInk:"#f06584",
+    accentInk:"#4f8ef7", blueInk:"#4f8ef7", neonInk:"#3ecf8e", greenInk:"#3ecf8e", goldInk:"#f7c948", redInk:"#ff8099", dangerInk:"#ff8099",
+    // Solid-fill button/selector colors — deep enough for white text in BOTH modes
+    accentBtn:"#2b6cb0", neonBtn:"#0a7a4f",
     text:"#e8edf4", muted:"#b0bac8", faint:"#6a7585", cardText:"#f2f5fa",
     mono:"'SF Mono','Courier New',monospace",
     serif:"'Georgia','Times New Roman',serif",
@@ -57,6 +59,8 @@ const THEMES = {
     // Darkened accent text colors — all meet WCAG AA (>=4.5:1) on white; vivid tokens above
     // stay for fills/borders/buttons/glows so the UI keeps its pop.
     accentInk:"#2b6cb0", blueInk:"#2b6cb0", neonInk:"#076b42", greenInk:"#076b42", goldInk:"#8a6d0a", redInk:"#c01f4d", dangerInk:"#c01f4d",
+    // Solid-fill button/selector colors — same deep shades as light (white text passes)
+    accentBtn:"#2b6cb0", neonBtn:"#076b42",
     text:"#1a202c", muted:"#2d3748", faint:"#5a6a7e", cardText:"#0d1117",
     mono:"'SF Mono','Courier New',monospace",
     serif:"'Georgia','Times New Roman',serif",
@@ -588,7 +592,7 @@ function Pill({children,color,style={}}){
 
 function Btn({children,onClick,variant="primary",size="md",style={},disabled=false,C}){
   const sizes={sm:{padding:"6px 13px",fontSize:11},md:{padding:"10px 18px",fontSize:13},lg:{padding:"14px 24px",fontSize:14}};
-  const bg={primary:C.accentInk,ghost:"transparent",danger:C.danger+"22",subtle:C.card,gold:C.gold};
+  const bg={primary:C.accentBtn,ghost:"transparent",danger:C.danger+"22",subtle:C.card,gold:C.gold};
   const col={primary:"#fff",ghost:C.text,danger:C.dangerInk,subtle:C.text,gold:"#0b0c0e"};
   const bdr={ghost:`1px solid ${C.border}`,danger:`1px solid ${C.danger}44`,subtle:`1px solid ${C.border}`};
   return <button style={{border:bdr[variant]||"none",cursor:disabled?"not-allowed":"pointer",fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.04em",borderRadius:8,transition:"opacity .15s",opacity:disabled?.5:1,background:bg[variant]||C.accent,color:col[variant]||"#fff",...sizes[size],...style}} onClick={onClick} disabled={disabled}>{children}</button>;
@@ -1386,7 +1390,7 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
         <div style={{fontSize:18,marginBottom:8}}>💪</div>
         <div style={{fontSize:15,fontWeight:700,marginBottom:6}}>No plan set up yet</div>
         <div style={{fontSize:11,color:C.muted,marginBottom:14}}>Pick a template to get started or build a custom plan.</div>
-        <button onClick={onGoToPlan} style={{padding:"10px 20px",borderRadius:8,border:"none",background:C.accentInk,color:"#fff",fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",fontWeight:700,cursor:"pointer",letterSpacing:"0.04em"}}>Browse Templates</button>
+        <button onClick={onGoToPlan} style={{padding:"10px 20px",borderRadius:8,border:"none",background:C.accentBtn,color:"#fff",fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",fontWeight:700,cursor:"pointer",letterSpacing:"0.04em"}}>Browse Templates</button>
       </div>}
       {deloadDue&&<div style={{background:C.gold+"15",border:`1px solid ${C.gold}55`,borderRadius:10,padding:"12px 14px",marginBottom:14}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
@@ -1470,7 +1474,7 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
               {doneSess&&dayVol&&dayVol.sets>0&&<Mono style={{fontSize:11,color:C.neonInk,display:"block",marginTop:4}}>{dayVol.sets} sets · {dayVol.vol>0?`${Math.round(dayVol.vol).toLocaleString()} lbs`:"logged"}</Mono>}
               {day.isRest&&isToday&&<div style={{fontSize:12,color:C.neonInk,fontStyle:"italic",marginTop:6,lineHeight:1.5}}>"{quote}"</div>}
             </div>
-            {!isToday&&!day.isRest&&!doneSess&&!isFutureStart&&<Btn onClick={()=>onStart(day)} size="sm" C={C} style={{marginLeft:10,background:C.neonInk,color:"#fff",fontWeight:700,letterSpacing:"0.1em"}}>START</Btn>}
+            {!isToday&&!day.isRest&&!doneSess&&!isFutureStart&&<Btn onClick={()=>onStart(day)} size="sm" C={C} style={{marginLeft:10,background:C.neonBtn,color:"#fff",fontWeight:700,letterSpacing:"0.1em"}}>START</Btn>}
             {!day.isRest&&doneSess&&!isToday&&<Btn onClick={()=>onStart(day)} size="sm" variant="ghost" C={C} style={{marginLeft:10,fontSize:10,color:C.muted,borderColor:C.border}}>↺ Again</Btn>}
           </div>
           {isToday&&!doneSess&&!day.isRest&&!isFutureStart&&<button onClick={()=>onStart(day)} style={{width:"100%",padding:"11px",background:themeMode==="dark"?"#f7c948":"#d4a017",border:"none",borderRadius:10,color:"#1a202c",fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",fontWeight:800,letterSpacing:"0.08em",cursor:"pointer",marginTop:12,boxShadow:"0 2px 8px rgba(0,0,0,0.15)"}}>START {day.label.toUpperCase()}</button>}
@@ -1514,7 +1518,7 @@ function ExerciseLibraryModal({onSelect,onClose,C}){
     </div>
     <div style={{display:"flex",gap:4,background:C.card,padding:3,borderRadius:8,marginBottom:12}}>
       {[["library","Browse Library"],["custom","Custom"]].map(([k,label])=>(
-        <button key={k} onClick={()=>setTab(k)} style={{flex:1,padding:"7px",borderRadius:6,border:"none",background:tab===k?C.accentInk:"transparent",color:tab===k?"#fff":C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:11,cursor:"pointer",letterSpacing:"0.04em"}}>{label}</button>
+        <button key={k} onClick={()=>setTab(k)} style={{flex:1,padding:"7px",borderRadius:6,border:"none",background:tab===k?C.accentBtn:"transparent",color:tab===k?"#fff":C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:11,cursor:"pointer",letterSpacing:"0.04em"}}>{label}</button>
       ))}
     </div>
     {tab==="library"&&<div>
@@ -2172,7 +2176,7 @@ No markdown, no explanation, just the array.`;
     {/* Tab switcher */}
     <div style={{display:"flex",gap:6,background:C.card,padding:4,borderRadius:8,marginBottom:14}}>
       {[["ai","✦ AI Suggestions"],["custom","Custom"]].map(([k,label])=>(
-        <button key={k} onClick={()=>setTab(k)} style={{flex:1,padding:"7px",borderRadius:6,border:"none",background:tab===k?C.accentInk:"transparent",color:tab===k?"#fff":C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:11,cursor:"pointer"}}>
+        <button key={k} onClick={()=>setTab(k)} style={{flex:1,padding:"7px",borderRadius:6,border:"none",background:tab===k?C.accentBtn:"transparent",color:tab===k?"#fff":C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:11,cursor:"pointer"}}>
           {label}
         </button>
       ))}
@@ -2221,7 +2225,7 @@ class PlanErrorBoundary extends Component{
       return <div style={{padding:"40px 20px",textAlign:"center"}}>
         <div style={{fontSize:15,fontWeight:700,color:C.redInk,marginBottom:8}}>Plan editor error</div>
         <Mono style={{fontSize:12,color:C.muted,display:"block",marginBottom:16}}>Something went wrong. Tap Retry to reload the editor.</Mono>
-        <button onClick={()=>this.setState({hasError:false})} style={{padding:"10px 20px",borderRadius:8,border:"none",background:C.accentInk,color:"#fff",fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",fontWeight:700}}>Retry</button>
+        <button onClick={()=>this.setState({hasError:false})} style={{padding:"10px 20px",borderRadius:8,border:"none",background:C.accentBtn,color:"#fff",fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",fontWeight:700}}>Retry</button>
       </div>;
     }
     return this.props.children;
@@ -2371,14 +2375,14 @@ No explanation, no markdown, just the JSON array.`;
       {/* View switcher */}
       <div style={{display:"flex",gap:6,marginBottom:10,background:C.card,padding:4,borderRadius:10}}>
         {[["mine","My Plans"],["presets","Templates"],["ai","✦ AI Builder"]].map(([k,label])=>(
-          <button key={k} onClick={()=>setView(k)} style={{flex:1,padding:"7px 4px",borderRadius:7,border:"none",background:view===k?C.accentInk:"transparent",color:view===k?"#fff":C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:11,cursor:"pointer",letterSpacing:"0.04em"}}>
+          <button key={k} onClick={()=>setView(k)} style={{flex:1,padding:"7px 4px",borderRadius:7,border:"none",background:view===k?C.accentBtn:"transparent",color:view===k?"#fff":C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:11,cursor:"pointer",letterSpacing:"0.04em"}}>
             {label}
           </button>
         ))}
       </div>
       {view==="mine"&&<div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
         {Object.keys(plans).map(k=>(
-          <button key={k} onClick={()=>setActivePlanKey(k)} style={{padding:"5px 11px",borderRadius:6,fontFamily:"'SF Mono','Courier New',monospace",fontSize:10,cursor:"pointer",border:activePlanKey===k?"none":`1px solid ${C.border}`,background:activePlanKey===k?C.accentInk:"transparent",color:activePlanKey===k?"#fff":C.muted}}>
+          <button key={k} onClick={()=>setActivePlanKey(k)} style={{padding:"5px 11px",borderRadius:6,fontFamily:"'SF Mono','Courier New',monospace",fontSize:10,cursor:"pointer",border:activePlanKey===k?"none":`1px solid ${C.border}`,background:activePlanKey===k?C.accentBtn:"transparent",color:activePlanKey===k?"#fff":C.muted}}>
             {plans[k]?.name||plans[k]?.name?.slice(0,18)}
           </button>
         ))}
@@ -2393,7 +2397,7 @@ No explanation, no markdown, just the JSON array.`;
       {!plan&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"20px",textAlign:"center",marginBottom:14}}>
         <div style={{fontSize:15,fontWeight:700,marginBottom:6}}>No plan yet</div>
         <Mono style={{fontSize:11,color:C.muted,display:"block",marginBottom:14}}>Go to Templates to pick a plan and get started.</Mono>
-        <button onClick={()=>setView("presets")} style={{padding:"10px 20px",borderRadius:8,border:"none",background:C.accentInk,color:"#fff",fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",fontWeight:700,cursor:"pointer"}}>Browse Templates</button>
+        <button onClick={()=>setView("presets")} style={{padding:"10px 20px",borderRadius:8,border:"none",background:C.accentBtn,color:"#fff",fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",fontWeight:700,cursor:"pointer"}}>Browse Templates</button>
       </div>}
       {plan&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"13px 14px",marginBottom:12}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
@@ -2416,7 +2420,7 @@ No explanation, no markdown, just the JSON array.`;
             <div style={{display:"flex",gap:4}}>
               {[8,10,12].map(w=>(
                 <button key={w} onClick={()=>savePlans({...plans,[activePlanKey]:{...plan,durationWeeks:w}})}
-                  style={{padding:"9px 12px",borderRadius:7,border:(plan?.durationWeeks||10)===w?"none":`1px solid ${C.border}`,background:(plan?.durationWeeks||10)===w?C.accentInk:"transparent",color:(plan?.durationWeeks||10)===w?"#fff":C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:13,fontWeight:700,cursor:"pointer"}}>
+                  style={{padding:"9px 12px",borderRadius:7,border:(plan?.durationWeeks||10)===w?"none":`1px solid ${C.border}`,background:(plan?.durationWeeks||10)===w?C.accentBtn:"transparent",color:(plan?.durationWeeks||10)===w?"#fff":C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:13,fontWeight:700,cursor:"pointer"}}>
                   {w}W
                 </button>
               ))}
@@ -2607,7 +2611,7 @@ No explanation, no markdown, just the JSON array.`;
         <div style={{display:"flex",gap:8}}>
           {[8,10,12].map(w=>(
             <button key={w} onClick={()=>setModalDuration(w)}
-              style={{flex:1,padding:"11px",borderRadius:8,border:modalDuration===w?"none":`1px solid ${C.border}`,background:modalDuration===w?C.accentInk:"transparent",color:modalDuration===w?"#fff":C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:13,fontWeight:700,cursor:"pointer"}}>
+              style={{flex:1,padding:"11px",borderRadius:8,border:modalDuration===w?"none":`1px solid ${C.border}`,background:modalDuration===w?C.accentBtn:"transparent",color:modalDuration===w?"#fff":C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:13,fontWeight:700,cursor:"pointer"}}>
               {w} WK
             </button>
           ))}
@@ -2704,7 +2708,7 @@ Use 7 days total (fill rest days with isRest:true and minimal exercises array wi
       <div style={{fontSize:15,fontWeight:600,marginBottom:16}}>{q.q}</div>
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
         {q.opts.map(opt=>(
-          <button key={opt} onClick={()=>answer(q.key,opt)} style={{padding:"13px 16px",background:answers[q.key]===opt?C.accentInk:C.card,border:`1px solid ${answers[q.key]===opt?C.accent:C.border}`,borderRadius:10,color:answers[q.key]===opt?"#fff":C.text,textAlign:"left",fontSize:14,cursor:"pointer",fontFamily:C.serif,transition:"all .15s"}}>
+          <button key={opt} onClick={()=>answer(q.key,opt)} style={{padding:"13px 16px",background:answers[q.key]===opt?C.accentBtn:C.card,border:`1px solid ${answers[q.key]===opt?C.accent:C.border}`,borderRadius:10,color:answers[q.key]===opt?"#fff":C.text,textAlign:"left",fontSize:14,cursor:"pointer",fontFamily:C.serif,transition:"all .15s"}}>
             {opt}
           </button>
         ))}
@@ -3022,12 +3026,12 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
         </div>
         <div style={{display:"flex",gap:6,alignItems:"center",marginTop:2}}>
           <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}><span style={{fontSize:11}}>◐</span>{themeMode==="dark"?"DARK":"LIGHT"}</button>
-          <Btn size="sm" C={C} onClick={()=>setAddingSession(a=>!a)} style={{background:C.neonInk,color:"#fff",fontWeight:700,padding:"6px 10px",fontSize:11}}>+ Log</Btn>
+          <Btn size="sm" C={C} onClick={()=>setAddingSession(a=>!a)} style={{background:C.neonBtn,color:"#fff",fontWeight:700,padding:"6px 10px",fontSize:11}}>+ Log</Btn>
         </div>
       </div>
       <div style={{display:"flex",gap:5}}>
         {[["1m","1M"],["3m","3M"],["6m","6M"],["all","ALL"]].map(([k,label])=>(
-          <button key={k} onClick={()=>setHistoryFilter(k)} style={{padding:"7px 14px",borderRadius:7,border:historyFilter===k?"none":`1px solid ${C.border}`,background:historyFilter===k?C.accentInk:"transparent",color:historyFilter===k?"#fff":C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:12,fontWeight:700,cursor:"pointer"}}>{label}</button>
+          <button key={k} onClick={()=>setHistoryFilter(k)} style={{padding:"7px 14px",borderRadius:7,border:historyFilter===k?"none":`1px solid ${C.border}`,background:historyFilter===k?C.accentBtn:"transparent",color:historyFilter===k?"#fff":C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:12,fontWeight:700,cursor:"pointer"}}>{label}</button>
         ))}
       </div>
     </div>
@@ -3080,7 +3084,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
           style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box",resize:"none",height:56}}/>
       </div>
       <div style={{display:"flex",gap:8}}>
-        <Btn C={C} style={{flex:1,background:C.neonInk,color:"#fff",fontWeight:700}} onClick={saveManualSession}>Save Session</Btn>
+        <Btn C={C} style={{flex:1,background:C.neonBtn,color:"#fff",fontWeight:700}} onClick={saveManualSession}>Save Session</Btn>
         <Btn C={C} variant="ghost" style={{flex:1}} onClick={()=>setAddingSession(false)}>Cancel</Btn>
       </div>
     </div>}
@@ -3098,7 +3102,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
             const dur=s.completedAt&&s.startedAt?Math.round((new Date(s.completedAt)-new Date(s.startedAt))/60000):null;
             const newPRs=allSets.filter(x=>x.isPR);
             const isExp=expanded===idx;
-            return <div key={s.id} style={{background:C.card,border:`1px solid ${isExp?C.accent+"44":C.border}`,borderLeft:`3px solid ${isExp?C.accentInk:"transparent"}`,borderRadius:8,padding:"13px 14px",marginBottom:8,transition:"border-color .2s"}}>
+            return <div key={s.id} style={{background:C.card,border:`1px solid ${isExp?C.accent+"44":C.border}`,borderLeft:`3px solid ${isExp?C.accentBtn:"transparent"}`,borderRadius:8,padding:"13px 14px",marginBottom:8,transition:"border-color .2s"}}>
               {/* Header row */}
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",cursor:"pointer"}} onClick={()=>setExpanded(isExp?null:idx)}>
                 <div style={{flex:1}}>
@@ -3541,7 +3545,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
     setLoadingInsight(false);
   }
 
-  const tabStyle=(active)=>({flex:1,padding:"7px 4px",borderRadius:7,border:"none",background:active?C.accentInk:"transparent",color:active?"#fff":C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:10,cursor:"pointer",letterSpacing:"0.04em"});
+  const tabStyle=(active)=>({flex:1,padding:"7px 4px",borderRadius:7,border:"none",background:active?C.accentBtn:"transparent",color:active?"#fff":C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:10,cursor:"pointer",letterSpacing:"0.04em"});
 
   return <div>
     <div style={{background:C.bg,borderBottom:`1px solid ${C.border}`,padding:"16px 18px 14px"}}>
@@ -3939,7 +3943,7 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
                 <button key={o} onClick={()=>setLocal(p=>({...p,[key]:p[key]===o?"":o}))}
                   style={{padding:"7px 12px",borderRadius:7,fontFamily:"'SF Mono','Courier New',monospace",fontSize:11,cursor:"pointer",
                     border:local[key]===o?"none":`1px solid ${C.border}`,
-                    background:local[key]===o?C.accentInk:"transparent",
+                    background:local[key]===o?C.accentBtn:"transparent",
                     color:local[key]===o?"#fff":C.muted}}>
                   {o}
                 </button>
