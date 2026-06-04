@@ -2039,7 +2039,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
                       setLoggedSets(prev=>{
                         const cur=prev[ex.name]||{};
                         const updated={...cur,[n]:{...cur[n],prepop:false}};
-                        for(let i=n+1;i<=numSets;i++){if(cur[i]?.prepop){updated[i]={...cur[i],weight:w};}else if(!cur[i]?.weight&&!cur[i]?.reps){updated[i]={weight:w,reps:"",prepop:true};}}
+                        for(let i=n+1;i<=numSets;i++){if(cur[i]?.prepop){updated[i]={...cur[i],weight:w,reps:r};}else if(!cur[i]?.weight&&!cur[i]?.reps){updated[i]={weight:w,reps:r,prepop:true};}}
                         return {...prev,[ex.name]:updated};
                       });
                       setSetStates(prev=>({...prev,[stateKey]:"confirmed"}));
