@@ -1068,7 +1068,9 @@ export default function ForgeApp(){
               for(const[exName,sets]of Object.entries(draft.logged_sets)){
                 for(const[n,v]of Object.entries(sets)){
                   const num=parseInt(n);
-                  if(!Number.isFinite(num)||!v.done)continue;
+                  // keep confirmed sets only: skip prepop suggestions + empty rows.
+                  // strength sets have weight (no `done` flag); cardio sets have minutes.
+                  if(!Number.isFinite(num)||v.prepop||(!v.weight&&!v.minutes))continue;
                   setRows.push({session_id:savedId,user_id:u.id,exercise_name:exName,set_number:num,
                     weight:parseFloat(v.weight)||null,
                     reps:v.minutes?(parseInt(v.level)||null):(parseInt(v.reps)||null),
@@ -1094,7 +1096,8 @@ export default function ForgeApp(){
                 const isCardio=ex.muscle==="Cardio"||ex.muscle==="Recovery";
                 if(isCardio)return Object.values(m).some(v=>v.done&&(v.minutes||v.reps));
                 const numSets=parseInt(ex.sets)||3;
-                return Object.values(m).filter(v=>v.done).length>=numSets;
+                // strength confirmed sets carry no `done` flag — they're !prepop with weight+reps
+                return Object.values(m).filter(v=>!v.prepop&&v.weight&&v.reps).length>=numSets;
               }).map(ex=>ex.id);
               setWorkoutDraft({loggedSets:draft.logged_sets||{},elapsed:restoredElapsed,startedAt:draft.started_at,workout:matchDay,exercises:draft.exercises_json||null,completedExIds:derivedCompletedExIds});
               setActiveWorkout(matchDay);
@@ -1641,6 +1644,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   const topRef=useRef(null);
   const restAnchorRef=useRef(null);
   const lastActiveExRef=useRef(null);
+  const saveDraftRef=useRef(null);
   const dragStartYRef=useRef(null);
   const [dragDelta,setDragDelta]=useState(0);
 
@@ -1663,9 +1667,12 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
     return()=>clearTimeout(t);
   },[autoFinishCountdown]);// eslint-disable-line
 
-  // Heartbeat: persist draft every 30s as a backstop against iOS app kill
+  // Heartbeat: persist draft every 30s as a backstop against iOS app kill.
+  // Call through saveDraftRef so the interval always invokes the LATEST saveDraft
+  // (its closure has current loggedSets/elapsed) — a bare saveDraft() here would
+  // capture first-render state and clobber the draft with empty mount data.
   useEffect(()=>{
-    const t=setInterval(()=>{saveDraft();},30000);
+    const t=setInterval(()=>{saveDraftRef.current&&saveDraftRef.current();},30000);
     return()=>clearInterval(t);
   },[]);// eslint-disable-line
 
@@ -1693,6 +1700,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
       if(error)console.error("saveDraft:",error);
     }catch(e){console.error("saveDraft:",e);}
   }
+  saveDraftRef.current=saveDraft;// keep heartbeat pointed at the latest closure
 
   async function deleteDraft(){
     if(!authUser)return;
