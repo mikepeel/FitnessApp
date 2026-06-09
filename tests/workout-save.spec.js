@@ -2,13 +2,33 @@
 // Regression tests for Issue 1 — workout save persists to Supabase
 // Tests: save succeeds using getSession (not getUser), no error banner, session in History
 const { test, expect } = require("@playwright/test");
+const { ensureCleanHome } = require("./helpers");
 
 test.describe("workout save", () => {
+  // Start each test from a clean home screen (abandon any draft a prior test left).
+  test.beforeEach(async ({ page }) => {
+    await ensureCleanHome(page);
+  });
+
   test("completing a workout saves the session and shows it in History", async ({ page }) => {
-    await page.goto("/");
-    await expect(page.getByRole("button", { name: /Workout/i })).toBeVisible();
+    // Baseline session count from the History header ("N sessions · last …").
+    // History cards render the day label + volume (not notes), so we assert the
+    // count increments rather than searching for the notes text.
+    await page.getByRole("button", { name: /History/i }).click();
+    const header = page.getByText(/\d+ sessions · last/).first();
+    await expect(header).toBeVisible({ timeout: 10000 });
+    // The count briefly shows 0 while sessions load — wait for the real value.
+    await expect
+      .poll(async () => {
+        const t = (await header.textContent()) || "";
+        const m = t.match(/(\d+) sessions/);
+        return m ? parseInt(m[1], 10) : 0;
+      }, { timeout: 10000 })
+      .toBeGreaterThan(0);
+    const before = parseInt((await header.textContent()).match(/(\d+) sessions/)[1], 10);
 
     // Start today's workout
+    await page.getByRole("button", { name: /Workout/i }).click();
     await page.getByRole("button", { name: "START" }).first().click();
     await expect(page.getByText(/exercises/)).toBeVisible();
 
@@ -38,18 +58,15 @@ test.describe("workout save", () => {
     await expect(page.getByText("WORKOUT SUMMARY")).toBeVisible({ timeout: 8000 });
     await page.getByRole("button", { name: /CLOSE/i }).click();
 
-    // Navigate to History and verify the session appears
+    // History session count incremented — proves the session persisted
     await page.getByRole("button", { name: /History/i }).click();
-    await expect(page.getByText(/AUTOMATED TEST/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(new RegExp(`${before + 1} sessions · last`))).toBeVisible({ timeout: 10000 });
   });
 
   test("error banner does NOT appear after workout save (auth regression)", async ({ page }) => {
     // This test specifically guards against the getUser() 403 regression.
     // If auth.getSession() is ever reverted to auth.getUser(), this test will catch it
     // because getUser() can return 403 when the token is being refreshed.
-
-    await page.goto("/");
-    await expect(page.getByRole("button", { name: /Workout/i })).toBeVisible();
 
     await page.getByRole("button", { name: "START" }).first().click();
     await expect(page.getByText(/exercises/)).toBeVisible();

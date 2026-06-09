@@ -2,12 +2,12 @@
 // Regression tests for Issue 2 — rest timer behavior in WorkoutSession
 // Tests: fires on strength set confirm, resets mid-countdown, does NOT fire for cardio
 const { test, expect } = require("@playwright/test");
+const { ensureCleanHome } = require("./helpers");
 
 test.describe("rest timer", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto("/");
-    // Wait for workout tab to confirm app loaded
-    await expect(page.getByRole("button", { name: /Workout/i })).toBeVisible();
+    // Land on a clean home screen, abandoning any draft a prior test left behind.
+    await ensureCleanHome(page);
   });
 
   test.afterEach(async ({ page }) => {
@@ -116,20 +116,21 @@ test.describe("rest timer", () => {
     await page.getByRole("button", { name: "Skip" }).click();
     await expect(page.getByText("REST")).not.toBeVisible();
 
-    // Scroll to Stair Stepper (cardio, last exercise)
-    await page.getByText("Stair Stepper").scrollIntoViewIfNeeded();
-    const minutesInput = page.getByPlaceholder("10");
-    await minutesInput.fill("12");
+    // Add a cardio exercise from the library so this test doesn't depend on which
+    // workout today's rotation surfaces (it may contain no cardio movement).
+    await page.getByRole("button", { name: /\+ ADD EXERCISE/i }).click();
+    await page.getByPlaceholder(/Search.*exercises/i).fill("Rowing Machine");
+    await page.getByText("Rowing Machine", { exact: true }).click();
 
-    // Confirm the cardio interval — exact:true excludes "COMPLETE WORKOUT ✓"
-    const confirmBtns = page.getByRole("button", { name: "✓", exact: true });
-    await confirmBtns.last().click();
+    // Confirm its interval — the ✓ logs the placeholder minutes even if left blank.
+    // exact:true excludes "COMPLETE WORKOUT ✓"; the cardio row is the last ✓.
+    await page.getByRole("button", { name: "✓", exact: true }).last().click();
 
-    // REST timer must NOT appear after cardio confirm
+    // REST timer must NOT appear after a cardio confirm
     await page.waitForTimeout(1000);
     await expect(page.getByText("REST")).not.toBeVisible();
 
-    // Stair Stepper should show LOGGED badge (Bench Press set also shows LOGGED, so take first)
-    await expect(page.getByText("LOGGED").first()).toBeVisible();
+    // The cardio interval is now confirmed (tap-to-edit view)
+    await expect(page.getByText(/tap to edit/i).last()).toBeVisible();
   });
 });
