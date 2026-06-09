@@ -1,6 +1,8 @@
 /**
  * Deletes all workout sessions created by automated Playwright tests.
- * Tests mark sessions with "[AUTOMATED TEST — SAFE TO DELETE]" in notes.
+ * Matches either marker:
+ *   - "[AUTOMATED TEST — SAFE TO DELETE]" in notes (completed-workout tests)
+ *   - a day_label starting with "AutoTest-" (manual-log test sessions)
  *
  * Run: node scripts/delete-test-sessions.js
  * Requires SUPABASE_SERVICE_KEY in .env
@@ -38,7 +40,7 @@ async function main() {
   const { data: sessions, error } = await admin
     .from("workout_sessions")
     .select("id, day_label, completed_at, notes")
-    .ilike("notes", "%AUTOMATED TEST%");
+    .or("notes.ilike.%AUTOMATED TEST%,day_label.ilike.AutoTest-%");
 
   if (error) {
     console.error("Query error:", error.message);
