@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, Component } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { createClient } from "@supabase/supabase-js";
-import { planWeekOf } from "./lib/planWeek";
+import { planWeekOf, elapsedDaysSince, parsePlanDate } from "./lib/planWeek";
 
 // ── SUPABASE ──────────────────────────────────────────────────────────────────
 const SUPABASE_URL = "https://ldbrabnvpiidrdkmjpbo.supabase.co";
@@ -22,9 +22,8 @@ const getProgramStart = (sessions) => {
   return dates[0] || PROGRAM_START;
 };
 const programWeek = (sessions=[]) => {
-  const start = new Date(getProgramStart(sessions)+"T12:00:00");
-  const now = new Date();now.setHours(12,0,0,0);
-  const days = Math.floor((now - start) / 86400000);
+  // start source unchanged (earliest session date / PROGRAM_START); diff via shared helper
+  const days = elapsedDaysSince(getProgramStart(sessions));
   return Math.max(1, Math.ceil((days + 1) / 7));
 };
 // planWeekOf is imported from ./lib/planWeek
@@ -1158,7 +1157,6 @@ export default function ForgeApp(){
     const todayStr=toLD(today);
     // Use position-based slot (same logic as TodayTab) when plan has a startDate
     const planStartDate=plans[activePlanKey]?.startDate;
-    const planStart=planStartDate?new Date(planStartDate+"T12:00:00"):null;
     let count=0;
     for(let i=0;i<=730;i++){
       const d=new Date(today);
@@ -1166,8 +1164,8 @@ export default function ForgeApp(){
       const dateStr=toLD(d);
       if(dateStr<progStart)break;
       let planDay=null;
-      if(planStart&&numDays>0){
-        const elapsed=Math.floor((d-planStart)/86400000);
+      if(planStartDate&&numDays>0){
+        const elapsed=elapsedDaysSince(planStartDate, d);
         if(elapsed>=0){planDay=planDays[elapsed%numDays];}
       } else if(numDays>0){
         // Fallback for plans without a startDate: use weekday-name map
@@ -1254,7 +1252,7 @@ export default function ForgeApp(){
       settings={settings} sessions={sessions} streak={streak} complianceStreak={complianceStreak} deloadDue={deloadDue&&deloadDismissed!==new Date().toLocaleDateString("en-CA").slice(0,7)}
       onDeloadDismiss={()=>{setDeloadDismissed(new Date().toLocaleDateString("en-CA").slice(0,7));}}
       onStart={day=>{setWorkoutDraft(null);setActiveWorkout(day);}} C={C} toggleTheme={toggleTheme} themeMode={themeMode}
-      authUser={authUser} todayDay={(()=>{const days=activePlan?.days||[];if(!activePlan?.startDate||!days.length)return undefined;const now=new Date();now.setHours(12,0,0,0);const elapsed=Math.floor((now-new Date(activePlan.startDate+"T12:00:00"))/86400000);if(elapsed<0)return undefined;const slot=days[elapsed%days.length];return slot?.isRest?undefined:slot;})()}
+      authUser={authUser} todayDay={(()=>{const days=activePlan?.days||[];if(!activePlan?.startDate||!days.length)return undefined;const elapsed=elapsedDaysSince(activePlan.startDate);if(elapsed<0)return undefined;const slot=days[elapsed%days.length];return slot?.isRest?undefined:slot;})()}
       onGoToPlan={()=>setTab("plan")}/>}
     {tab==="plan"&&<PlanErrorBoundary C={C}><PlanTab plans={plans} activePlanKey={activePlanKey}
       setActivePlanKey={persistActivePlanKey}
@@ -1327,8 +1325,8 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
   const toLocalDateStr=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
   // Position-based scheduling: slot = daysSinceStart % numDays
   const todayMidnightRef=new Date();todayMidnightRef.setHours(12,0,0,0);
-  const startDate=plan?.startDate?new Date(plan.startDate+"T12:00:00"):null;
-  const elapsedDays=startDate?Math.floor((todayMidnightRef-startDate)/86400000):null;
+  const startDate=parsePlanDate(plan?.startDate);
+  const elapsedDays=elapsedDaysSince(plan?.startDate,todayMidnightRef);
   const isFutureStart=elapsedDays!==null&&elapsedDays<0;
   const daysUntilStart=isFutureStart?-elapsedDays:0;
   const todaySlot=(elapsedDays!==null&&elapsedDays>=0&&numDays>0)?elapsedDays%numDays:null;
@@ -2259,7 +2257,7 @@ function PlanTab({plans,activePlanKey,setActivePlanKey,savePlans,settings,C,togg
 
   const plan=plans[activePlanKey];
   const days=plan?.days||[];
-  const startDOW=plan?.startDate?new Date(plan.startDate+"T12:00:00").getDay():null;
+  const startDOW=parsePlanDate(plan?.startDate)?.getDay()??null;
   const slotWeekday=i=>startDOW!==null?DOW[(startDOW+i)%7]:null;
 
   function updatePlan(updatedDays){savePlans({...plans,[activePlanKey]:{...plan,days:updatedDays}});}
