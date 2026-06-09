@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, Component } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { createClient } from "@supabase/supabase-js";
+import { planWeekOf } from "./lib/planWeek";
 
 // ── SUPABASE ──────────────────────────────────────────────────────────────────
 const SUPABASE_URL = "https://ldbrabnvpiidrdkmjpbo.supabase.co";
@@ -26,14 +27,7 @@ const programWeek = (sessions=[]) => {
   const days = Math.floor((now - start) / 86400000);
   return Math.max(1, Math.ceil((days + 1) / 7));
 };
-const planWeekOf = (plan) => {
-  if (!plan?.startDate) return null;
-  const start = new Date(plan.startDate + "T12:00:00");
-  const now = new Date();
-  const days = Math.floor((now - start) / 86400000);
-  if (days < 0) return 1;
-  return Math.max(1, Math.ceil((days + 1) / 7));
-};
+// planWeekOf is imported from ./lib/planWeek
 
 
 // -- THEME ---------------------------------------------------------------------
