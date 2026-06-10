@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>IRON — "Machined" Login Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Anton&family=IBM+Plex+Mono&family=Inter:wght@400;600&display=swap"
+  rel="stylesheet"
+/>
+<style>
+  :root {
+    --iron-bg: #0B0C0E;
+    --iron-panel: #16181B;
+    --iron-line: #3A3E44;
+    --iron-chalk: #E8E6E1;
+    --iron-ember: #D6481F;
+    --iron-muted: rgba(232, 230, 225, 0.55); /* chalk @ 55% */
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { background: var(--iron-bg); }
+
+  body {
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 28px 24px;
+    color: var(--iron-chalk);
+    font-family: "Inter", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { width: 100%; max-width: 360px; }
+
+  /* 1. Wordmark */
+  .wordmark {
+    font-family: "Anton", "Inter", sans-serif;
+    font-weight: 400;
+    font-size: 64px;
+    line-height: 1;
+    letter-spacing: 0.18em;
+    color: var(--iron-chalk);
+    text-align: center;
+    /* offset trailing letter-spacing so the optical center stays centered */
+    text-indent: 0.18em;
+  }
+
+  /* 2. The bar — only loading indicator */
+  .bar {
+    position: relative;
+    height: 1px;
+    width: 100%;
+    background: var(--iron-line);
+    margin: 18px 0 12px;
+    overflow: hidden;
+    transform-origin: left center;
+  }
+  .bar__ember {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 1px;
+    width: 40%;
+    background: var(--iron-ember);
+    opacity: 0;
+    transform: translateX(-110%);
+  }
+  /* static fallback so "pending" is still visible without motion */
+  .bar.pending .bar__ember { opacity: 1; }
+
+  /* 3. Tagline */
+  .tagline {
+    font-family: "IBM Plex Mono", monospace;
+    font-weight: 400;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    color: var(--iron-muted);
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  /* 7. Error example (under the bar) */
+  .error {
+    display: none;
+    margin: 16px 0 4px;
+    padding: 9px 0 9px 12px;
+    border-left: 2px solid var(--iron-ember);
+    font-family: "Inter", sans-serif;
+    font-size: 13px;
+    color: var(--iron-chalk);
+  }
+  .error.show { display: block; }
+
+  /* 4. Fields */
+  .form { margin-top: 26px; }
+  .field { margin-bottom: 16px; }
+  .label {
+    display: block;
+    margin-bottom: 7px;
+    font-family: "IBM Plex Mono", monospace;
+    font-weight: 400;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--iron-muted);
+  }
+  .input {
+    width: 100%;
+    font-family: "Inter", sans-serif;
+    font-weight: 400;
+    font-size: 16px;
+    color: var(--iron-chalk);
+    background: var(--iron-panel);
+    border: 1px solid var(--iron-line);
+    border-radius: 2px;
+    padding: 14px 12px;
+    outline: none;
+  }
+  .input::placeholder { color: var(--iron-muted); }
+  .input:focus { outline: 2px solid var(--iron-ember); outline-offset: 2px; }
+
+  /* -webkit-autofill override — keep the machined panel look */
+  .input:-webkit-autofill,
+  .input:-webkit-autofill:hover,
+  .input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px var(--iron-panel) inset;
+    -webkit-text-fill-color: var(--iron-chalk);
+    caret-color: var(--iron-chalk);
+    transition: background-color 9999s ease-in-out 0s;
+  }
+
+  /* 5. Button */
+  .btn {
+    width: 100%;
+    margin-top: 8px;
+    font-family: "Inter", sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    color: #FFFFFF;
+    background: var(--iron-ember);
+    border: none;
+    border-radius: 2px;
+    padding: 15px;
+    cursor: pointer;
+  }
+  .btn.pending { opacity: 0.6; cursor: default; }
+  .btn:focus-visible { outline: 2px solid var(--iron-ember); outline-offset: 2px; }
+
+  /* 6. Links */
+  .links {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 20px;
+  }
+  .link {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    color: var(--iron-muted);
+    text-decoration: none;
+  }
+  .link:hover { color: var(--iron-chalk); }
+
+  /* Entry motion + the loading sweep — motion only when the user allows it */
+  @media (prefers-reduced-motion: no-preference) {
+    .wordmark { animation: settle 250ms ease-out both; }
+    .bar { animation: barIn 300ms ease-out 250ms both; }
+    .form, .links { animation: fadeUp 250ms ease-out 550ms both; }
+    .bar.pending .bar__ember { animation: sweep 1s linear infinite; }
+  }
+  @keyframes settle {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes barIn {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes sweep {
+    from { transform: translateX(-110%); }
+    to   { transform: translateX(360%); }
+  }
+</style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="wordmark">IRON</div>
+
+    <div class="bar" id="bar"><div class="bar__ember"></div></div>
+
+    <div class="tagline">Training Intelligence</div>
+
+    <div class="error" id="error">Wrong email or password.</div>
+
+    <form class="form" id="login" novalidate>
+      <div class="field">
+        <label class="label" for="email">Email</label>
+        <input class="input" id="email" type="email" name="email"
+               autocomplete="email" placeholder="you@example.com" />
+      </div>
+      <div class="field">
+        <label class="label" for="password">Password</label>
+        <input class="input" id="password" type="password" name="password"
+               autocomplete="current-password" placeholder="••••••••" />
+      </div>
+      <button class="btn" id="submit" type="submit">Sign in</button>
+    </form>
+
+    <nav class="links">
+      <a class="link" href="#" onclick="return false">Create account</a>
+      <a class="link" href="#" onclick="return false">Forgot password?</a>
+    </nav>
+  </main>
+
+  <script>
+    // Non-functional review mockup: the form submits nowhere. Clicking "Sign in"
+    // plays the bar-loading state for 2s, then reveals the error-state example so
+    // every visual state is reachable from one click.
+    (function () {
+      var form = document.getElementById("login");
+      var bar = document.getElementById("bar");
+      var btn = document.getElementById("submit");
+      var error = document.getElementById("error");
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        error.classList.remove("show");
+        bar.classList.add("pending");
+        btn.classList.add("pending");
+        btn.disabled = true;
+        setTimeout(function () {
+          bar.classList.remove("pending");
+          btn.classList.remove("pending");
+          btn.disabled = false;
+          error.classList.add("show");
+        }, 2000);
+      });
+    })();
+  </script>
+</body>
+</html>

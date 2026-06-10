@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>IRON — Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&family=Inter:wght@400;600&display=swap"
+  rel="stylesheet"
+/>
+<style>
+  :root {
+    --bg: #0B0C0E; --panel: #16181B; --line: #3A3E44;
+    --chalk: #E8E6E1; --muted: rgba(232,230,225,0.55); --ember: #D6481F;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--chalk);
+    font-family: "Inter", system-ui, sans-serif;
+    padding: 40px 24px; line-height: 1.5;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  h1 { font-size: 22px; font-weight: 600; letter-spacing: 0.02em; }
+  .sub {
+    font-family: "IBM Plex Mono", monospace; font-size: 12px;
+    color: var(--muted); letter-spacing: 0.08em; margin-top: 6px;
+  }
+  h2 {
+    font-family: "IBM Plex Mono", monospace; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted);
+    margin: 30px 0 10px;
+  }
+  a.row {
+    display: block; text-decoration: none; color: inherit;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 4px;
+    padding: 14px 16px; margin-bottom: 10px;
+  }
+  a.row:hover { border-color: var(--ember); }
+  .file {
+    font-family: "IBM Plex Mono", monospace; font-size: 13px; color: var(--chalk);
+  }
+  .desc { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .tag {
+    font-family: "IBM Plex Mono", monospace; font-size: 10px;
+    color: var(--ember); margin-left: 8px; letter-spacing: 0.06em;
+  }
+  .note {
+    font-size: 12px; color: var(--muted); margin-top: 14px;
+    border-left: 2px solid var(--line); padding: 8px 0 8px 12px;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>IRON — Mockups</h1>
+    <div class="sub">Static design-review artifacts. Open any file by double-click.</div>
+
+    <h2>Current</h2>
+    <a class="row" href="./login-machined.html">
+      <div class="file">login-machined.html <span class="tag">NEW</span></div>
+      <div class="desc">"Machined" login screen — Anton wordmark, ember-only accents, 1px loading bar, full state set (idle / pending / error).</div>
+    </a>
+
+    <h2>Prior (local design scratch — gitignored)</h2>
+    <a class="row" href="../mockup-auth.html">
+      <div class="file">mockup-auth.html</div>
+      <div class="desc">Earlier auth-screen redesign exploration.</div>
+    </a>
+    <a class="row" href="../mockup-progress.html">
+      <div class="file">mockup-progress.html</div>
+      <div class="desc">Progress tab redesign (All / chart-table / drill-down).</div>
+    </a>
+    <a class="row" href="../mockup-history-sets.html">
+      <div class="file">mockup-history-sets.html</div>
+      <div class="desc">History set-display comparison (per-set vs grouped rows).</div>
+    </a>
+    <a class="row" href="../mockup-workout-header.html">
+      <div class="file">mockup-workout-header.html</div>
+      <div class="desc">Workout tab header layout exploration.</div>
+    </a>
+
+    <div class="note">
+      The four <code>mockup-*.html</code> files live in the repo root and are
+      <strong>gitignored</strong> (<code>.gitignore</code> rule <code>mockup-*.html</code>) —
+      local working files, not committed. The links above resolve only if those files
+      are present in your working tree; a fresh clone won't have them. Only
+      <code>mockups/login-machined.html</code> and this index are tracked.
+    </div>
+  </div>
+</body>
+</html>
