@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { planWeekOf, elapsedDaysSince, parsePlanDate } from "./lib/planWeek";
 import { estimate1RM } from "./lib/oneRepMax";
 import { projectExercise } from "./lib/projections";
+import { rollingVolume } from "./lib/volume";
 
 // ── SUPABASE ──────────────────────────────────────────────────────────────────
 const SUPABASE_URL = "https://ldbrabnvpiidrdkmjpbo.supabase.co";
@@ -3498,14 +3499,9 @@ function StatsTab({sessions,prs,settings,C,activePlan,toggleTheme,themeMode,body
   const prList=Object.entries(prs).sort((a,b)=>b[1].weight-a[1].weight);
   const totalVol=sessions.reduce((a,s)=>(a+(s.setsArr||[]).filter(x=>x.type!=="warmup").reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
 
-  // Month over month
-  const now = new Date();
-  const thisMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
-  const lastMonthDate=new Date(now.getFullYear(),now.getMonth()-1,1);
-  const lastMonth=`${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth()+1).padStart(2,"0")}`;
-  const thisMonthVol = sessions.filter(s=>s.completedAt&&new Date(s.completedAt).toLocaleDateString("en-CA").startsWith(thisMonth)).reduce((a,s)=>(a+(s.setsArr||[]).filter(x=>x.type!=="warmup").reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
-  const lastMonthVol = sessions.filter(s=>s.completedAt&&new Date(s.completedAt).toLocaleDateString("en-CA").startsWith(lastMonth)).reduce((a,s)=>(a+(s.setsArr||[]).filter(x=>x.type!=="warmup").reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
-  const momChange = lastMonthVol>0 ? Math.round(((thisMonthVol-lastMonthVol)/lastMonthVol)*100) : null;
+  // Rolling 28-day volume vs the prior 28 days (stable through a partial month)
+  const {current:vol28,previous:volPrev28}=rollingVolume(sessions);
+  const vol28Delta = volPrev28>0 ? Math.round(((vol28-volPrev28)/volPrev28)*100) : null;
 
   // Weekly volume summary
   const weekStart = new Date(); weekStart.setDate(weekStart.getDate()-weekStart.getDay());
@@ -3547,7 +3543,7 @@ Recent sessions: ${JSON.stringify(recentSessions)}
 Top PRs: ${topPRs.join(", ")}
 Total sessions: ${sessions.length}
 This week volume: ${Math.round(weekVol).toLocaleString()} lbs
-Month-over-month change: ${momChange!==null?`${momChange>0?"+":""}${momChange}%`:"N/A"}
+28-day volume change: ${vol28Delta!==null?`${vol28Delta>0?"+":""}${vol28Delta}%`:"N/A"}
 
 Focus on: progress trends, recovery patterns, or a specific recommendation to improve results. No generic advice.`;
     try{
@@ -3590,15 +3586,17 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
           </div>
         </div>
 
-        {/* Month over month */}
-        {momChange!==null&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        {/* Rolling 28-day volume vs prior 28 */}
+        {(vol28>0||volPrev28>0)&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div>
-            <SectionLabel C={C}>Month vs Last Month</SectionLabel>
+            <SectionLabel C={C}>Last 28 days vs prior 28</SectionLabel>
             <div style={{fontSize:13,color:C.muted}}>Volume comparison</div>
           </div>
-          <div style={{fontSize:28,fontWeight:800,fontFamily:"'SF Mono','Courier New',monospace",color:momChange>=0?C.neonInk:C.redInk}}>
-            {momChange>0?"+":""}{momChange}%
-          </div>
+          {vol28Delta===null
+            ? <div style={{fontSize:13,color:C.muted,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"right",maxWidth:140}}>— building baseline</div>
+            : <div style={{fontSize:28,fontWeight:800,fontFamily:"'SF Mono','Courier New',monospace",color:vol28Delta>=0?C.neonInk:C.redInk}}>
+                {vol28Delta>0?"+":""}{vol28Delta}%
+              </div>}
         </div>}
 
         {/* PR Board */}
