@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, Component } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { createClient } from "@supabase/supabase-js";
 import { planWeekOf, elapsedDaysSince, parsePlanDate } from "./lib/planWeek";
+import { estimate1RM } from "./lib/oneRepMax";
 
 // ── SUPABASE ──────────────────────────────────────────────────────────────────
 const SUPABASE_URL = "https://ldbrabnvpiidrdkmjpbo.supabase.co";
@@ -3489,8 +3490,8 @@ function StatsTab({sessions,prs,settings,C,activePlan,toggleTheme,themeMode,body
   // Per-day best-weight series for one exercise (used by Progress charts + tables)
   const seriesFor=(name)=>{
     const grouped={};
-    sessions.forEach(s=>{ if(!s.completedAt)return; const best=(s.setsArr||[]).filter(x=>x.exName===name&&x.type!=="warmup").reduce((m,x)=>Math.max(m,parseFloat(x.weight)||0),0); if(best>0){const d=new Date(s.completedAt).toLocaleDateString("en-CA"); if(!grouped[d]||best>grouped[d])grouped[d]=best;} });
-    return Object.entries(grouped).sort(([a],[b])=>a>b?1:-1).map(([d,w])=>({date:d.slice(5),weight:w,orm:Math.round(w*1.0333)}));
+    sessions.forEach(s=>{ if(!s.completedAt)return; const sets=(s.setsArr||[]).filter(x=>x.exName===name&&x.type!=="warmup"); const bestW=sets.reduce((m,x)=>Math.max(m,parseFloat(x.weight)||0),0); if(bestW>0){const bestOrm=sets.reduce((m,x)=>Math.max(m,estimate1RM(x.weight,x.reps)),0); const d=new Date(s.completedAt).toLocaleDateString("en-CA"); const prev=grouped[d]||{weight:0,orm:0}; grouped[d]={weight:Math.max(prev.weight,bestW),orm:Math.max(prev.orm,bestOrm)};} });
+    return Object.entries(grouped).sort(([a],[b])=>a>b?1:-1).map(([d,v])=>({date:d,label:d.slice(5),weight:v.weight,orm:Math.round(v.orm)}));
   };
   const chartData=selEx?seriesFor(selEx):[];
   const prList=Object.entries(prs).sort((a,b)=>b[1].weight-a[1].weight);
@@ -3661,7 +3662,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
                   : <table style={tableSt}><tbody>
                       <tr><th style={{...thSt,textAlign:"left"}}>DATE</th><th style={{...thSt,textAlign:"right"}}>MAX</th><th style={{...thSt,textAlign:"right"}}>EST 1RM</th></tr>
                       {series.slice(-4).map((d,i,arr)=>{const hi=i===arr.length-1;return <tr key={d.date}>
-                        <td style={tdSt}>{d.date}</td>
+                        <td style={tdSt}>{d.label}</td>
                         <td style={{...tdSt,textAlign:"right",color:hi?C.neonInk:C.text,fontWeight:hi?700:400}}>{d.weight}</td>
                         <td style={{...tdSt,textAlign:"right",color:hi?C.neonInk:C.muted}}>{d.orm}</td>
                       </tr>;})}
@@ -3679,7 +3680,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
                     <ResponsiveContainer width="100%" height={160}>
                       <LineChart data={chartData} margin={{top:4,right:12,left:-10,bottom:0}}>
                         <CartesianGrid strokeDasharray="3 3" stroke={C.border}/>
-                        <XAxis dataKey="date" tick={{fill:C.muted,fontSize:9,fontFamily:mono}}/>
+                        <XAxis dataKey="label" tick={{fill:C.muted,fontSize:9,fontFamily:mono}}/>
                         <YAxis tick={{fill:C.muted,fontSize:9,fontFamily:mono}}/>
                         <Tooltip contentStyle={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,fontFamily:mono,fontSize:11,color:C.text}}/>
                         <Line type="monotone" dataKey="weight" stroke={C.accent} strokeWidth={2} dot={{fill:C.accent,r:3}} activeDot={{r:5}}/>
@@ -3691,7 +3692,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
                     <ResponsiveContainer width="100%" height={140}>
                       <LineChart data={chartData} margin={{top:4,right:12,left:-10,bottom:0}}>
                         <CartesianGrid strokeDasharray="3 3" stroke={C.border}/>
-                        <XAxis dataKey="date" tick={{fill:C.muted,fontSize:9,fontFamily:mono}}/>
+                        <XAxis dataKey="label" tick={{fill:C.muted,fontSize:9,fontFamily:mono}}/>
                         <YAxis tick={{fill:C.muted,fontSize:9,fontFamily:mono}}/>
                         <Tooltip contentStyle={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,fontFamily:mono,fontSize:11,color:C.text}}/>
                         <Line type="monotone" dataKey="orm" stroke={C.gold} strokeWidth={2} dot={{fill:C.gold,r:3}} activeDot={{r:5}}/>
@@ -3714,7 +3715,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
                   <table style={tableSt}><tbody>
                     <tr><th style={{...thSt,textAlign:"left"}}>DATE</th><th style={{...thSt,textAlign:"right"}}>MAX</th><th style={{...thSt,textAlign:"right"}}>EST 1RM</th></tr>
                     {[...chartData].reverse().map((d,i)=>{const hi=i===0;return <tr key={d.date}>
-                      <td style={tdSt}>{d.date}</td>
+                      <td style={tdSt}>{d.label}</td>
                       <td style={{...tdSt,textAlign:"right",color:hi?C.neonInk:C.text,fontWeight:hi?700:400}}>{d.weight}</td>
                       <td style={{...tdSt,textAlign:"right",color:hi?C.neonInk:C.muted}}>{d.orm}</td>
                     </tr>;})}
