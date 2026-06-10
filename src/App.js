@@ -3,6 +3,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { createClient } from "@supabase/supabase-js";
 import { planWeekOf, elapsedDaysSince, parsePlanDate } from "./lib/planWeek";
 import { estimate1RM } from "./lib/oneRepMax";
+import { projectExercise } from "./lib/projections";
 
 // ── SUPABASE ──────────────────────────────────────────────────────────────────
 const SUPABASE_URL = "https://ldbrabnvpiidrdkmjpbo.supabase.co";
@@ -3699,6 +3700,22 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
+                  {(()=>{
+                    const proj=projectExercise(chartData);
+                    let text;
+                    if(proj.status==="gaining"){
+                      text=`Trending +${proj.trendPerWeek} lb/wk`;
+                      if(proj.projected)text+=` · projected ~${proj.projected.mid} lb in ${proj.projected.weeks} wks (${proj.projected.low}–${proj.projected.high}), if the trend holds`;
+                      if(proj.milestone)text+=` · on pace for ${proj.milestone.target} lb in ~${Math.max(1,Math.round(proj.milestone.weeks))} wks`;
+                    }
+                    else if(proj.status==="declining")text="Trending down recently";
+                    else if(proj.status==="flat")text="Trending flat — consider a deload or variation";
+                    else text="Keep logging — ~5 sessions over 3+ weeks to project this lift";
+                    return <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"14px",marginBottom:12}}>
+                      <SectionLabel C={C}>Projection</SectionLabel>
+                      <Mono style={{fontSize:12,color:C.muted,lineHeight:1.6,display:"block"}}>{text}</Mono>
+                    </div>;
+                  })()}
                   {prs[selEx]&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"14px",marginBottom:12}}>
                     <SectionLabel C={C}>Strength Level</SectionLabel>
                     <div style={{display:"flex",gap:4}}>
