@@ -5,6 +5,7 @@ import { planWeekOf, elapsedDaysSince, parsePlanDate } from "./lib/planWeek";
 import { estimate1RM } from "./lib/oneRepMax";
 import { projectExercise } from "./lib/projections";
 import { rollingVolume } from "./lib/volume";
+import { detectPlateaus } from "./lib/plateaus";
 
 // ── SUPABASE ──────────────────────────────────────────────────────────────────
 const SUPABASE_URL = "https://ldbrabnvpiidrdkmjpbo.supabase.co";
@@ -3480,6 +3481,7 @@ function Sparkline({data,color}){
 function StatsTab({sessions,prs,settings,C,activePlan,toggleTheme,themeMode,bodyStatsInit=[],onBodyStatsChange}){
   const [selEx,setSelEx]=useState(null); // null = "All exercises"
   const [progressView,setProgressView]=useState("chart"); // chart | table
+  const [plateausExpanded,setPlateausExpanded]=useState(false);
   const [statsView,setStatsView]=useState("overview"); // overview | progress | muscles | body | trainer
   const [bodyStats,setBodyStats]=useState(bodyStatsInit||[]);
   const [newBodyStat,setNewBodyStat]=useState({weight:"",chest:"",waist:"",hips:"",arms:"",date:new Date().toLocaleDateString("en-CA")});
@@ -3644,7 +3646,20 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
             // ===== ALL MODE — one compact card per lift (tap to drill in) =====
             const lifts=allExNames.map(n=>({name:n,series:seriesFor(n)})).filter(x=>x.series.length>0);
             if(!lifts.length) return <div style={emptySt}>Log weighted sessions to see progress.</div>;
-            return lifts.map(({name,series})=>{
+            const plateaus=detectPlateaus(Object.fromEntries(lifts.map(l=>[l.name,l.series])));
+            const shownPlateaus=plateausExpanded?plateaus:plateaus.slice(0,3);
+            return <>
+              {plateaus.length>0&&<div style={{...cardSt,padding:"12px 14px"}}>
+                <SectionLabel C={C}>Plateaus</SectionLabel>
+                {shownPlateaus.map(p=>(
+                  <div key={p.exercise} onClick={()=>setSelEx(p.exercise)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer",padding:"7px 0",borderTop:`1px solid ${C.border}`}}>
+                    <Mono style={{fontSize:12,color:C.text}}>{p.exercise} — {p.status} {p.stalledWeeks} wks · {p.suggestion}</Mono>
+                    <span style={{color:C.faint,fontSize:16,flexShrink:0,paddingLeft:8}}>›</span>
+                  </div>
+                ))}
+                {plateaus.length>shownPlateaus.length&&<div onClick={()=>setPlateausExpanded(true)} style={{cursor:"pointer",paddingTop:8,fontSize:11,color:C.accentInk,fontFamily:mono}}>+{plateaus.length-shownPlateaus.length} more</div>}
+              </div>}
+              {lifts.map(({name,series})=>{
               const first=series[0].weight,cur=series[series.length-1].weight,delta=Math.round(cur-first);
               const pr=prs[name]?.weight||Math.max(...series.map(s=>s.weight));
               return <div key={name} onClick={()=>setSelEx(name)} style={{...cardSt,cursor:"pointer",position:"relative"}}>
@@ -3668,7 +3683,8 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
                     </tbody></table>}
                 <Mono style={{fontSize:10,color:C.muted,marginTop:6,display:"block"}}>{series.length} session{series.length!==1?"s":""} · {first} → {cur} lbs</Mono>
               </div>;
-            });
+            })}
+            </>;
           })() : <div>
             {/* ===== DRILL-DOWN (single exercise) ===== */}
             <button onClick={()=>setSelEx(null)} style={{background:"transparent",border:"none",color:C.accentInk,fontFamily:mono,fontSize:11,cursor:"pointer",padding:"0 0 12px",display:"block"}}>‹ All exercises</button>
