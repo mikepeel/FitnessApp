@@ -3492,6 +3492,13 @@ function StatsTab({sessions,prs,settings,C,activePlan,toggleTheme,themeMode,body
     sessions.forEach(s=>{ if(!s.completedAt)return; const sets=(s.setsArr||[]).filter(x=>x.exName===name&&x.type!=="warmup"); const bestW=sets.reduce((m,x)=>Math.max(m,parseFloat(x.weight)||0),0); if(bestW>0){const bestOrm=sets.reduce((m,x)=>Math.max(m,estimate1RM(x.weight,x.reps)),0); const d=new Date(s.completedAt).toLocaleDateString("en-CA"); const prev=grouped[d]||{weight:0,orm:0}; grouped[d]={weight:Math.max(prev.weight,bestW),orm:Math.max(prev.orm,bestOrm)};} });
     return Object.entries(grouped).sort(([a],[b])=>a>b?1:-1).map(([d,v])=>({date:d,label:d.slice(5),weight:v.weight,orm:Math.round(v.orm)}));
   };
+  // Per-day total tonnage (Σ weight×reps over non-warmup sets) for one exercise;
+  // shaped as { date, orm: tonnage } so the trend engine runs on it unchanged.
+  const tonnageSeriesFor=(name)=>{
+    const grouped={};
+    sessions.forEach(s=>{ if(!s.completedAt)return; const ton=(s.setsArr||[]).filter(x=>x.exName===name&&x.type!=="warmup").reduce((sum,x)=>sum+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0),0); if(ton>0){const d=new Date(s.completedAt).toLocaleDateString("en-CA"); grouped[d]=(grouped[d]||0)+ton;} });
+    return Object.entries(grouped).sort(([a],[b])=>a>b?1:-1).map(([d,t])=>({date:d,orm:t}));
+  };
   const chartData=selEx?seriesFor(selEx):[];
   const prList=Object.entries(prs).sort((a,b)=>b[1].weight-a[1].weight);
   const totalVol=sessions.reduce((a,s)=>(a+(s.setsArr||[]).filter(x=>x.type!=="warmup").reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
@@ -3641,7 +3648,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
             // ===== ALL MODE — one compact card per lift (tap to drill in) =====
             const lifts=allExNames.map(n=>({name:n,series:seriesFor(n)})).filter(x=>x.series.length>0);
             if(!lifts.length) return <div style={emptySt}>Log weighted sessions to see progress.</div>;
-            const plateaus=detectPlateaus(Object.fromEntries(lifts.map(l=>[l.name,l.series])));
+            const plateaus=detectPlateaus(Object.fromEntries(lifts.map(l=>[l.name,l.series])),{tonnage:Object.fromEntries(lifts.map(l=>[l.name,tonnageSeriesFor(l.name)]))});
             const shownPlateaus=plateausExpanded?plateaus:plateaus.slice(0,3);
             return <>
               {plateaus.length>0&&<div style={{...cardSt,padding:"12px 14px"}}>

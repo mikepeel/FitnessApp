@@ -28,7 +28,7 @@ describe("detectPlateaus", () => {
 
   test("flat ~6 weeks → 'add reps or weight'", () => {
     expect(detectPlateaus({ Bench: flat6 }, opts)).toEqual([
-      { exercise: "Bench", status: "flat", stalledWeeks: 6, currentOrm: 200, suggestion: "add reps or weight" },
+      { exercise: "Bench", status: "flat", stalledWeeks: 6, currentOrm: 200, suggestion: "add reps or weight", viaVolume: false },
     ]);
   });
 
@@ -64,5 +64,34 @@ describe("detectPlateaus", () => {
     for (let i = 1; i < r.length; i++) {
       expect(r[i - 1].stalledWeeks).toBeGreaterThanOrEqual(r[i].stalledWeeks);
     }
+  });
+
+  // ── tonnage-aware gating ──
+  test("flat e1RM + rising tonnage → excluded (volume progress)", () => {
+    const e1rm = weekly(Array(7).fill(200));
+    const tonnage = weekly([2000, 2200, 2400, 2600, 2800, 3000, 3200]);
+    expect(detectPlateaus({ Bench: e1rm }, { now: NOW, tonnage: { Bench: tonnage } })).toEqual([]);
+  });
+
+  test("flat e1RM + flat tonnage → flagged (true plateau)", () => {
+    const e1rm = weekly(Array(7).fill(200));
+    const tonnage = weekly(Array(7).fill(2000));
+    const r = detectPlateaus({ Bench: e1rm }, { now: NOW, tonnage: { Bench: tonnage } });
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject({ exercise: "Bench", status: "flat", suggestion: "add reps or weight", viaVolume: false });
+  });
+
+  test("declining e1RM + rising tonnage → still flagged 'deload' (not tonnage-gated)", () => {
+    const e1rm = weekly([220, 215, 210, 205, 200, 195, 190]);
+    const tonnage = weekly([2000, 2200, 2400, 2600, 2800, 3000, 3200]);
+    const r = detectPlateaus({ Deadlift: e1rm }, { now: NOW, tonnage: { Deadlift: tonnage } });
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject({ status: "declining", suggestion: "deload" });
+  });
+
+  test("reps>12 at same weight (capped flat e1RM, rising tonnage) → excluded", () => {
+    const e1rm = weekly(Array(7).fill(280));
+    const tonnage = weekly([3000, 3300, 3600, 3900, 4200, 4500, 4800]);
+    expect(detectPlateaus({ Squat: e1rm }, { now: NOW, tonnage: { Squat: tonnage } })).toEqual([]);
   });
 });

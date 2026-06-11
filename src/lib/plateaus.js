@@ -1,6 +1,8 @@
 // Plateau detection — reuses the projections trend engine (no trend math here).
 // Input: { [exerciseName]: series } where series is what projectExercise consumes
 // ([{ date:"YYYY-MM-DD", orm }, ...] chronological).
+// opts.tonnage (optional): { [exerciseName]: tonnageSeries } in the same shape — used
+// to gate "flat" e1RM flags when total volume is still climbing.
 import { projectExercise } from "./projections";
 
 const DAY = 86400000;
@@ -27,6 +29,15 @@ export const detectPlateaus = (exerciseSeriesMap, opts = {}) => {
     const proj = projectExercise(series);
     if (proj.status !== "flat" && proj.status !== "declining") continue;
 
+    // Volume-aware gate: a "flat" e1RM lift whose tonnage is still climbing is
+    // progressing via volume (back-off reps, or reps beyond the Epley cap) — not an
+    // actionable plateau, so don't flag it. Declining e1RM is never gated (falling
+    // strength under rising workload is a fatigue signal — "deload" still applies).
+    if (proj.status === "flat") {
+      const tonSeries = opts.tonnage && opts.tonnage[exercise];
+      if (tonSeries && projectExercise(tonSeries).status === "gaining") continue;
+    }
+
     // Whole weeks since the last NEW e1RM high (round to whole lb first).
     let maxSoFar = -Infinity;
     let lastHighMs = firstMs;
@@ -39,7 +50,7 @@ export const detectPlateaus = (exerciseSeriesMap, opts = {}) => {
     const suggestion =
       proj.status === "declining" ? "deload" : stalledWeeks >= 8 ? "variation" : "add reps or weight";
 
-    out.push({ exercise, status: proj.status, stalledWeeks, currentOrm: proj.currentOrm, suggestion });
+    out.push({ exercise, status: proj.status, stalledWeeks, currentOrm: proj.currentOrm, suggestion, viaVolume: false });
   }
 
   out.sort((a, b) => b.stalledWeeks - a.stalledWeeks);
