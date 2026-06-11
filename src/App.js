@@ -3682,7 +3682,9 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
             </>;
           })() : <div>
             {/* ===== DRILL-DOWN (single exercise) ===== */}
-            <button onClick={()=>setSelEx(null)} style={{background:"transparent",border:"none",color:C.accentInk,fontFamily:mono,fontSize:11,cursor:"pointer",padding:"0 0 12px",display:"block"}}>‹ All exercises</button>
+            <div style={{position:"sticky",top:0,zIndex:10,background:C.bg,paddingBottom:12}}>
+              <button onClick={()=>setSelEx(null)} aria-label="Back to all exercises" style={{display:"flex",alignItems:"center",gap:8,width:"100%",minHeight:44,background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.accentInk,fontFamily:mono,fontSize:13,fontWeight:600,letterSpacing:"0.04em",cursor:"pointer",padding:"0 14px"}}>← All exercises</button>
+            </div>
             {progressView==="chart"
               ? (chartData.length>1?<div>
                   <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"14px 8px",marginBottom:12}}>
