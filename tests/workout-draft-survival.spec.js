@@ -38,7 +38,7 @@ test.describe("draft survival", () => {
     await expect(page.getByText(/exercises/)).toBeVisible();
     await page.getByPlaceholder("lbs").first().fill("185");
     await page.getByPlaceholder("reps").first().fill("6");
-    await page.getByRole("button", { name: "✓" }).first().click();
+    await page.getByRole("button", { name: /confirm set/i }).first().click();
 
     // Skip rest timer if shown
     const skipBtn = page.getByRole("button", { name: "Skip" });
@@ -86,7 +86,7 @@ test.describe("draft survival", () => {
     for (let i = 0; i < 3; i++) {
       await weightInputs.first().fill("135");
       await repsInputs.first().fill("8");
-      await page.getByRole("button", { name: "✓" }).first().click();
+      await page.getByRole("button", { name: /confirm set/i }).first().click();
       await page.waitForTimeout(300);
     }
 

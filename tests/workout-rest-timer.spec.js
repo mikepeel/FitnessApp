@@ -50,7 +50,7 @@ test.describe("rest timer", () => {
     await repsInputs.first().fill("8");
 
     // Confirm Set 1
-    await page.getByRole("button", { name: "✓" }).first().click();
+    await page.getByRole("button", { name: /confirm set/i }).first().click();
 
     // REST timer must appear
     await expect(page.getByText("REST")).toBeVisible({ timeout: 3000 });
@@ -68,7 +68,7 @@ test.describe("rest timer", () => {
     // Confirm Set 1
     await weightInputs.first().fill("175");
     await repsInputs.first().fill("8");
-    await page.getByRole("button", { name: "✓" }).first().click();
+    await page.getByRole("button", { name: /confirm set/i }).first().click();
     await expect(page.getByText("REST")).toBeVisible({ timeout: 3000 });
 
     // Wait 5 seconds so timer has visibly counted down
@@ -82,7 +82,7 @@ test.describe("rest timer", () => {
 
     // Confirm Set 2 — weight is pre-filled, just add reps
     await repsInputs.first().fill("7");
-    await page.getByRole("button", { name: "✓" }).first().click();
+    await page.getByRole("button", { name: /confirm set/i }).first().click();
 
     // Timer must still be visible (not gone)
     await expect(page.getByText("REST")).toBeVisible({ timeout: 3000 });
@@ -111,7 +111,7 @@ test.describe("rest timer", () => {
     const repsInputs = page.getByPlaceholder("reps");
     await weightInputs.first().fill("175");
     await repsInputs.first().fill("8");
-    await page.getByRole("button", { name: "✓" }).first().click();
+    await page.getByRole("button", { name: /confirm set/i }).first().click();
     await expect(page.getByText("REST")).toBeVisible({ timeout: 3000 });
     await page.getByRole("button", { name: "Skip" }).click();
     await expect(page.getByText("REST")).not.toBeVisible();
@@ -124,7 +124,7 @@ test.describe("rest timer", () => {
 
     // Confirm its interval — the ✓ logs the placeholder minutes even if left blank.
     // exact:true excludes "COMPLETE WORKOUT ✓"; the cardio row is the last ✓.
-    await page.getByRole("button", { name: "✓", exact: true }).last().click();
+    await page.getByRole("button", { name: /confirm interval/i }).last().click();
 
     // REST timer must NOT appear after a cardio confirm
     await page.waitForTimeout(1000);

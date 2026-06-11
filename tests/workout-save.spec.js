@@ -37,7 +37,7 @@ test.describe("workout save", () => {
     const repsInputs = page.getByPlaceholder("reps");
     await weightInputs.first().fill("175");
     await repsInputs.first().fill("8");
-    await page.getByRole("button", { name: "✓" }).first().click();
+    await page.getByRole("button", { name: /confirm set/i }).first().click();
 
     // Add a test marker in notes so this session is identifiable for cleanup
     await page.getByPlaceholder("Energy, joints, anything notable").fill("[AUTOMATED TEST — SAFE TO DELETE]");
@@ -75,7 +75,7 @@ test.describe("workout save", () => {
     const repsInputs = page.getByPlaceholder("reps");
     await weightInputs.first().fill("100");
     await repsInputs.first().fill("5");
-    await page.getByRole("button", { name: "✓" }).first().click();
+    await page.getByRole("button", { name: /confirm set/i }).first().click();
 
     await page.getByPlaceholder("Energy, joints, anything notable").fill("[AUTOMATED TEST — SAFE TO DELETE]");
 

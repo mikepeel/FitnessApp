@@ -6,7 +6,7 @@ import { estimate1RM } from "./lib/oneRepMax";
 import { projectExercise } from "./lib/projections";
 import { rollingVolume } from "./lib/volume";
 import { detectPlateaus } from "./lib/plateaus";
-import { Dumbbell, CalendarDays, History as HistoryIcon, TrendingUp, Settings as SettingsIcon, Moon, Sun } from "lucide-react";
+import { Dumbbell, CalendarDays, History as HistoryIcon, TrendingUp, Settings as SettingsIcon, Moon, Sun, Trophy, Check, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
 
 // lucide icon sizing scale. Color always inherits via currentColor from a
 // token-styled parent; icons are never filled. Stroke 1.75 everywhere.
@@ -1351,7 +1351,7 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
         )}
         {settings.streakTracking&&complianceStreak>0&&(
           <div style={{display:"flex",alignItems:"center",gap:5,background:C.gold+"12",border:`1px solid ${C.gold}30`,borderRadius:6,padding:"4px 10px",marginLeft:"auto",flexShrink:0,whiteSpace:"nowrap"}}>
-            <span style={{fontSize:12}}>🏆</span>
+            <span style={{color:C.muted,display:"inline-flex",alignItems:"center"}}><Trophy size={ICON.sm} strokeWidth={1.75}/></span>
             <span style={{fontSize:11,color:C.goldInk,fontWeight:600}}>{complianceStreak} session streak!</span>
           </div>
         )}
@@ -1382,7 +1382,7 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
         </div>
       </div>}
       {isProgramComplete&&!dismissedComplete&&<div style={{background:C.gold+"15",border:`1px solid ${C.gold}55`,borderRadius:10,padding:"14px",marginBottom:14}}>
-        <div style={{fontSize:13,color:C.goldInk,fontWeight:700,marginBottom:4}}>🏆 PROGRAM COMPLETE · WEEK {wkTotal} OF {wkTotal}</div>
+        <div style={{fontSize:13,color:C.goldInk,fontWeight:700,marginBottom:4,display:"flex",alignItems:"center",gap:6}}><Trophy size={ICON.sm} strokeWidth={1.75}/>PROGRAM COMPLETE · WEEK {wkTotal} OF {wkTotal}</div>
         <div style={{fontSize:11,color:C.muted,lineHeight:1.6,marginBottom:10}}>You've completed your {wkTotal}-week program. What's next?</div>
         <div style={{display:"flex",gap:8}}>
           <button onClick={()=>setDismissedComplete(true)} style={{flex:1,padding:"9px",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",color:C.muted,fontSize:11,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer"}}>Continue As Is</button>
@@ -1442,7 +1442,7 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
               <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:2}}>
                 <span style={{fontSize:15,fontWeight:600,color:C.cardText||C.text}}>{day.label}</span>
                 {isToday&&!doneSess&&<Pill color={C.neonInk}>Today</Pill>}
-                {(doneSess||(day.isRest&&isPast))&&<Pill color={C.neonInk}>✓ Done</Pill>}
+                {(doneSess||(day.isRest&&isPast))&&<Pill color={C.neonInk}><span style={{display:"inline-flex",alignItems:"center",gap:4}}><Check size={ICON.sm} strokeWidth={1.75}/>Done</span></Pill>}
               </div>
               <div style={{fontSize:11,color:C.muted}}>{calDateDisplay} · {day.tag}</div>
               {!day.isRest&&!doneSess&&<div style={{fontSize:11,color:C.muted,marginTop:1}}>{day.exercises.length} exercises</div>}
@@ -1590,7 +1590,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   const [extraSets,setExtraSets]=useState({});
   const [setStates,setSetStates]=useState(()=>{
     // On restore, mark genuinely-entered sets (have a value and not a prepop suggestion)
-    // as "confirmed" so the green ✓ state survives minimize/reopen
+    // as "confirmed" so the green check state survives minimize/reopen
     const st={};
     if(workoutDraft?.loggedSets){
       const idByName=Object.fromEntries((workoutDraft?.exercises||workout.exercises||[]).map(e=>[e.name,e.id]));
@@ -1898,7 +1898,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
               <div style={{fontSize:15,fontWeight:700,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                 {ex.name}
                 {isCardio&&<Pill color={C.greenInk}>Cardio</Pill>}
-                {isPRNow&&<span style={{fontSize:10,color:C.redInk,fontWeight:700}}>★ PR!</span>}
+                {isPRNow&&<Badge C={C} color={C.accentInk}>PR</Badge>}
                 {hasAnyLog&&<span style={{fontSize:9,color:C.neonInk,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em"}}>LOGGED</span>}
               </div>
               <Mono style={{fontSize:11,color:C.muted}}>{isCardio?"Duration goal:":ex.sets+" sets ."} {ex.reps}{!isCardio&&ex.muscle?` . ${ex.muscle}`:""}</Mono>
@@ -1927,7 +1927,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
               const setRowState=isConfirmed?"confirmed":isPrepop?"suggested":hasVal?"inprogress":"suggested";
               if(isConfirmed){
                 return <div key={n} onClick={()=>{setSetStates(prev=>{const u={...prev};delete u[rowKey];return u;});}} style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",background:C.neon+"12",border:`1px solid ${C.neon}22`,borderRadius:8,padding:"10px 12px"}}>
-                  <span style={{color:C.neonInk,fontSize:14,fontWeight:800}}>✓</span>
+                  <span style={{color:C.neonInk,display:"inline-flex",alignItems:"center"}}><Check size={ICON.sm} strokeWidth={1.75}/></span>
                   <Mono style={{color:C.neonInk,fontSize:12,fontWeight:700}}>Interval {n}</Mono>
                   <Mono style={{color:C.text,fontSize:14,fontWeight:700}}>{rowLog.minutes} min{rowLog.level?` · L${rowLog.level}`:""}</Mono>
                   <Mono style={{color:C.muted,fontSize:11,marginLeft:"auto"}}>tap to edit</Mono>
@@ -1967,7 +1967,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
                   saveDraft(draftSets);
                   const allConfirmed=intervalKeys.every(k=>{const rk=ex.id+"-"+k;return rk===rowKey||setStates[rk]==="confirmed";});
                   if(allConfirmed)markExerciseDone(ex.id,ex.name,false);
-                }} style={{padding:"9px 14px",background:"transparent",border:`1px solid ${C.neon}44`,borderRadius:7,color:C.neonInk,cursor:"pointer",fontSize:14,fontWeight:700,transition:"all .2s"}}>✓</button>
+                }} aria-label="Confirm interval" style={{padding:"9px 14px",background:"transparent",border:`1px solid ${C.neon}44`,borderRadius:7,color:C.neonInk,cursor:"pointer",transition:"all .2s",display:"flex",alignItems:"center",justifyContent:"center"}}><Check size={ICON.md} strokeWidth={1.75}/></button>
               </div>;
             })}
             <div style={{display:"flex",justifyContent:"flex-start"}}>
@@ -1998,7 +1998,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
                 <button key={`t${n}`} onClick={()=>cycleSetType(ex.name,n)} style={{padding:"3px 0",background:typeColor+"22",border:"none",borderRadius:4,color:typeColor,fontSize:9,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"center",letterSpacing:"0.05em"}}>{typeLabel}</button>,
                 ...(isConfirmed
                   ?[<div key={`confirmed${n}`} onClick={()=>{setSetStates(prev=>{const u={...prev};delete u[stateKey];return u;});}} style={{gridColumn:"span 4",background:C.neon+"12",border:`1px solid ${C.neon}22`,borderRadius:6,display:"flex",alignItems:"center",gap:8,padding:"8px 10px",cursor:"pointer"}}>
-                      <span style={{color:C.neonInk,fontSize:11,fontWeight:800}}>✓</span>
+                      <span style={{color:C.neonInk,display:"inline-flex",alignItems:"center"}}><Check size={ICON.sm} strokeWidth={1.75}/></span>
                       <Mono style={{color:C.neonInk,fontSize:12,fontWeight:700}}>{n}</Mono>
                       <Mono style={{color:C.text,fontSize:13,fontWeight:600,flex:1}}>{myLog[n]?.weight} lbs × {myLog[n]?.reps}</Mono>
                       <Mono style={{color:C.muted,fontSize:11}}>tap to edit</Mono>
@@ -2028,7 +2028,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
                       if(n===numSets&&allFilled){markExerciseDone(ex.id,ex.name,!isWarmup);}
                       // REST TIMER: only triggered here, on explicit set confirmation
                       else if(!isWarmup){setShowRest(true);setRestKey(k=>k+1);setTimeout(()=>restAnchorRef.current?.scrollIntoView({behavior:"smooth",block:"start"}),100);}
-                    }} style={{padding:"9px 4px",background:"transparent",border:`1px solid ${C.neon}44`,borderRadius:7,color:C.neonInk,cursor:"pointer",fontSize:14,fontWeight:700}}>✓</button>
+                    }} aria-label="Confirm set" style={{padding:"9px 4px",background:"transparent",border:`1px solid ${C.neon}44`,borderRadius:7,color:C.neonInk,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Check size={ICON.md} strokeWidth={1.75}/></button>
                   ])
               ];
             })}
@@ -2052,7 +2052,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
         <Mono style={{fontSize:12,color:"#fff",fontWeight:700,display:"block",marginBottom:8}}>⚠ {saveError}</Mono>
         <Btn onClick={finish} size="sm" C={C} style={{background:"rgba(255,255,255,0.25)",color:"#fff",border:"1px solid rgba(255,255,255,0.5)",width:"100%"}}>Retry</Btn>
       </div>}
-      <Btn onClick={finish} disabled={saving} size="lg" C={C} style={{width:"100%",marginTop:14,background:saving?C.card:C.neon,color:saving?C.muted:"#fff",fontWeight:800,letterSpacing:"0.1em",fontSize:15}}>{saving?"SAVING...":"COMPLETE WORKOUT ✓"}</Btn>
+      <Btn onClick={finish} disabled={saving} size="lg" C={C} style={{width:"100%",marginTop:14,background:saving?C.card:C.neon,color:saving?C.muted:"#fff",fontWeight:800,letterSpacing:"0.1em",fontSize:15}}>{saving?"SAVING...":<span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",gap:8}}>COMPLETE WORKOUT <Check size={ICON.md} strokeWidth={1.75}/></span>}</Btn>
     </div>
 
     {/* Swap exercise modal */}
@@ -2060,7 +2060,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
       <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:"16px 16px 0 0",padding:"20px 18px calc(32px + env(safe-area-inset-bottom,0px)) 18px",display:"flex",flexDirection:"column",gap:10}}>
         <div style={{width:36,height:4,borderRadius:2,background:C.border,alignSelf:"center",marginTop:-8,marginBottom:4}}/>
         <Mono style={{fontSize:11,color:C.muted,letterSpacing:"0.1em",marginBottom:4}}>END WORKOUT</Mono>
-        <button onClick={()=>{setShowEndMenu(false);finish();}} disabled={saving} style={{width:"100%",padding:"13px 16px",background:C.neon+"22",border:`1px solid ${C.neon}44`,borderRadius:10,color:C.neonInk,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:saving?"not-allowed":"pointer",textAlign:"left",letterSpacing:"0.04em",opacity:saving?0.5:1}}>✓ Complete Workout</button>
+        <button onClick={()=>{setShowEndMenu(false);finish();}} disabled={saving} style={{width:"100%",padding:"13px 16px",background:C.neon+"22",border:`1px solid ${C.neon}44`,borderRadius:10,color:C.neonInk,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:saving?"not-allowed":"pointer",textAlign:"left",letterSpacing:"0.04em",opacity:saving?0.5:1}}><span style={{display:"inline-flex",alignItems:"center",gap:8}}><Check size={ICON.md} strokeWidth={1.75}/>Complete Workout</span></button>
         <button onClick={()=>{setShowEndMenu(false);savePartialAndExit();}} disabled={saving} style={{width:"100%",padding:"13px 16px",background:C.card,border:`1px solid ${C.border}`,borderRadius:10,color:C.text,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:saving?"not-allowed":"pointer",textAlign:"left",letterSpacing:"0.04em",opacity:saving?0.5:1}}>↓ Save & Exit</button>
         <button onClick={()=>{setShowEndMenu(false);setShowAbandonConfirm(true);}} style={{width:"100%",padding:"13px 16px",background:C.red+"11",border:`1px solid ${C.red}44`,borderRadius:10,color:C.redInk,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}>✕ Abandon</button>
         <button onClick={()=>setShowEndMenu(false)} style={{width:"100%",padding:"11px 16px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",letterSpacing:"0.04em",marginTop:2}}>Cancel</button>
@@ -2431,7 +2431,7 @@ No explanation, no markdown, just the JSON array.`;
           {expandedDay===i&&<div style={{background:C.surface,border:`1px solid ${C.border}`,borderTop:"none",borderRadius:"0 0 10px 10px",padding:"8px 14px 14px"}}>
             {/* Reorder mode header */}
             {reorderMode===day.id&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0 10px",borderBottom:`1px solid ${C.neon}44`,marginBottom:4}}>
-              <Mono style={{fontSize:10,color:C.neonInk,letterSpacing:"0.12em"}}>DRAG MODE -- USE ↑↓ TO REORDER</Mono>
+              <Mono style={{fontSize:10,color:C.neonInk,letterSpacing:"0.12em"}}>DRAG MODE -- USE ARROWS TO REORDER</Mono>
               <Btn size="sm" variant="ghost" style={{color:C.neonInk,borderColor:C.neon+"55"}} onClick={()=>setReorderMode(null)} C={C}>Done</Btn>
             </div>}
             {day.exercises.map((ex,exIdx)=>(
@@ -2440,10 +2440,10 @@ No explanation, no markdown, just the JSON array.`;
                 {reorderMode===day.id&&<div style={{display:"flex",flexDirection:"column",gap:1,marginRight:8,flexShrink:0}}>
                   <button onClick={()=>exIdx>0&&reorderExercises(day.id,exIdx,exIdx-1)}
                     disabled={exIdx===0}
-                    style={{padding:"2px 7px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:4,color:exIdx===0?C.faint:C.neonInk,cursor:exIdx===0?"default":"pointer",fontSize:12,lineHeight:1}}>↑</button>
+                    aria-label="Move exercise up" style={{padding:"2px 7px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:4,color:exIdx===0?C.faint:C.neonInk,cursor:exIdx===0?"default":"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><ChevronUp size={ICON.sm} strokeWidth={1.75}/></button>
                   <button onClick={()=>exIdx<day.exercises.length-1&&reorderExercises(day.id,exIdx,exIdx+1)}
                     disabled={exIdx===day.exercises.length-1}
-                    style={{padding:"2px 7px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:4,color:exIdx===day.exercises.length-1?C.faint:C.neonInk,cursor:exIdx===day.exercises.length-1?"default":"pointer",fontSize:12,lineHeight:1}}>↓</button>
+                    aria-label="Move exercise down" style={{padding:"2px 7px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:4,color:exIdx===day.exercises.length-1?C.faint:C.neonInk,cursor:exIdx===day.exercises.length-1?"default":"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><ChevronDown size={ICON.sm} strokeWidth={1.75}/></button>
                 </div>}
                 {/* Position badge in reorder mode */}
                 {reorderMode===day.id&&<Mono style={{fontSize:11,color:C.muted,width:18,flexShrink:0,textAlign:"center"}}>{exIdx+1}</Mono>}
@@ -2460,7 +2460,7 @@ No explanation, no markdown, just the JSON array.`;
             <div style={{display:"flex",gap:8,marginTop:12,flexWrap:"wrap"}}>
               <Btn size="sm" variant="subtle" onClick={()=>setAddExDay(day.id)} C={C}>+ Exercise</Btn>
               <Btn size="sm" variant="ghost" style={{color:reorderMode===day.id?C.neonInk:C.muted,borderColor:reorderMode===day.id?C.neon+"55":C.border}} onClick={()=>setReorderMode(reorderMode===day.id?null:day.id)} C={C}>
-                {reorderMode===day.id?"✓ Done":"⇅ Reorder"}
+                {reorderMode===day.id?<span style={{display:"inline-flex",alignItems:"center",gap:5}}><Check size={ICON.sm} strokeWidth={1.75}/>Done</span>:<span style={{display:"inline-flex",alignItems:"center",gap:5}}><GripVertical size={ICON.sm} strokeWidth={1.75}/>Reorder</span>}
               </Btn>
               {settings.aiRecs&&<Btn size="sm" variant="ghost" style={{color:C.accentInk}} onClick={()=>{if(sequencingDay!==day.id)aiSequenceDay(day);}} C={C}>
                 {sequencingDay===day.id?"Sequencing...":"✦ AI Sequence"}
@@ -2475,7 +2475,7 @@ No explanation, no markdown, just the JSON array.`;
       <div style={{display:"flex",gap:8,marginTop:6}}>
         <Btn variant="ghost" style={{flex:1}} onClick={()=>setAddDayModal(true)} C={C}>+ Add Day</Btn>
         {days.length>1&&<Btn variant="ghost" style={{flex:1,color:dayReorderMode?C.neonInk:C.muted,borderColor:dayReorderMode?C.neon+"55":C.border}} onClick={()=>{const next=!dayReorderMode;setDayReorderMode(next);setExpandedDay(null);if(!next){setSaveToast("Day order saved");setTimeout(()=>setSaveToast(""),2500);}}} C={C}>
-          {dayReorderMode?"✓ Done Reordering":"⇅ Reorder Days"}
+          {dayReorderMode?<span style={{display:"inline-flex",alignItems:"center",gap:5}}><Check size={ICON.sm} strokeWidth={1.75}/>Done Reordering</span>:<span style={{display:"inline-flex",alignItems:"center",gap:5}}><GripVertical size={ICON.sm} strokeWidth={1.75}/>Reorder Days</span>}
         </Btn>}
       </div>
     </div>}
@@ -2534,13 +2534,13 @@ No explanation, no markdown, just the JSON array.`;
         <div style={{width:36,height:4,borderRadius:2,background:C.border,alignSelf:"center",marginTop:-8,marginBottom:4}}/>
         {!newPlanSheet?<>
           <Mono style={{fontSize:11,color:C.muted,letterSpacing:"0.1em",marginBottom:4}}>SAVE DAY CHANGES</Mono>
-          <button onClick={()=>{updatePlan(days);setSaveSheet(null);setExpandedDay(null);setSaveToast("Plan updated");setTimeout(()=>setSaveToast(""),2500);}} style={{width:"100%",padding:"13px 16px",background:C.neon+"22",border:`1px solid ${C.neon}44`,borderRadius:10,color:C.neonInk,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}>✓ Update Current Plan</button>
+          <button onClick={()=>{updatePlan(days);setSaveSheet(null);setExpandedDay(null);setSaveToast("Plan updated");setTimeout(()=>setSaveToast(""),2500);}} style={{width:"100%",padding:"13px 16px",background:C.neon+"22",border:`1px solid ${C.neon}44`,borderRadius:10,color:C.neonInk,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}><span style={{display:"inline-flex",alignItems:"center",gap:8}}><Check size={ICON.md} strokeWidth={1.75}/>Update Current Plan</span></button>
           <button onClick={()=>{setNewPlanSheet(true);setNewPlanName("Custom - "+(plan?.name||"Plan")+" (modified)");}} style={{width:"100%",padding:"13px 16px",background:C.accent+"22",border:`1px solid ${C.accent}44`,borderRadius:10,color:C.accentInk,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}>+ Save as New Plan</button>
           <button onClick={()=>setSaveSheet(null)} style={{width:"100%",padding:"11px 16px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",letterSpacing:"0.04em",marginTop:2}}>Cancel</button>
         </>:<>
           <Mono style={{fontSize:11,color:C.muted,letterSpacing:"0.1em",marginBottom:4}}>NAME YOUR NEW PLAN</Mono>
           <input type="text" value={newPlanName} onChange={e=>setNewPlanName(e.target.value)} autoFocus style={{padding:"11px 12px",background:C.card,border:`1px solid ${C.accent}44`,borderRadius:8,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",width:"100%",boxSizing:"border-box"}}/>
-          <button onClick={saveAsNewPlan} style={{width:"100%",padding:"13px 16px",background:C.neon+"22",border:`1px solid ${C.neon}44`,borderRadius:10,color:C.neonInk,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}>✓ Create &amp; Activate</button>
+          <button onClick={saveAsNewPlan} style={{width:"100%",padding:"13px 16px",background:C.neon+"22",border:`1px solid ${C.neon}44`,borderRadius:10,color:C.neonInk,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}><span style={{display:"inline-flex",alignItems:"center",gap:8}}><Check size={ICON.md} strokeWidth={1.75}/>Create &amp; Activate</span></button>
           <button onClick={()=>setNewPlanSheet(false)} style={{width:"100%",padding:"11px 16px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",letterSpacing:"0.04em",marginTop:2}}>← Back</button>
         </>}
       </div>
@@ -3089,7 +3089,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
                   <div style={{display:"flex",alignItems:"center",gap:7,flexWrap:"wrap"}}>
                     <div style={{fontSize:14,fontWeight:700}}>{s.dayLabel||"Workout"}</div>
                     {s.partial&&<Pill color={C.goldInk}>Partial</Pill>}
-                    {newPRs.length>0&&<Pill color={C.redInk}>★ {newPRs.length} PR{newPRs.length>1?"s":""}</Pill>}
+                    {newPRs.length>0&&<Badge C={C} color={C.accentInk}>{newPRs.length} PR{newPRs.length>1?"s":""}</Badge>}
                   </div>
                   <Mono style={{fontSize:11,color:C.muted}}>
                     {new Date(s.completedAt).toLocaleDateString("en",{weekday:"long",month:"short",day:"numeric",year:"numeric"})}
@@ -3128,7 +3128,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
                     <div style={{display:"grid",gap:6}}>
                       {groups.map((g,j)=>(
                         <Mono key={j} style={{fontSize:11,background:C.surface,padding:"8px 10px",borderRadius:8,color:g.isPR?C.redInk:g.cardio?C.greenInk:C.muted,opacity:g.type==="warmup"?0.6:1}}>
-                          {g.type==="warmup"?"W ":""}{g.cardio?`Interval ${g.setNum}: ${g.minutes} min${g.level?` · L${g.level}`:""}`:""}{!g.cardio&&g.count>1?`${g.count} × `:""}{!g.cardio&&g.weight?`${g.weight}lbs`:""}{!g.cardio&&g.weight&&g.reps?" × ":""}{!g.cardio&&g.reps?`${g.reps}r`:""}{g.isPR?" ★":""}
+                          {g.type==="warmup"?"W ":""}{g.cardio?`Interval ${g.setNum}: ${g.minutes} min${g.level?` · L${g.level}`:""}`:""}{!g.cardio&&g.count>1?`${g.count} × `:""}{!g.cardio&&g.weight?`${g.weight}lbs`:""}{!g.cardio&&g.weight&&g.reps?" × ":""}{!g.cardio&&g.reps?`${g.reps}r`:""}{g.isPR?<> <Badge C={C} color={C.accentInk}>PR</Badge></>:""}
                         </Mono>
                       ))}
                       {(() => {
@@ -3148,7 +3148,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
                     const prCount=allSets.filter(x=>x.isPR).length;
                     const text=`💪 Just crushed ${s.dayLabel||"a workout"} on IRON!
 ${allSets.length} sets · ${vol>0?Math.round(vol).toLocaleString()+" lbs total volume":""}
-${prCount>0?`★ ${prCount} new PR${prCount>1?"s":""}!`:""}
+${prCount>0?`${prCount} new PR${prCount>1?"s":""}!`:""}
 #IRON #fitness #workout`;
                     if(navigator.share){navigator.share({text});}else{navigator.clipboard.writeText(text);}
                   }}>↗ Share</Btn>
@@ -3315,7 +3315,7 @@ function SessionEditModal({session,onSave,onClose,allSessions=[],onRenameAll,C})
                <input autoFocus value={nameDraft} onChange={e=>setNameDraft(e.target.value)}
                  onKeyDown={e=>{if(e.key==="Enter")renameExercise(exName,nameDraft);else if(e.key==="Escape")setEditingName(null);}}
                  style={{...inputStyle,flex:1,fontWeight:700}}/>
-               <button onClick={()=>renameExercise(exName,nameDraft)} title="Confirm rename" style={{background:"transparent",border:"none",color:C.neonInk,cursor:"pointer",fontSize:15,flexShrink:0}}>✓</button>
+               <button onClick={()=>renameExercise(exName,nameDraft)} title="Confirm rename" style={{background:"transparent",border:"none",color:C.neonInk,cursor:"pointer",flexShrink:0,display:"inline-flex",alignItems:"center"}}><Check size={ICON.md} strokeWidth={1.75}/></button>
                <button onClick={()=>setEditingName(null)} title="Cancel" style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:14,flexShrink:0}}>✕</button>
              </div>
             :<div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}>
@@ -3371,7 +3371,7 @@ function SessionEditModal({session,onSave,onClose,allSessions=[],onRenameAll,C})
     {saveError&&<div style={{marginBottom:10,padding:"10px 12px",background:C.danger+"22",border:`1px solid ${C.danger}44`,borderRadius:8,color:C.dangerInk,fontSize:12,fontFamily:"'SF Mono','Courier New',monospace"}}>{saveError}</div>}
     {applyAllPrompt
       ?<div style={{padding:"12px 14px",background:C.accent+"12",border:`1px solid ${C.accent}44`,borderRadius:8}}>
-        <Mono style={{fontSize:12,color:C.text,fontWeight:700,display:"block",marginBottom:6}}>Saved ✓ — apply rename to other sessions?</Mono>
+        <Mono style={{fontSize:12,color:C.text,fontWeight:700,display:"block",marginBottom:6}}>Saved — apply rename to other sessions?</Mono>
         <div style={{marginBottom:10}}>
           {applyAllPrompt.map(r=>{
             const count=allSessions.filter(s=>s.id!==session.id&&s.sets&&s.sets[r.from]).length;
@@ -3593,7 +3593,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
                 <div style={{fontSize:13}}>{name}</div>
                 <Mono style={{fontSize:10,color:C.muted}}>{STRENGTH_LEVELS[getStrengthScore(name,pr.weight)]}</Mono>
               </div>
-              <Mono style={{fontSize:14,color:C.goldInk,fontWeight:700}}>{pr.weight} lbs ★</Mono>
+              <Mono style={{fontSize:14,color:C.goldInk,fontWeight:700}}>{pr.weight} lbs</Mono>
             </div>
           ))}
         </div>}
@@ -3880,7 +3880,7 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
     try{
       const {error}=await supabase.auth.updateUser({data:{display_name:displayName.trim()}});
       if(error)throw error;
-      setNameMsg("Saved ✓");setTimeout(()=>setNameMsg(""),2500);
+      setNameMsg("Saved");setTimeout(()=>setNameMsg(""),2500);
     }catch(e){console.error("saveDisplayName:",e);setNameMsg("Error saving — try again");}
   }
 
@@ -3901,7 +3901,7 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
       try{
         if(window.navigator.health?.requestAuthorization){
           await window.navigator.health.requestAuthorization(["workouts","activeEnergyBurned"]);
-          setHealthMsg("Connected ✓");
+          setHealthMsg("Connected");
         }else{
           setHealthMsg("Saved — will sync on iPhone via Safari");
         }
@@ -3980,7 +3980,7 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
           style={{width:"100%",padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
       </div>}
 
-      <Btn size="lg" style={{width:"100%",marginTop:20}} onClick={save} C={C}>{saved?"Saved ✓":"Save Settings"}</Btn>
+      <Btn size="lg" style={{width:"100%",marginTop:20}} onClick={save} C={C}>{saved?"Saved":"Save Settings"}</Btn>
 
       {/* Workout reminders */}
       <div style={{marginTop:16,padding:"14px",background:C.card,border:`1px solid ${C.border}`,borderRadius:12}}>
