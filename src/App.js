@@ -6,6 +6,16 @@ import { estimate1RM } from "./lib/oneRepMax";
 import { projectExercise } from "./lib/projections";
 import { rollingVolume } from "./lib/volume";
 import { detectPlateaus } from "./lib/plateaus";
+import { Dumbbell, CalendarDays, History as HistoryIcon, TrendingUp, Settings as SettingsIcon, Moon, Sun } from "lucide-react";
+
+// lucide icon sizing scale. Color always inherits via currentColor from a
+// token-styled parent; icons are never filled. Stroke 1.75 everywhere.
+const ICON = { sm: 16, md: 20, lg: 24 };
+
+// Shared chip — mono, uppercase, hairline pill. Token color drives text + border.
+function Badge({ children, color, C }) {
+  return <span style={{fontFamily:"'SF Mono','Courier New',monospace",fontSize:10,textTransform:"uppercase",letterSpacing:"0.08em",border:`1px solid ${color||C.border}`,borderRadius:999,padding:"2px 7px",color:color||C.muted,lineHeight:1.4,display:"inline-flex",alignItems:"center",whiteSpace:"nowrap"}}>{children}</span>;
+}
 
 // ── SUPABASE ──────────────────────────────────────────────────────────────────
 const SUPABASE_URL = "https://ldbrabnvpiidrdkmjpbo.supabase.co";
@@ -1201,11 +1211,11 @@ export default function ForgeApp(){
   })();
 
   const tabs=[
-    {key:"today",icon:"dumbbell",label:"Workout"},
-    {key:"plan",icon:"notebook",label:"Plan"},
-    {key:"log",icon:"clock",label:"History"},
-    {key:"stats",icon:"↗",label:"Stats"},
-    {key:"more",icon:"gear",label:"Settings"},
+    {key:"today",Icon:Dumbbell,label:"Workout"},
+    {key:"plan",Icon:CalendarDays,label:"Plan"},
+    {key:"log",Icon:HistoryIcon,label:"History"},
+    {key:"stats",Icon:TrendingUp,label:"Stats"},
+    {key:"more",Icon:SettingsIcon,label:"Settings"},
   ];
 
   // Show loading spinner while checking auth
@@ -1270,36 +1280,7 @@ export default function ForgeApp(){
     <nav style={{position:"fixed",bottom:0,left:0,right:0,background:C.navBg,borderTop:`1px solid ${C.border}`,display:"flex",zIndex:100,paddingBottom:"env(safe-area-inset-bottom)"}}>
       {tabs.map(t=>(
         <button key={t.key} onClick={()=>setTab(t.key)} style={{flex:1,padding:"10px 4px 8px",background:"none",border:"none",color:tab===t.key?(themeMode==="dark"?C.goldInk:C.accentInk):C.muted,cursor:"pointer",fontSize:9,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.06em",textTransform:"uppercase",display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
-          {t.icon==="dumbbell"
-            ?<svg width="28" height="14" viewBox="0 0 36 18" fill="none" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
-              <rect x="10" y="8" width="16" height="2" rx="1" fill="currentColor"/>
-              <rect x="7.5" y="6.5" width="2.5" height="5" rx="0.8" fill="currentColor"/>
-              <rect x="3.5" y="3" width="3.5" height="12" rx="1" fill="currentColor"/>
-              <rect x="0.5" y="5.5" width="2.5" height="7" rx="1" fill="currentColor"/>
-              <rect x="26" y="6.5" width="2.5" height="5" rx="0.8" fill="currentColor"/>
-              <rect x="29" y="3" width="3.5" height="12" rx="1" fill="currentColor"/>
-              <rect x="33" y="5.5" width="2.5" height="7" rx="1" fill="currentColor"/>
-            </svg>
-            :t.icon==="clock"
-            ?<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
-              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" fill="none"/>
-              <line x1="12" y1="7" x2="12" y2="12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-              <line x1="12" y1="12" x2="15.5" y2="14.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-            </svg>
-            :t.icon==="gear"
-            ?<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
-              <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" fill="none"/>
-              <path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-            </svg>
-            :t.icon==="notebook"
-            ?<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{flexShrink:0}}>
-              <rect x="4" y="2" width="14" height="20" rx="2" stroke="currentColor" strokeWidth="1.8" fill="none"/>
-              <line x1="8" y1="2" x2="8" y2="22" stroke="currentColor" strokeWidth="1.8"/>
-              <line x1="11" y1="7" x2="15" y2="7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-              <line x1="11" y1="11" x2="15" y2="11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-              <line x1="11" y1="15" x2="15" y2="15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-            </svg>
-            :<span style={{fontSize:18,lineHeight:1}}>{t.icon}</span>}
+          <t.Icon size={ICON.md} strokeWidth={1.75} style={{flexShrink:0}}/>
           {t.label}
         </button>
       ))}
@@ -1349,12 +1330,12 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
       {/* Row 1: greeting / day / date — theme toggle */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8,position:"relative"}}>
         <div>
-          <div style={{fontSize:12,color:C.muted,marginBottom:4}}>Hello, <span style={{fontWeight:600}}>{userName}</span> 👋</div>
+          <div style={{fontSize:12,color:C.muted,marginBottom:4}}>Hello, <span style={{fontWeight:600}}>{userName}</span></div>
           <div style={{fontSize:22,letterSpacing:"-0.03em",fontWeight:800}}>{new Date().toLocaleDateString("en",{weekday:"long"})}</div>
           <div style={{fontSize:13,color:C.muted,marginTop:1}}>{new Date().toLocaleDateString("en",{month:"short",day:"numeric",year:"numeric"})}</div>
         </div>
         <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",marginTop:2,display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
-          <span style={{fontSize:11}}>◐</span>{themeMode==="dark"?"DARK":"LIGHT"}
+          {themeMode==="dark"?<Sun size={ICON.md} strokeWidth={1.75}/>:<Moon size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}
         </button>
       </div>
       {/* Row 2: plan + week badge — streak pill */}
@@ -2369,7 +2350,7 @@ No explanation, no markdown, just the JSON array.`;
     <div style={{background:C.bg,borderBottom:`2px solid ${C.accent}`,padding:"16px 18px 14px"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
         <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>Plan Editor</div>
-        <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}><span style={{fontSize:11}}>◐</span>{themeMode==="dark"?"DARK":"LIGHT"}</button>
+        <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Sun size={ICON.md} strokeWidth={1.75}/>:<Moon size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
       </div>
       {/* View switcher */}
       <div style={{display:"flex",gap:6,marginBottom:10,background:C.card,padding:4,borderRadius:10}}>
@@ -3024,7 +3005,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
           <Mono style={{fontSize:11,color:C.muted}}>{filteredSorted.length} session{filteredSorted.length!==1?"s":""}{historyFilter!=="all"?` · last ${historyFilter.toUpperCase()}`:" · all time"}</Mono>
         </div>
         <div style={{display:"flex",gap:6,alignItems:"center",marginTop:2}}>
-          <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}><span style={{fontSize:11}}>◐</span>{themeMode==="dark"?"DARK":"LIGHT"}</button>
+          <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Sun size={ICON.md} strokeWidth={1.75}/>:<Moon size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
           <Btn size="sm" C={C} onClick={()=>setAddingSession(a=>!a)} style={{background:C.neonBtn,color:"#fff",fontWeight:700,padding:"6px 10px",fontSize:11}}>+ Log</Btn>
         </div>
       </div>
@@ -3566,7 +3547,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
     <div style={{background:C.bg,borderBottom:`1px solid ${C.border}`,padding:"16px 18px 14px"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
         <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>Progress</div>
-        <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}><span style={{fontSize:11}}>◐</span>{themeMode==="dark"?"DARK":"LIGHT"}</button>
+        <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Sun size={ICON.md} strokeWidth={1.75}/>:<Moon size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
       </div>
       <Mono style={{fontSize:11,color:C.muted,display:"block",marginBottom:12}}>{(()=>{const wk=planWeekOf(activePlan);const tot=activePlan?.durationWeeks||10;return wk?`Week ${Math.min(wk,tot)} of ${tot} in your program`:`Week ${programWeek(sessions)} of your program`;})()}</Mono>
       <div style={{display:"flex",gap:4,background:C.card,padding:4,borderRadius:10}}>
@@ -3949,7 +3930,7 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>Settings</div>
         <div style={{display:"flex",gap:8}}>
-          <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}><span style={{fontSize:11}}>◐</span>{themeMode==="dark"?"DARK":"LIGHT"}</button>
+          <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Sun size={ICON.md} strokeWidth={1.75}/>:<Moon size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
           <button onClick={async()=>{try{await supabase.auth.signOut();}catch(e){console.error("signOut:",e);}}} style={{background:"transparent",border:`1px solid ${C.danger}44`,borderRadius:8,color:C.dangerInk,cursor:"pointer",padding:"7px 12px",fontSize:11,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.04em"}}>
             Sign Out
           </button>
