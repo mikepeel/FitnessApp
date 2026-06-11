@@ -731,11 +731,11 @@ function AuthScreen({C,onAuth,themeMode,toggleTheme}){
   const isReset=mode==="reset";
   const submitLabel=mode==="login"?"SIGN IN":mode==="signup"?"CREATE ACCOUNT":"SEND RESET EMAIL";
   const clear=()=>{setError("");setMessage("");};
-  const labelStyle={display:"block",fontSize:10,color:"rgba(255,255,255,0.28)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6,fontWeight:600};
+  const labelStyle={display:"block",fontSize:11,color:"rgba(255,255,255,0.62)",letterSpacing:"0.16em",textTransform:"uppercase",marginBottom:6,fontWeight:600};
   const inputStyle={width:"100%",padding:"15px 16px",background:"rgba(255,255,255,0.055)",border:"1px solid rgba(255,255,255,0.09)",borderRadius:12,color:"#fff",fontSize:16,outline:"none",fontFamily:"inherit",boxSizing:"border-box",WebkitBackdropFilter:"blur(12px)",backdropFilter:"blur(12px)",transition:"border-color .2s, background .2s",WebkitAppearance:"none"};
   const tabStyle=(active)=>({flex:1,position:"relative",textAlign:"center",paddingBottom:11,fontSize:13,fontWeight:600,letterSpacing:"0.03em",cursor:"pointer",color:active?"#fff":"rgba(255,255,255,0.30)",background:"transparent",border:"none",fontFamily:"inherit"});
   const ulineStyle={position:"absolute",bottom:-1,left:"20%",right:"20%",height:2,background:GOLD,borderRadius:"2px 2px 0 0",boxShadow:"0 0 8px rgba(247,201,72,0.5)"};
-  const footerLinkStyle={background:"transparent",border:"none",fontFamily:"inherit",fontSize:12,color:"rgba(255,255,255,0.26)",cursor:"pointer",letterSpacing:"0.02em",padding:"4px 6px"};
+  const footerLinkStyle={background:"transparent",border:"none",fontFamily:"inherit",fontSize:13,color:"rgba(255,255,255,0.58)",cursor:"pointer",letterSpacing:"0.02em",padding:"4px 6px"};
 
   return <div className="iron-auth" style={{position:"relative",minHeight:"100dvh",background:BASE,overflowX:"hidden",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif"}}>
     <style>{`
@@ -743,7 +743,7 @@ function AuthScreen({C,onAuth,themeMode,toggleTheme}){
       .iron-auth input:focus{border-color:rgba(247,201,72,0.5);background:rgba(255,255,255,0.082);box-shadow:0 0 0 3px rgba(247,201,72,0.08);}
       .iron-auth input:-webkit-autofill,.iron-auth input:-webkit-autofill:hover,.iron-auth input:-webkit-autofill:focus{-webkit-box-shadow:0 0 0 1000px #15161a inset;-webkit-text-fill-color:#fff;caret-color:#fff;transition:background-color 9999s ease-in-out 0s;}
       .iron-auth button:focus-visible{outline:2px solid ${GOLD};outline-offset:2px;}
-      .iron-auth .footer-link:hover{color:rgba(255,255,255,0.55);}
+      .iron-auth .footer-link:hover{color:rgba(255,255,255,0.85);}
       @media (prefers-reduced-motion: no-preference){.iron-auth .ent{animation:ironAuthUp .4s ease-out both;}}
       @keyframes ironAuthUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
     `}</style>
