@@ -6,6 +6,7 @@ import { estimate1RM } from "./lib/oneRepMax";
 import { projectExercise } from "./lib/projections";
 import { rollingVolume } from "./lib/volume";
 import { detectPlateaus } from "./lib/plateaus";
+import { flagPRs } from "./lib/prFlags";
 import { Dumbbell, CalendarDays, History as HistoryIcon, TrendingUp, Settings as SettingsIcon, Moon, Sun, Trophy, Check, GripVertical, ChevronUp, ChevronDown, Star } from "lucide-react";
 
 // lucide icon sizing scale. Color always inherits via currentColor from a
@@ -961,6 +962,43 @@ export default function ForgeApp(){
     saveSettings({...settings,theme_mode:mode});
   };
 
+  // One-time migration: recompute is_pr across ALL of a user's logged sets using the
+  // weight-level running-max rule. Older rows were flagged against the prior best for
+  // every set, which over-flagged repeated top-weight sets (e.g. 3×85 above 80 = 3
+  // PRs instead of 1). Guarded by a versioned flag in auth metadata so it runs at
+  // most once per user. personal_records (max per exercise) is unaffected.
+  const backfillPRFlagsV2=async(u)=>{
+    if(!u||u.user_metadata?.pr_flags_v2)return;
+    try{
+      const[{data:sessRows,error:se},{data:setRows,error:le}]=await Promise.all([
+        supabase.from("workout_sessions").select("id,completed_at").eq("user_id",u.id),
+        supabase.from("logged_sets").select("id,session_id,exercise_name,set_number,weight,set_type,is_pr").eq("user_id",u.id),
+      ]);
+      if(se||le){console.error("backfillPRFlagsV2 fetch:",se||le);return;}
+      const when=Object.fromEntries((sessRows||[]).map(s=>[s.id,s.completed_at||""]));
+      const byEx={};
+      for(const r of (setRows||[])){(byEx[r.exercise_name]||(byEx[r.exercise_name]=[])).push(r);}
+      const idsTrue=[],idsFalse=[],correctMap={};
+      for(const[exName,rows]of Object.entries(byEx)){
+        // Chronological by session, then performed order within a session.
+        rows.sort((a,b)=>{const ta=when[a.session_id]||"",tb=when[b.session_id]||"";if(ta!==tb)return ta<tb?-1:1;return (a.set_number||0)-(b.set_number||0);});
+        const flags=flagPRs(rows.map(r=>({weight:parseFloat(r.weight)||0,warmup:r.set_type==="warmup"})),0);
+        rows.forEach((r,i)=>{
+          const want=flags[i];
+          correctMap[`${r.session_id}|${exName}|${r.set_number}`]=want;
+          if(want!==!!r.is_pr)(want?idsTrue:idsFalse).push(r.id);
+        });
+      }
+      const chunk=(arr,n)=>{const out=[];for(let i=0;i<arr.length;i+=n)out.push(arr.slice(i,i+n));return out;};
+      for(const ids of chunk(idsTrue,100)){const{error}=await supabase.from("logged_sets").update({is_pr:true}).in("id",ids);if(error)console.error("backfill true:",error);}
+      for(const ids of chunk(idsFalse,100)){const{error}=await supabase.from("logged_sets").update({is_pr:false}).in("id",ids);if(error)console.error("backfill false:",error);}
+      const corrected=idsTrue.length+idsFalse.length;
+      console.warn(`[pr_flags_v2] recomputed PR flags: ${corrected} row(s) corrected`);
+      if(corrected>0)setSessions(prev=>prev.map(s=>({...s,setsArr:(s.setsArr||[]).map(x=>{const k=`${s.supabaseId}|${x.exName}|${x.setNum}`;return k in correctMap?{...x,isPR:correctMap[k]}:x;})})));
+      await supabase.auth.updateUser({data:{pr_flags_v2:true}}).catch(e=>console.error("backfill flag:",e));
+    }catch(e){console.error("backfillPRFlagsV2:",e);}
+  };
+
   // Load user data from Supabase on auth
   useEffect(()=>{
     const loadUserData=async(u)=>{
@@ -1109,6 +1147,8 @@ export default function ForgeApp(){
         }
       }catch(e){console.error("loadUserData draft:",e);}
       setLoading(false);
+      // Fire-and-forget once-per-user correction of historical PR flags.
+      backfillPRFlagsV2(u);
     };
     supabase.auth.getSession().then(({data:{session}})=>{
       setAuthUser(session?.user||null);
@@ -1814,15 +1854,23 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
     const exOrder=Object.fromEntries((workout.exercises||[]).map((e,i)=>[e.name,i]));
     const sortedLogEntries=Object.entries(loggedSets).sort(([a],[b])=>(exOrder[a]??999)-(exOrder[b]??999));
     for(const[exName,sets]of sortedLogEntries){
-      for(const[sn,vals]of Object.entries(sets)){
-        if(!vals.prepop&&(vals.weight||vals.reps||vals.minutes)){
-          const w=parseFloat(vals.weight)||0;
-          const typ=(setTypes[exName]?.[parseInt(sn)])||"working";
-          const isPR=!vals.minutes&&settings.prDetection&&w>0&&typ!=="warmup"&&(!prs[exName]||w>prs[exName].weight);
-          if(isPR&&(!newPRs[exName]||w>newPRs[exName].weight))newPRs[exName]={weight:w,date:new Date().toISOString()};
-          setsArr.push({exName,setNum:parseInt(sn),weight:vals.weight||"",reps:vals.reps||"",minutes:vals.minutes||"",level:vals.level||"",isPR,type:typ});
-        }
-      }
+      // Qualifying sets for this exercise, in performed (set-number) order.
+      const rows=Object.entries(sets)
+        .filter(([,vals])=>!vals.prepop&&(vals.weight||vals.reps||vals.minutes))
+        .map(([sn,vals])=>({sn:parseInt(sn),vals,typ:(setTypes[exName]?.[parseInt(sn)])||"working"}))
+        .sort((a,b)=>a.sn-b.sn);
+      // Weight-level PR flags: strict running max over the prior best. Cardio sets
+      // carry no weight; warmups are never PRs. Respects the PR-detection setting.
+      const priorBest=prs[exName]?.weight||0;
+      const flags=settings.prDetection
+        ? flagPRs(rows.map(r=>({weight:r.vals.minutes?0:(parseFloat(r.vals.weight)||0),warmup:r.typ==="warmup"})),priorBest)
+        : rows.map(()=>false);
+      rows.forEach((r,i)=>{
+        const isPR=flags[i];
+        const w=parseFloat(r.vals.weight)||0;
+        if(isPR&&(!newPRs[exName]||w>newPRs[exName].weight))newPRs[exName]={weight:w,date:new Date().toISOString()};
+        setsArr.push({exName,setNum:r.sn,weight:r.vals.weight||"",reps:r.vals.reps||"",minutes:r.vals.minutes||"",level:r.vals.level||"",isPR,type:r.typ});
+      });
     }
     if(settings.appleHealth){
       const vol=setsArr.filter(x=>x.type!=="warmup").reduce((s,x)=>(s+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0);
