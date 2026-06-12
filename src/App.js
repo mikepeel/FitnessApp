@@ -1375,7 +1375,7 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
           <div style={{fontSize:13,color:C.muted,marginTop:1}}>{new Date().toLocaleDateString("en",{month:"short",day:"numeric",year:"numeric"})}</div>
         </div>
         <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",marginTop:2,display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
-          {themeMode==="dark"?<Sun size={ICON.md} strokeWidth={1.75}/>:<Moon size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}
+          {themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}
         </button>
       </div>
       {/* Row 2: plan + week badge — streak pill */}
@@ -2398,7 +2398,7 @@ No explanation, no markdown, just the JSON array.`;
     <div style={{background:C.bg,borderBottom:`2px solid ${C.accent}`,padding:"16px 18px 14px"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
         <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>Plan Editor</div>
-        <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Sun size={ICON.md} strokeWidth={1.75}/>:<Moon size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
+        <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
       </div>
       {/* View switcher */}
       <div style={{display:"flex",gap:6,marginBottom:10,background:C.card,padding:4,borderRadius:10}}>
@@ -3053,7 +3053,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
           <Mono style={{fontSize:11,color:C.muted}}>{filteredSorted.length} session{filteredSorted.length!==1?"s":""}{historyFilter!=="all"?` · last ${historyFilter.toUpperCase()}`:" · all time"}</Mono>
         </div>
         <div style={{display:"flex",gap:6,alignItems:"center",marginTop:2}}>
-          <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Sun size={ICON.md} strokeWidth={1.75}/>:<Moon size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
+          <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
           <Btn size="sm" C={C} onClick={()=>setAddingSession(a=>!a)} style={{background:C.neonBtn,color:"#fff",fontWeight:700,padding:"6px 10px",fontSize:11}}>+ Log</Btn>
         </div>
       </div>
@@ -3595,7 +3595,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
     <div style={{background:C.bg,borderBottom:`1px solid ${C.border}`,padding:"16px 18px 14px"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
         <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>Progress</div>
-        <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Sun size={ICON.md} strokeWidth={1.75}/>:<Moon size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
+        <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
       </div>
       <Mono style={{fontSize:11,color:C.muted,display:"block",marginBottom:12}}>{(()=>{const wk=planWeekOf(activePlan);const tot=activePlan?.durationWeeks||10;return wk?`Week ${Math.min(wk,tot)} of ${tot} in your program`:`Week ${programWeek(sessions)} of your program`;})()}</Mono>
       <div style={{display:"flex",gap:4,background:C.card,padding:4,borderRadius:10}}>
@@ -3978,7 +3978,7 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>Settings</div>
         <div style={{display:"flex",gap:8}}>
-          <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Sun size={ICON.md} strokeWidth={1.75}/>:<Moon size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
+          <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
           <button onClick={async()=>{try{await supabase.auth.signOut();}catch(e){console.error("signOut:",e);}}} style={{background:"transparent",border:`1px solid ${C.danger}44`,borderRadius:8,color:C.dangerInk,cursor:"pointer",padding:"7px 12px",fontSize:11,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.04em"}}>
             Sign Out
           </button>
