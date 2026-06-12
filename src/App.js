@@ -6,7 +6,7 @@ import { estimate1RM } from "./lib/oneRepMax";
 import { projectExercise } from "./lib/projections";
 import { rollingVolume } from "./lib/volume";
 import { detectPlateaus } from "./lib/plateaus";
-import { Dumbbell, CalendarDays, History as HistoryIcon, TrendingUp, Settings as SettingsIcon, Moon, Sun, Trophy, Check, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
+import { Dumbbell, CalendarDays, History as HistoryIcon, TrendingUp, Settings as SettingsIcon, Moon, Sun, Trophy, Check, GripVertical, ChevronUp, ChevronDown, Star } from "lucide-react";
 
 // lucide icon sizing scale. Color always inherits via currentColor from a
 // token-styled parent; icons are never filled. Stroke 1.75 everywhere.
@@ -1898,7 +1898,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
               <div style={{fontSize:15,fontWeight:700,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                 {ex.name}
                 {isCardio&&<Pill color={C.greenInk}>Cardio</Pill>}
-                {isPRNow&&<Badge C={C} color={C.accentInk}>PR</Badge>}
+                {isPRNow&&<Star size={ICON.sm} strokeWidth={1.75} color={C.accentInk}/>}
                 {hasAnyLog&&<span style={{fontSize:9,color:C.neonInk,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em"}}>LOGGED</span>}
               </div>
               <Mono style={{fontSize:11,color:C.muted}}>{isCardio?"Duration goal:":ex.sets+" sets ."} {ex.reps}{!isCardio&&ex.muscle?` . ${ex.muscle}`:""}</Mono>
@@ -3089,7 +3089,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
                   <div style={{display:"flex",alignItems:"center",gap:7,flexWrap:"wrap"}}>
                     <div style={{fontSize:14,fontWeight:700}}>{s.dayLabel||"Workout"}</div>
                     {s.partial&&<Pill color={C.goldInk}>Partial</Pill>}
-                    {newPRs.length>0&&<Badge C={C} color={C.accentInk}>{newPRs.length} PR{newPRs.length>1?"s":""}</Badge>}
+                    {newPRs.length>0&&<Star size={ICON.sm} strokeWidth={1.75} color={C.accentInk}/>}
                   </div>
                   <Mono style={{fontSize:11,color:C.muted}}>
                     {new Date(s.completedAt).toLocaleDateString("en",{weekday:"long",month:"short",day:"numeric",year:"numeric"})}
@@ -3128,7 +3128,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
                     <div style={{display:"grid",gap:6}}>
                       {groups.map((g,j)=>(
                         <Mono key={j} style={{fontSize:11,background:C.surface,padding:"8px 10px",borderRadius:8,color:g.isPR?C.redInk:g.cardio?C.greenInk:C.muted,opacity:g.type==="warmup"?0.6:1}}>
-                          {g.type==="warmup"?"W ":""}{g.cardio?`Interval ${g.setNum}: ${g.minutes} min${g.level?` · L${g.level}`:""}`:""}{!g.cardio&&g.count>1?`${g.count} × `:""}{!g.cardio&&g.weight?`${g.weight}lbs`:""}{!g.cardio&&g.weight&&g.reps?" × ":""}{!g.cardio&&g.reps?`${g.reps}r`:""}{g.isPR?<> <Badge C={C} color={C.accentInk}>PR</Badge></>:""}
+                          {g.type==="warmup"?"W ":""}{g.cardio?`Interval ${g.setNum}: ${g.minutes} min${g.level?` · L${g.level}`:""}`:""}{!g.cardio&&g.count>1?`${g.count} × `:""}{!g.cardio&&g.weight?`${g.weight}lbs`:""}{!g.cardio&&g.weight&&g.reps?" × ":""}{!g.cardio&&g.reps?`${g.reps}r`:""}{g.isPR?<> <Star size={ICON.sm} strokeWidth={1.75} color={C.accentInk} style={{verticalAlign:"-3px"}}/></>:""}
                         </Mono>
                       ))}
                       {(() => {
@@ -4184,10 +4184,8 @@ function WorkoutSummary({session,newPRs,previousPRs,complianceStreak,setsWarning
                 </div>
                 <div style={{textAlign:"right"}}>
                   <div style={{fontSize:14,fontWeight:800,color:C.text,marginBottom:4}}>{pr.weight} lbs</div>
-                  <div style={{display:"inline-flex",alignItems:"center",gap:4,background:"#f0fdf4",border:"1.5px solid #3ecf8e",borderRadius:6,padding:"3px 8px",color:"#1a7a4a",fontSize:9,fontWeight:700}}>
-                    <svg width={12} height={12} viewBox="0 0 24 24" fill="none">
-                      <path d="M12 3L14.5 9.5L21.5 10.3L16.5 15L18 22L12 18.5L6 22L7.5 15L2.5 10.3L9.5 9.5L12 3Z" fill="#3ecf8e" stroke="#2ab87a" strokeWidth={1}/>
-                    </svg>
+                  <div style={{display:"inline-flex",alignItems:"center",gap:4,color:C.accentInk,fontSize:9,fontWeight:700,letterSpacing:"0.08em"}}>
+                    <Star size={ICON.sm} strokeWidth={1.75}/>
                     PR
                   </div>
                 </div>
