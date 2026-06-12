@@ -7,7 +7,7 @@ import { projectExercise } from "./lib/projections";
 import { rollingVolume } from "./lib/volume";
 import { detectPlateaus } from "./lib/plateaus";
 import { flagPRs } from "./lib/prFlags";
-import { Dumbbell, CalendarDays, History as HistoryIcon, TrendingUp, Settings as SettingsIcon, Moon, Sun, Trophy, Check, GripVertical, ChevronUp, ChevronDown, Star } from "lucide-react";
+import { Dumbbell, CalendarDays, History as HistoryIcon, TrendingUp, Settings as SettingsIcon, Moon, Sun, Trophy, Check, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
 
 // lucide icon sizing scale. Color always inherits via currentColor from a
 // token-styled parent; icons are never filled. Stroke 1.75 everywhere.
@@ -16,6 +16,13 @@ const ICON = { sm: 16, md: 20, lg: 24 };
 // Shared chip — mono, uppercase, hairline pill. Token color drives text + border.
 function Badge({ children, color, C }) {
   return <span style={{fontFamily:"'SF Mono','Courier New',monospace",fontSize:10,textTransform:"uppercase",letterSpacing:"0.08em",border:`1px solid ${color||C.border}`,borderRadius:999,padding:"2px 7px",color:color||C.muted,lineHeight:1.4,display:"inline-flex",alignItems:"center",whiteSpace:"nowrap"}}>{children}</span>;
+}
+
+// Shared PR marker — the StatsTab Progress-tab treatment verbatim: literal "PR"
+// (plus optional weight via `value`) in gold, mono, bold. Used on workout rows,
+// the WorkoutSummary, and History markers so every PR reads identically.
+function PRMark({ value, C }) {
+  return <span style={{fontFamily:"'SF Mono','Courier New',monospace",fontSize:11,color:C.goldInk,fontWeight:700,whiteSpace:"nowrap"}}>PR{value!=null&&value!==""?` ${value}`:""}</span>;
 }
 
 // ── SUPABASE ──────────────────────────────────────────────────────────────────
@@ -1946,7 +1953,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
               <div style={{fontSize:15,fontWeight:700,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                 {ex.name}
                 {isCardio&&<Pill color={C.greenInk}>Cardio</Pill>}
-                {isPRNow&&<Star size={ICON.sm} strokeWidth={1.75} color={C.accentInk}/>}
+                {isPRNow&&<PRMark C={C}/>}
                 {hasAnyLog&&<span style={{fontSize:9,color:C.neonInk,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em"}}>LOGGED</span>}
               </div>
               <Mono style={{fontSize:11,color:C.muted}}>{isCardio?"Duration goal:":ex.sets+" sets ."} {ex.reps}{!isCardio&&ex.muscle?` . ${ex.muscle}`:""}</Mono>
@@ -3137,7 +3144,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
                   <div style={{display:"flex",alignItems:"center",gap:7,flexWrap:"wrap"}}>
                     <div style={{fontSize:14,fontWeight:700}}>{s.dayLabel||"Workout"}</div>
                     {s.partial&&<Pill color={C.goldInk}>Partial</Pill>}
-                    {newPRs.length>0&&<Star size={ICON.sm} strokeWidth={1.75} color={C.accentInk}/>}
+                    {newPRs.length>0&&<PRMark C={C}/>}
                   </div>
                   <Mono style={{fontSize:11,color:C.muted}}>
                     {new Date(s.completedAt).toLocaleDateString("en",{weekday:"long",month:"short",day:"numeric",year:"numeric"})}
@@ -3176,7 +3183,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
                     <div style={{display:"grid",gap:6}}>
                       {groups.map((g,j)=>(
                         <Mono key={j} style={{fontSize:11,background:C.surface,padding:"8px 10px",borderRadius:8,color:g.isPR?C.redInk:g.cardio?C.greenInk:C.muted,opacity:g.type==="warmup"?0.6:1}}>
-                          {g.type==="warmup"?"W ":""}{g.cardio?`Interval ${g.setNum}: ${g.minutes} min${g.level?` · L${g.level}`:""}`:""}{!g.cardio&&g.count>1?`${g.count} × `:""}{!g.cardio&&g.weight?`${g.weight}lbs`:""}{!g.cardio&&g.weight&&g.reps?" × ":""}{!g.cardio&&g.reps?`${g.reps}r`:""}{g.isPR?<> <Star size={ICON.sm} strokeWidth={1.75} color={C.accentInk} style={{verticalAlign:"-3px"}}/></>:""}
+                          {g.type==="warmup"?"W ":""}{g.cardio?`Interval ${g.setNum}: ${g.minutes} min${g.level?` · L${g.level}`:""}`:""}{!g.cardio&&g.count>1?`${g.count} × `:""}{!g.cardio&&g.weight?`${g.weight}lbs`:""}{!g.cardio&&g.weight&&g.reps?" × ":""}{!g.cardio&&g.reps?`${g.reps}r`:""}{g.isPR?<> <PRMark C={C}/></>:""}
                         </Mono>
                       ))}
                       {(() => {
@@ -3698,7 +3705,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8,paddingRight:18,gap:8}}>
                   <span style={{fontSize:14,fontWeight:700}}>{name}</span>
                   <span style={{fontFamily:mono,fontSize:11,flexShrink:0,whiteSpace:"nowrap"}}>
-                    <span style={{color:C.goldInk,fontWeight:700}}>PR {pr}</span>
+                    <PRMark value={pr} C={C}/>
                     {delta!==0&&<span style={{color:delta>0?C.neonInk:C.dangerInk,fontWeight:700}}>&nbsp; {delta>0?`▲ +${delta}`:`▼ ${delta}`}</span>}
                   </span>
                 </div>
@@ -4232,10 +4239,7 @@ function WorkoutSummary({session,newPRs,previousPRs,complianceStreak,setsWarning
                 </div>
                 <div style={{textAlign:"right"}}>
                   <div style={{fontSize:14,fontWeight:800,color:C.text,marginBottom:4}}>{pr.weight} lbs</div>
-                  <div style={{display:"inline-flex",alignItems:"center",gap:4,color:C.accentInk,fontSize:9,fontWeight:700,letterSpacing:"0.08em"}}>
-                    <Star size={ICON.sm} strokeWidth={1.75}/>
-                    PR
-                  </div>
+                  <PRMark C={C}/>
                 </div>
               </div>
             ))}
