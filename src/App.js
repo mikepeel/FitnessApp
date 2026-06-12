@@ -3821,8 +3821,8 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
                 <div style={{fontSize:12}}>{name}</div>
                 <Mono style={{fontSize:10,color:C.muted}}>{pr.weight} lbs PR</Mono>
               </div>
-              <div style={{padding:"3px 10px",borderRadius:12,background:colors[score]+"22",border:`1px solid ${colors[score]}44`}}>
-                <Mono style={{fontSize:10,color:txt[score],fontWeight:700}}>{level}</Mono>
+              <div style={{padding:"3px 10px",borderRadius:12,background:colors[score]+"22",border:`1px solid ${colors[score]}44`,display:"flex",alignItems:"center"}}>
+                <Mono style={{fontSize:10,color:txt[score],fontWeight:700,lineHeight:1}}>{level}</Mono>
               </div>
             </div>;
           })}
