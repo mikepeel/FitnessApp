@@ -3562,11 +3562,13 @@ function StatsTab({sessions,prs,settings,C,activePlan,toggleTheme,themeMode,body
   // Better muscle mapping from exercise names
   const muscleMap={"Bench Press":"Chest","Incline Press (DB)":"Chest","Cable Fly":"Chest","Pec Deck / Cable Fly":"Chest","T-Bar Row":"Back","Reverse Grip Lat Pulldown":"Back","Seated Cable Row":"Back","Reverse Grip Pulldown":"Back","Machine Shoulder Press":"Shoulders","Cable Lateral Raise":"Shoulders","Rear Delt Machine":"Shoulders","DB / Cable Lateral Raises":"Shoulders","Front Delt Raise":"Shoulders","Cable Rope Pressdown":"Triceps","Incline Tricep Extension":"Triceps","Cable Overhead Extension":"Triceps","Cable Curl":"Biceps","Concentration Curl":"Biceps","Barbell / Cable Curl":"Biceps","Goblet Squat":"Legs","DB Romanian Deadlift":"Legs","Box Step-Ups (DB)":"Legs","DB Lunges (optional)":"Legs","Decline Sit-Ups":"Abs","Machine Crunch":"Abs","Russian Twist":"Abs","Stair Stepper":"Cardio"};
   const muscleVolMapped={};
+  const muscleSets={};
   sessions.filter(s=>s.completedAt&&new Date(s.completedAt)>sevenDaysAgo).forEach(s=>{
     (s.setsArr||[]).filter(x=>x.type!=="warmup").forEach(x=>{
       const m=muscleMap[x.exName]||"Other";
       if(!muscleVolMapped[m])muscleVolMapped[m]=0;
       muscleVolMapped[m]+=(parseFloat(x.weight)||1)*(parseInt(x.reps)||1);
+      muscleSets[m]=(muscleSets[m]||0)+1;
     });
   });
   const muscleOrder=["Chest","Back","Shoulders","Biceps","Triceps","Legs","Abs","Cardio"];
@@ -3802,13 +3804,14 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
         {muscleOrder.filter(m=>muscleVolMapped[m]>0).length===0&&<div style={{textAlign:"center",padding:"32px 0",color:C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:12}}>Log workouts to see muscle volume breakdown.</div>}
         {muscleOrder.map(muscle=>{
           const vol=muscleVolMapped[muscle]||0;
+          const sets=muscleSets[muscle]||0;
           if(!vol)return null;
           const pct=Math.round((vol/maxMuscleVol)*100);
           const colors={"Chest":C.accent,"Back":C.blue,"Shoulders":C.gold,"Biceps":C.neon,"Triceps":C.neon,"Legs":"#b06aff","Abs":C.muted,"Cardio":C.green};
           return <div key={muscle} style={{marginBottom:12}}>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
               <Mono style={{fontSize:12,color:C.text,fontWeight:600}}>{muscle}</Mono>
-              <Mono style={{fontSize:11,color:C.muted}}>{Math.round(vol/1000*10)/10}k lbs</Mono>
+              <Mono style={{fontSize:11,color:C.muted}}>{sets} set{sets!==1?"s":""} · {Math.round(vol/1000*10)/10}k lbs</Mono>
             </div>
             <div style={{height:10,background:C.border,borderRadius:5}}>
               <div style={{height:"100%",background:colors[muscle]||C.accent,borderRadius:5,width:`${pct}%`,transition:"width .5s ease"}}/>
