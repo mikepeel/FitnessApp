@@ -7,8 +7,10 @@ import { projectExercise } from "./lib/projections";
 import { rollingVolume } from "./lib/volume";
 import { detectPlateaus } from "./lib/plateaus";
 import { flagPRs } from "./lib/prFlags";
-import { muscleContributions, rollupToGroup } from "./lib/muscleVolume";
-import { Dumbbell, CalendarDays, History as HistoryIcon, TrendingUp, Settings as SettingsIcon, Moon, Sun, Trophy, Check, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
+import { muscleContributions, rollupToGroup, DISPLAY_GROUPS } from "./lib/muscleVolume";
+import { analyzePlan } from "./lib/planAnalysis";
+import volumeGuidelines from "./data/volumeGuidelines.json";
+import { Dumbbell, CalendarDays, History as HistoryIcon, TrendingUp, Settings as SettingsIcon, Moon, Sun, Trophy, Check, GripVertical, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 
 // lucide icon sizing scale. Color always inherits via currentColor from a
 // token-styled parent; icons are never filled. Stroke 1.75 everywhere.
@@ -2269,6 +2271,96 @@ class PlanErrorBoundary extends Component{
 }
 
 // -- PLAN TAB ------------------------------------------------------------------
+function PlanAnalysisView({plan,goalRaw,C,onBack}){
+  const [openGroups,setOpenGroups]=useState({});
+  const [showSources,setShowSources]=useState(false);
+  const a=analyzePlan(plan,{goal:goalRaw});
+  const mono="'SF Mono','Courier New',monospace";
+  const byGroup={}; a.perGroup.forEach(g=>{byGroup[g.group]=g;});
+  const STATUS={under:{t:"under",c:C.dangerInk},maintenance:{t:"maintenance",c:C.muted},in_range:{t:"in range",c:C.neonInk},high:{t:"high",c:C.goldInk}};
+  const Chip=({status})=>{const s=STATUS[status]||STATUS.in_range;return <span style={{fontFamily:mono,fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:s.c,border:`1px solid ${s.c}55`,borderRadius:999,padding:"2px 8px",whiteSpace:"nowrap",flexShrink:0}}>{s.t}</span>;};
+  const band=(b)=>`${b[0]}–${b[1]}`;
+  // Copy rules. Below-range (under/maintenance) softens for low-evidence muscles.
+  const lines=(row)=>{const[lo,hi]=row.band;const out=[];
+    if(row.status==="under"||row.status==="maintenance"){
+      if(row.evidenceTier==="low")out.push("Below typical range, though the evidence here is limited.");
+      else{const add=Math.min(4,Math.max(2,Math.ceil(lo-row.weeklySets)));out.push(`Below the ~${lo}–${hi} range — consider adding ~${add} sets or a second day.`);}
+    }else if(row.status==="in_range")out.push("In range.");
+    else if(row.status==="high")out.push("Above the productive range — added volume gives diminishing returns; watch recovery.");
+    if(row.frequencyFlag)out.push("Hitting volume in one day — splitting across 2 days usually works better.");
+    if(row.sessionFlag)out.push("High single-session load — consider redistributing.");
+    return out;
+  };
+  const balanced=a.summary.underCount===0&&a.summary.highCount===0&&a.summary.flagged.length===0;
+  const Header=(
+    <div style={{background:C.bg,borderBottom:`2px solid ${C.accent}`,padding:"16px 18px 14px"}}>
+      <button onClick={onBack} aria-label="Back to plan" style={{display:"inline-flex",alignItems:"center",gap:5,background:"transparent",border:"none",color:C.accentInk,fontFamily:mono,fontSize:13,fontWeight:600,cursor:"pointer",padding:0,marginBottom:10}}><ChevronLeft size={ICON.sm} strokeWidth={1.75}/>Plan</button>
+      <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em",marginBottom:4}}>Plan Analysis</div>
+      <Mono style={{fontSize:11,color:C.muted,display:"block",lineHeight:1.5}}>Planned weekly working sets vs. evidence-based ranges.{a.goalDefaulted?" Assuming a hypertrophy goal.":""}</Mono>
+    </div>
+  );
+  // STRENGTH — coarse, lift-driven guidance (no per-muscle bands).
+  if(a.goal==="strength"){
+    return <div>
+      {Header}
+      <div style={{padding:"14px 18px"}}>
+        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"14px",marginBottom:14}}>
+          <SectionLabel C={C}>Strength goal — coarse guidance</SectionLabel>
+          <Mono style={{fontSize:12,color:C.muted,lineHeight:1.7,display:"block"}}>Strength is lift-specific: train your key lifts 2–3×/week, keep most sets heavy and 1–2 reps from failure, and aim ~6–12 working sets on the primary movers. Per-muscle set totals matter far less than for hypertrophy — don't over-index on them.</Mono>
+        </div>
+        <SectionLabel C={C}>Planned weekly sets by group</SectionLabel>
+        {DISPLAY_GROUPS.map(group=>{const g=byGroup[group];return <div key={group} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 2px",borderBottom:`1px solid ${C.border}`}}>
+          <Mono style={{fontSize:12,color:g?C.text:C.faint}}>{group}</Mono>
+          <Mono style={{fontSize:11,color:g?C.muted:C.faint}}>{g?`${g.weeklySets} sets`:"— not in plan"}</Mono>
+        </div>;})}
+        <Mono style={{fontSize:10,color:C.faint,display:"block",marginTop:12,lineHeight:1.6}}>Working-set proxy: counts planned non-warmup sets, not RIR-verified hard sets.</Mono>
+      </div>
+    </div>;
+  }
+  // HYPERTROPHY — per-group bands, expandable to fine muscles.
+  return <div>
+    {Header}
+    <div style={{padding:"14px 18px"}}>
+      {balanced&&<div style={{background:C.neon+"12",border:`1px solid ${C.neon}40`,borderRadius:10,padding:"12px 14px",marginBottom:12}}>
+        <Mono style={{fontSize:12,color:C.neonInk,fontWeight:700}}>Balanced — no volume changes suggested.</Mono>
+      </div>}
+      {DISPLAY_GROUPS.map(group=>{
+        const g=byGroup[group];
+        if(!g)return <div key={group} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"11px 2px",borderBottom:`1px solid ${C.border}`}}>
+          <Mono style={{fontSize:13,color:C.faint}}>{group}</Mono><Mono style={{fontSize:10,color:C.faint}}>not in plan</Mono>
+        </div>;
+        const expanded=!!openGroups[group];
+        return <div key={group} style={{borderBottom:`1px solid ${C.border}`,padding:"10px 0"}}>
+          <div onClick={()=>setOpenGroups(p=>({...p,[group]:!p[group]}))} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}>
+            <span style={{color:C.faint,display:"inline-flex",flexShrink:0}}>{expanded?<ChevronDown size={ICON.sm} strokeWidth={1.75}/>:<ChevronRight size={ICON.sm} strokeWidth={1.75}/>}</span>
+            <Mono style={{fontSize:13,color:C.text,fontWeight:600,flex:1}}>{group}</Mono>
+            <Mono style={{fontSize:11,color:C.muted}}>{g.weeklySets} sets</Mono>
+            <button onClick={e=>{e.stopPropagation();setShowSources(true);}} aria-label="See sources" style={{background:"transparent",border:`1px solid ${C.border}`,borderRadius:6,color:C.muted,fontFamily:mono,fontSize:10,padding:"2px 7px",cursor:"pointer",flexShrink:0}}>{band(g.band)}</button>
+            <Chip status={g.status}/>
+          </div>
+          {lines(g).map((ln,i)=><Mono key={i} style={{fontSize:11,color:C.muted,display:"block",marginTop:5,marginLeft:24,lineHeight:1.5}}>{ln}</Mono>)}
+          {expanded&&<div style={{marginLeft:24,marginTop:8}}>
+            {g.fineMuscles.map(m=><div key={m.muscle} style={{padding:"6px 0",borderTop:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:8}}>
+              <Mono style={{fontSize:11,color:C.muted,flex:1}}>{m.muscle}{m.evidenceTier==="low"?" · limited evidence":""}</Mono>
+              <Mono style={{fontSize:10,color:C.faint}}>{m.weeklySets} · {band(m.band)}</Mono>
+              <Chip status={m.status}/>
+            </div>)}
+          </div>}
+        </div>;
+      })}
+      <Mono style={{fontSize:10,color:C.faint,display:"block",marginTop:14,lineHeight:1.6}}>Working-set proxy: counts planned non-warmup sets, not RIR-verified hard sets; ranges assume sets ~0–3 reps from failure. Tap a range for sources.</Mono>
+    </div>
+    {showSources&&<Modal onClose={()=>setShowSources(false)} C={C}>
+      <SectionLabel C={C}>Sources</SectionLabel>
+      {volumeGuidelines.citations.map(c=><div key={c.id} style={{marginBottom:10}}>
+        <Mono style={{fontSize:11,color:C.text,display:"block",lineHeight:1.5}}>{c.ref}</Mono>
+        <Mono style={{fontSize:10,color:C.accentInk,display:"block",marginTop:2}}>{c.tier}</Mono>
+      </div>)}
+      <Mono style={{fontSize:10,color:C.muted,display:"block",marginTop:8,lineHeight:1.6}}>Evidence tiers: high (peer-reviewed), moderate, low (practitioner extrapolation — softer copy). The 0.5 secondary-muscle factor is a modeling convention, not a measured value.</Mono>
+    </Modal>}
+  </div>;
+}
+
 function PlanTab({plans,activePlanKey,setActivePlanKey,savePlans,settings,C,toggleTheme,themeMode}){
   const [view,setView]=useState("mine"); // mine | presets | ai
   const [expandedDay,setExpandedDay]=useState(null);
@@ -2290,6 +2382,7 @@ function PlanTab({plans,activePlanKey,setActivePlanKey,savePlans,settings,C,togg
   const [startPlanModal,setStartPlanModal]=useState(null);
   const [modalStartDate,setModalStartDate]=useState("");
   const [modalDuration,setModalDuration]=useState(10);
+  const [analysisOpen,setAnalysisOpen]=useState(false);
 
   const plan=plans[activePlanKey];
   const days=plan?.days||[];
@@ -2402,6 +2495,8 @@ No explanation, no markdown, just the JSON array.`;
     setExpandedDay(null);
   }
 
+  if(analysisOpen&&plan)return <PlanAnalysisView plan={plan} goalRaw={(settings.aiGoal||"").toLowerCase()} C={C} onBack={()=>setAnalysisOpen(false)}/>;
+
   return <div>
     <div style={{background:C.bg,borderBottom:`2px solid ${C.accent}`,padding:"16px 18px 14px"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
@@ -2464,6 +2559,7 @@ No explanation, no markdown, just the JSON array.`;
           </div>
         </div>
       </div>}
+      {plan&&days.length>0&&<button onClick={()=>setAnalysisOpen(true)} style={{width:"100%",padding:"11px",marginBottom:12,borderRadius:10,border:`1px solid ${C.accent}55`,background:C.accent+"12",color:C.accentInk,fontFamily:"'SF Mono','Courier New',monospace",fontSize:12,fontWeight:700,letterSpacing:"0.04em",cursor:"pointer"}}>Analyze plan</button>}
       {days.map((day,i)=>(
         <div key={day.id} style={{marginBottom:8}}>
           <div onClick={dayReorderMode?undefined:()=>setExpandedDay(expandedDay===i?null:i)}
