@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "generated": "2026-06-13",
+  "purpose": "Source of truth for IRON's science-backed volume guidance. Plan Analysis and the Muscles-tab volume insight read bands from this file so every number is traceable to a source, not hardcoded. Bands are per FINE muscle (matching exerciseMuscleMap.json's 17-muscle taxonomy).",
+
+  "countingBasis": "Bands are expressed in FRACTIONAL-TOTAL weekly sets — the same unit IRON counts (primary 1.0 + secondary 0.5). The indirect/secondary credit from compounds is already included in both the count and the band. A muscle reaching its band largely through indirect credit (e.g. biceps from rows/pulldowns) is the intended pattern, not a deficiency. NOTE: IRON currently counts WORKING sets (non-warmup), not RIR-verified hard sets — a slight overcount vs the literature's 'sets near failure'. Label the metric 'working sets' and frame guidance as 'associated with', not guaranteed.",
+
+  "methodology": "Major-mover ranges are anchored to peer-reviewed dose-response work (Schoenfeld/Ogborn/Krieger 2017; Pelland et al. 2024 fractional meta-regression). Smaller/indirect-heavy muscle tiers and frequency/per-session guidance are practitioner consensus extrapolated from that literature (lower certainty — see evidenceTier per muscle). The 0.5 secondary weight is a modeling convention, not a measured activation fraction.",
+
+  "globalNotes": [
+    "These are population landmarks with large individual variation. Treat as guidance, not targets to chase.",
+    "Start at the LOW end of a band and add volume only when progress stalls — not as a starting point.",
+    "Train each muscle ~2x/week; splitting weekly volume across sessions beats cramming it into one.",
+    "Volume guidance applies to a HYPERTROPHY goal. For STRENGTH, see the `strength` block — volume matters less and is lift-specific.",
+    "Where IRON has the user's own progress signal (projection/plateau engine), prefer it: below-range but still gaining = soft note; below-range and stalled = act."
+  ],
+
+  "maintenanceFloorSets": 6,
+  "maintenanceNote": "~6 fractional sets/week generally maintains a muscle even if below the growth band (useful during cuts or busy phases).",
+
+  "frequency": {
+    "targetPerWeek": 2,
+    "smallMuscleRange": [2, 4],
+    "note": "Most muscles: aim 2x/week. Small, fast-recovering muscles (biceps, triceps, calves, abs, forearms) tolerate 2–4x. Flag any muscle trained only 1x/week if its weekly sets are in/above the productive range (better split across days)."
+  },
+
+  "perSessionCeiling": {
+    "softMax": 10,
+    "flagAbove": 16,
+    "note": "Per muscle per session: ~10 hard sets is a practical soft ceiling; flag >16 in one session as likely junk volume / poor distribution. Suggest redistributing across days rather than adding more on the same day."
+  },
+
+  "hypertrophy": {
+    "Chest":       {"productive": [10, 20], "evidenceTier": "high",     "note": "Direct-dominant major mover."},
+    "Lats":        {"productive": [10, 20], "evidenceTier": "high",     "note": "Major back mover; rows + pulldowns + pull-ups."},
+    "Upper Back":  {"productive": [10, 20], "evidenceTier": "high",     "note": "Rhomboids/mid-traps; rows and face pulls."},
+    "Quads":       {"productive": [10, 20], "evidenceTier": "high",     "note": "Squat/press/extension pattern."},
+    "Hamstrings":  {"productive": [10, 20], "evidenceTier": "high",     "note": "Hinges + curls; treated as a major mover alongside quads."},
+    "Glutes":      {"productive": [10, 20], "evidenceTier": "high",     "note": "Large indirect credit from squats/hinges/lunges; direct work (thrusts/bridges) adds on top."},
+    "Side Delts":  {"productive": [8, 16],  "evidenceTier": "moderate", "note": "Mostly direct (raises); many lifters respond to the higher end."},
+    "Front Delts": {"productive": [6, 14],  "evidenceTier": "moderate", "note": "Heavy indirect from all pressing — rarely needs much direct work."},
+    "Rear Delts":  {"productive": [6, 14],  "evidenceTier": "moderate", "note": "Commonly undertrained; tolerates frequent low-load work."},
+    "Biceps":      {"productive": [8, 18],  "evidenceTier": "moderate", "note": "Large indirect credit from pulls; can handle high volume / frequency."},
+    "Triceps":     {"productive": [8, 18],  "evidenceTier": "moderate", "note": "Indirect from all pressing; direct extensions add the rest."},
+    "Traps":       {"productive": [6, 14],  "evidenceTier": "moderate", "note": "Indirect from deadlifts/rows; direct shrugs as needed."},
+    "Calves":      {"productive": [8, 18],  "evidenceTier": "moderate", "note": "Stubborn; tolerate higher volume and frequency, higher rep ranges."},
+    "Abs":         {"productive": [6, 16],  "evidenceTier": "moderate", "note": "Direct flexion + anti-extension/rotation; bracing in compounds is indirect."},
+    "Forearms":    {"productive": [4, 12],  "evidenceTier": "low",      "note": "Mostly indirect from grip; thin direct-volume evidence — don't over-flag."},
+    "Lower Back":  {"productive": [4, 10],  "evidenceTier": "low",      "note": "Substantial indirect from hinges/squats/carries; high fatigue cost — rarely programmed high directly."},
+    "Adductors":   {"productive": [4, 12],  "evidenceTier": "low",      "note": "Indirect from squats/lunges; thin direct evidence — guidance is approximate."}
+  },
+
+  "strength": {
+    "applies": "When the user's goal is strength (not hypertrophy).",
+    "guidance": "Strength is LIFT-specific, not muscle-specific — per-muscle volume matters far less than for hypertrophy. Lower total volume suffices and shows sharper diminishing returns; FREQUENCY of the trained lift is the bigger lever.",
+    "coarseWeeklySetsPrimaryMover": [6, 12],
+    "liftFrequencyPerWeek": [2, 3],
+    "note": "For strength goals, emphasize: train the key lifts 2–3x/week, keep most sets heavy and a rep or two from failure, and don't over-index on per-muscle set totals. Use the volume bands above only as a soft floor (don't let a trained muscle fall to maintenance).",
+    "evidenceTier": "moderate"
+  },
+
+  "citations": [
+    {"id": "schoenfeld2017", "ref": "Schoenfeld BJ, Ogborn D, Krieger JW. Dose-response relationship between weekly resistance training volume and increases in muscle mass. J Sports Sci. 2017.", "supports": "Graded dose-response; 10+ weekly sets > 5–9 > 1–4 for hypertrophy.", "tier": "peer-reviewed meta-analysis"},
+    {"id": "pelland2024", "ref": "Pelland JC, Robinson ZP, et al. Resistance training volume dose-response meta-regression (fractional set method). 2024.", "supports": "Fractional counting (0.5 indirect); diminishing returns; gains continue past 20 with much-reduced per-set effect; strength diminishes faster and is frequency-sensitive.", "tier": "peer-reviewed meta-regression"},
+    {"id": "practitioner_smallmuscle", "ref": "Coaching consensus syntheses of the above (e.g. major 10–20 / smaller 6–10 direct tiering; calves & abs 2–5 direct sets, 2–4x/week; arms 3–4 sets 2x/week).", "supports": "Per-muscle tiering for smaller/indirect-heavy muscles, frequency and per-session ceilings.", "tier": "practitioner extrapolation (lower certainty)"}
+  ],
+
+  "honestyCaveats": [
+    "Working-set proxy: IRON counts non-warmup sets, not RIR-verified hard sets — bands assume sets taken ~0–3 reps from failure. Slight overcount; frame as 'working sets'.",
+    "0.5 secondary factor is a modeling convention from the fractional method, not a measured value.",
+    "Low-evidence muscles (forearms, lower back, adductors) have approximate bands — surface them with less assertive copy and never as a hard 'deficiency'.",
+    "Strength bands are coarse and lift-driven; do not present per-muscle strength volume with false precision."
+  ]
+}
