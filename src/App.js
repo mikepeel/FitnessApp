@@ -9,6 +9,7 @@ import { detectPlateaus } from "./lib/plateaus";
 import { flagPRs } from "./lib/prFlags";
 import { muscleContributions, rollupToGroup, DISPLAY_GROUPS } from "./lib/muscleVolume";
 import { analyzePlan } from "./lib/planAnalysis";
+import { exerciseOrderForSession } from "./lib/historyOrder";
 import volumeGuidelines from "./data/volumeGuidelines.json";
 import { Dumbbell, CalendarDays, History as HistoryIcon, TrendingUp, Settings as SettingsIcon, Moon, Sun, Trophy, Check, GripVertical, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -3256,12 +3257,9 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
               {isExp&&<div style={{marginTop:12}}>
                 {s.notes&&<div style={{fontSize:12,color:C.muted,fontStyle:"italic",marginBottom:10,padding:"8px 10px",background:C.surface,borderRadius:6,lineHeight:1.5}}>"{s.notes}"</div>}
 
-                {/* Set summary — sort by plan day exercise order when available */}
-                {(()=>{
-                  const planDay=Object.values(plans||{}).flatMap(p=>p.days||[]).find(d=>d.label===s.dayLabel||d.id===s.dayId);
-                  const exIdx=Object.fromEntries((planDay?.exercises||[]).map((e,i)=>[e.name,i]));
-                  return [...new Set(allSets.map(x=>x.exName))].sort((a,b)=>(exIdx[a]??999)-(exIdx[b]??999));
-                })().map(name=>{
+                {/* Render exercises in the session's saved order (sets_data key order),
+                    never re-derived from the plan — see lib/historyOrder.js */}
+                {exerciseOrderForSession(s).map(name=>{
                   const exSets=allSets.filter(x=>x.exName===name);
                   // Collapse consecutive identical strength sets (same type+weight+reps) into one row,
                   // preserving order. Cardio intervals stay per-row (each interval is distinct).
