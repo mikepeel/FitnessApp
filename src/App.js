@@ -7,6 +7,7 @@ import { projectExercise } from "./lib/projections";
 import { rollingVolume } from "./lib/volume";
 import { detectPlateaus } from "./lib/plateaus";
 import { flagPRs } from "./lib/prFlags";
+import { muscleContributions, rollupToGroup } from "./lib/muscleVolume";
 import { Dumbbell, CalendarDays, History as HistoryIcon, TrendingUp, Settings as SettingsIcon, Moon, Sun, Trophy, Check, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
 
 // lucide icon sizing scale. Color always inherits via currentColor from a
@@ -3562,7 +3563,7 @@ function StatsTab({sessions,prs,settings,C,activePlan,toggleTheme,themeMode,body
   // Better muscle mapping from exercise names
   const muscleMap={"Bench Press":"Chest","Incline Press (DB)":"Chest","Cable Fly":"Chest","Pec Deck / Cable Fly":"Chest","T-Bar Row":"Back","Reverse Grip Lat Pulldown":"Back","Seated Cable Row":"Back","Reverse Grip Pulldown":"Back","Machine Shoulder Press":"Shoulders","Cable Lateral Raise":"Shoulders","Rear Delt Machine":"Shoulders","DB / Cable Lateral Raises":"Shoulders","Front Delt Raise":"Shoulders","Cable Rope Pressdown":"Triceps","Incline Tricep Extension":"Triceps","Cable Overhead Extension":"Triceps","Cable Curl":"Biceps","Concentration Curl":"Biceps","Barbell / Cable Curl":"Biceps","Goblet Squat":"Legs","DB Romanian Deadlift":"Legs","Box Step-Ups (DB)":"Legs","DB Lunges (optional)":"Legs","Decline Sit-Ups":"Abs","Machine Crunch":"Abs","Russian Twist":"Abs","Stair Stepper":"Cardio"};
   const muscleVolMapped={};
-  const muscleSets={};
+  const fineSets={};
   let cardioSets=0,cardioMinutes=0;
   sessions.filter(s=>s.completedAt&&new Date(s.completedAt)>sevenDaysAgo).forEach(s=>{
     (s.setsArr||[]).filter(x=>x.type!=="warmup").forEach(x=>{
@@ -3570,12 +3571,19 @@ function StatsTab({sessions,prs,settings,C,activePlan,toggleTheme,themeMode,body
       // sets carry weight — same flag History uses). Count sets + sum minutes; no
       // tonnage, and keep them out of the muscle-group bars.
       if(x.minutes){cardioSets++;cardioMinutes+=parseFloat(x.minutes)||0;return;}
+      // Tonnage stays primary-mover (existing coarse muscleMap, unchanged).
       const m=muscleMap[x.exName]||"Other";
       if(!muscleVolMapped[m])muscleVolMapped[m]=0;
       muscleVolMapped[m]+=(parseFloat(x.weight)||1)*(parseInt(x.reps)||1);
-      muscleSets[m]=(muscleSets[m]||0)+1;
+      // Sets are fractionalized via the resolver: 1.0 each primary muscle, 0.5 each
+      // secondary. Cardio-by-name and unmapped-without-coarse-tag don't count.
+      const res=muscleContributions(x.exName,muscleMap[x.exName]);
+      if(res.counted)res.contributions.forEach(c=>{fineSets[c.muscle]=(fineSets[c.muscle]||0)+c.factor;});
     });
   });
+  // Roll fine-muscle set credit up to the display groups.
+  const groupSets={};
+  for(const fine in fineSets){const g=rollupToGroup(fine);groupSets[g]=(groupSets[g]||0)+fineSets[fine];}
   const muscleOrder=["Chest","Back","Shoulders","Biceps","Triceps","Legs","Abs"];
   const maxMuscleVol=Math.max(...Object.values(muscleVolMapped),1);
 
@@ -3806,11 +3814,11 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
       {/* MUSCLE VOLUME DASHBOARD */}
       {statsView==="muscles"&&<div>
         <SectionLabel C={C}>Volume by Muscle — Last 7 Days</SectionLabel>
-        {muscleOrder.filter(m=>muscleVolMapped[m]>0).length===0&&cardioSets===0&&<div style={{textAlign:"center",padding:"32px 0",color:C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:12}}>Log workouts to see muscle volume breakdown.</div>}
+        {muscleOrder.filter(m=>muscleVolMapped[m]>0||groupSets[m]>0).length===0&&cardioSets===0&&<div style={{textAlign:"center",padding:"32px 0",color:C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:12}}>Log workouts to see muscle volume breakdown.</div>}
         {muscleOrder.map(muscle=>{
           const vol=muscleVolMapped[muscle]||0;
-          const sets=muscleSets[muscle]||0;
-          if(!vol)return null;
+          const sets=Math.round((groupSets[muscle]||0)*2)/2;
+          if(!vol&&!sets)return null;
           const pct=Math.round((vol/maxMuscleVol)*100);
           const colors={"Chest":C.accent,"Back":C.blue,"Shoulders":C.gold,"Biceps":C.neon,"Triceps":C.neon,"Legs":"#b06aff","Abs":C.muted,"Cardio":C.green};
           return <div key={muscle} style={{marginBottom:12}}>
