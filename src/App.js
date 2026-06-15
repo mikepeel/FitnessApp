@@ -9,6 +9,7 @@ import { detectPlateaus } from "./lib/plateaus";
 import { flagPRs } from "./lib/prFlags";
 import { muscleContributions, rollupToGroup, DISPLAY_GROUPS } from "./lib/muscleVolume";
 import { analyzePlan } from "./lib/planAnalysis";
+import { analyzeRealized } from "./lib/realizedVolume";
 import { exerciseOrderForSession } from "./lib/historyOrder";
 import volumeGuidelines from "./data/volumeGuidelines.json";
 import { Dumbbell, CalendarDays, History as HistoryIcon, TrendingUp, Settings as SettingsIcon, Moon, Sun, Trophy, Check, GripVertical, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
@@ -3643,6 +3644,72 @@ function Sparkline({data,color}){
   </svg>;
 }
 
+// Realized-volume status for the Muscles tab — a FIXED trailing 28-day window,
+// independent of the tonnage bars below it. Quiet by design: only under/over-target
+// groups surface; nothing renders when balanced; a single line shows until there's
+// enough history to score. Shares the plan analyzer's scoring core
+// (analyzeRealized → scoreVolume), so logged and planned volume read the same scale.
+function RealizedVolumeInsight({sessions,settings,C}){
+  const [openGroups,setOpenGroups]=useState({});
+  const [showSources,setShowSources]=useState(false);
+  const mono="'SF Mono','Courier New',monospace";
+  const rv=analyzeRealized(sessions,{goal:(settings.aiGoal||"").toLowerCase(),windowDays:28});
+  // Strength: per-muscle set totals matter far less (see Plan Analysis) — stay quiet.
+  if(rv.goal==="strength")return null;
+  const Label=<SectionLabel C={C}>Volume vs Targets — Last 28 Days</SectionLabel>;
+  const cardStyle={background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"12px 14px",marginBottom:18};
+  if(!rv.sufficient)return <div style={cardStyle}>{Label}
+    <Mono style={{fontSize:11,color:C.muted,display:"block",lineHeight:1.6}}>Keep logging — about 4 weeks of sessions unlocks volume guidance.</Mono>
+  </div>;
+  const flagged=rv.perGroup.filter(g=>g.status==="under"||g.status==="high");
+  if(!flagged.length)return null; // balanced → no card (absence is the signal)
+  const STATUS={under:{t:"under",c:C.dangerInk},maintenance:{t:"maintenance",c:C.muted},in_range:{t:"in range",c:C.neonInk},high:{t:"high",c:C.goldInk}};
+  const Chip=({status})=>{const s=STATUS[status]||STATUS.in_range;return <span style={{fontFamily:mono,fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:s.c,border:`1px solid ${s.c}55`,borderRadius:999,padding:"2px 8px",whiteSpace:"nowrap",flexShrink:0}}>{s.t}</span>;};
+  const band=(b)=>`${b[0]}–${b[1]}`;
+  const lines=(row)=>{const[lo,hi]=row.band;const out=[];
+    if(row.status==="under"){
+      if(row.evidenceTier==="low")out.push("Below typical range, though the evidence here is limited.");
+      else{const add=Math.min(4,Math.max(2,Math.ceil(lo-row.weeklySets)));out.push(`Below the ~${lo}–${hi} range — ~${add} more sets/week or a second day would close it.`);}
+    }else if(row.status==="high")out.push("Above the productive range — more volume gives diminishing returns; watch recovery.");
+    if(row.frequencyFlag)out.push("Hitting volume in one day — splitting across 2 days usually works better.");
+    if(row.sessionFlag)out.push("High single-session load — consider redistributing.");
+    return out;
+  };
+  return <div style={cardStyle}>
+    {Label}
+    <Mono style={{fontSize:10,color:C.faint,display:"block",marginTop:-2,marginBottom:8,lineHeight:1.5}}>Logged working sets vs. evidence-based ranges.{rv.goalDefaulted?" Assuming a hypertrophy goal.":""}</Mono>
+    {flagged.map(g=>{
+      const expanded=!!openGroups[g.group];
+      return <div key={g.group} style={{borderTop:`1px solid ${C.border}`,padding:"9px 0"}}>
+        <div onClick={()=>setOpenGroups(p=>({...p,[g.group]:!p[g.group]}))} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}>
+          <span style={{color:C.faint,display:"inline-flex",flexShrink:0}}>{expanded?<ChevronDown size={ICON.sm} strokeWidth={1.75}/>:<ChevronRight size={ICON.sm} strokeWidth={1.75}/>}</span>
+          <Mono style={{fontSize:13,color:C.text,fontWeight:600,flex:1}}>{g.group}</Mono>
+          <Mono style={{fontSize:11,color:C.muted}}>{g.weeklySets}/wk</Mono>
+          <button onClick={e=>{e.stopPropagation();setShowSources(true);}} aria-label="See sources" style={{background:"transparent",border:`1px solid ${C.border}`,borderRadius:6,color:C.muted,fontFamily:mono,fontSize:10,padding:"2px 7px",cursor:"pointer",flexShrink:0}}>{band(g.band)}</button>
+          <Chip status={g.status}/>
+        </div>
+        {lines(g).map((ln,i)=><Mono key={i} style={{fontSize:11,color:C.muted,display:"block",marginTop:5,marginLeft:24,lineHeight:1.5}}>{ln}</Mono>)}
+        {expanded&&<div style={{marginLeft:24,marginTop:8}}>
+          {g.fineMuscles.map(m=><div key={m.muscle} style={{padding:"6px 0",borderTop:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:8}}>
+            <Mono style={{fontSize:11,color:C.muted,flex:1}}>{m.muscle}{m.evidenceTier==="low"?" · limited evidence":""}</Mono>
+            <Mono style={{fontSize:10,color:C.faint}}>{m.weeklySets} · {band(m.band)}</Mono>
+            <Chip status={m.status}/>
+          </div>)}
+        </div>}
+      </div>;
+    })}
+    <Mono style={{fontSize:10,color:C.faint,display:"block",marginTop:12,lineHeight:1.6}}>Working-set proxy — logged non-warmup sets over 28 days ÷ 4, not RIR-verified. Tap a range for sources.</Mono>
+    {showSources&&<Modal onClose={()=>setShowSources(false)} C={C}>
+      <SectionLabel C={C}>Sources</SectionLabel>
+      {volumeGuidelines.citations.map(c=><div key={c.id} style={{marginBottom:10}}>
+        <Mono style={{fontSize:11,color:C.text,display:"block",lineHeight:1.5}}>{c.ref}</Mono>
+        <Mono style={{fontSize:10,color:C.accentInk,display:"block",marginTop:2}}>{c.tier}</Mono>
+      </div>)}
+      <Mono style={{fontSize:10,color:C.muted,display:"block",marginTop:8,lineHeight:1.6}}>Evidence tiers: high (peer-reviewed), moderate, low (practitioner extrapolation — softer copy). The 0.5 secondary-muscle factor is a modeling convention, not a measured value.</Mono>
+    </Modal>}
+  </div>;
+}
+
 function StatsTab({sessions,prs,settings,C,activePlan,toggleTheme,themeMode,bodyStatsInit=[],onBodyStatsChange}){
   const [selEx,setSelEx]=useState(null); // null = "All exercises"
   const [progressView,setProgressView]=useState("chart"); // chart | table
@@ -3946,6 +4013,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
 
       {/* MUSCLE VOLUME DASHBOARD */}
       {statsView==="muscles"&&<div>
+        <RealizedVolumeInsight sessions={sessions} settings={settings} C={C}/>
         <SectionLabel C={C}>Volume by Muscle — Last 7 Days</SectionLabel>
         {muscleOrder.filter(m=>muscleVolMapped[m]>0||groupSets[m]>0).length===0&&cardioSets===0&&<div style={{textAlign:"center",padding:"32px 0",color:C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:12}}>Log workouts to see muscle volume breakdown.</div>}
         {muscleOrder.map(muscle=>{
