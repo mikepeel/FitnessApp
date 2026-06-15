@@ -10,6 +10,7 @@ import { flagPRs } from "./lib/prFlags";
 import { muscleContributions, rollupToGroup, DISPLAY_GROUPS } from "./lib/muscleVolume";
 import { analyzePlan } from "./lib/planAnalysis";
 import { analyzeRealized } from "./lib/realizedVolume";
+import { classifyDriverTrend, dominantPrimaryLift, progressCopy } from "./lib/volumeProgress";
 import { exerciseOrderForSession } from "./lib/historyOrder";
 import volumeGuidelines from "./data/volumeGuidelines.json";
 import { Dumbbell, CalendarDays, History as HistoryIcon, TrendingUp, Settings as SettingsIcon, Moon, Sun, Trophy, Check, GripVertical, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
@@ -3683,6 +3684,15 @@ function RealizedVolumeInsight({sessions,settings,C}){
   const STATUS={under:{t:"under",c:C.dangerInk},maintenance:{t:"maintenance",c:C.muted},in_range:{t:"in range",c:C.neonInk},high:{t:"high",c:C.goldInk},mixed:{t:"mixed",c:C.blueInk}};
   const Chip=({status})=>{const s=STATUS[status]||STATUS.in_range;return <span style={{fontFamily:mono,fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:s.c,border:`1px solid ${s.c}55`,borderRadius:999,padding:"2px 8px",whiteSpace:"nowrap",flexShrink:0}}>{s.t}</span>;};
   const band=(b)=>`${b[0]}–${b[1]}`;
+  // Progress coupling (Lane 3): enrich a flagged muscle's plain copy with the user's own
+  // strength trend on that muscle's primary lifts. Primary lifts are identified from the
+  // same 28-day window; the per-lift trend uses the FULL e1RM history (projectExercise).
+  // Additive only: an unknown trend falls back to the exact plain copy.
+  const winCut=Date.now()-28*86400000;
+  const winSessions=(sessions||[]).filter(s=>s&&s.completedAt&&new Date(s.completedAt).getTime()>winCut);
+  const seriesFor=(name)=>{const g={};(sessions||[]).forEach(s=>{if(!s||!s.completedAt)return;const sets=(s.setsArr||[]).filter(x=>x.exName===name&&x.type!=="warmup");const orm=sets.reduce((mx,x)=>Math.max(mx,estimate1RM(x.weight,x.reps)),0);if(orm>0){const d=new Date(s.completedAt).toLocaleDateString("en-CA");g[d]=Math.max(g[d]||0,orm);}});return Object.entries(g).sort(([a],[b])=>a>b?1:-1).map(([d,orm])=>({date:d,orm:Math.round(orm)}));};
+  const trendCache={};
+  const trendFn=(lift)=>lift in trendCache?trendCache[lift]:(trendCache[lift]=projectExercise(seriesFor(lift)).status);
   // Group headline is qualitative (no summed-band target); the actionable / evidence-tier
   // copy lives at the fine level on expand.
   const groupLines=(row)=>{const out=[];
@@ -3697,12 +3707,18 @@ function RealizedVolumeInsight({sessions,settings,C}){
     if(row.sessionFlag)out.push("High single-session load — consider redistributing.");
     return out;
   };
-  const fineLines=(m)=>{const out=[];
+  const fineLines=(m)=>{
+    // Plain Lane-2 copy (today's exact text).
+    let plain;
     if(m.status==="under"||m.status==="maintenance"){
-      if(m.evidenceTier==="low")out.push("Below typical range, though evidence here is limited.");
-      else{const add=Math.min(4,Math.max(2,Math.ceil(m.band[0]-m.weeklySets)));out.push(`~${add} more sets/week or a second day would close it.`);}
-    }else if(m.status==="high")out.push("Above the productive range — watch recovery.");
-    return out;
+      plain=m.evidenceTier==="low"?"Below typical range, though evidence here is limited.":`~${Math.min(4,Math.max(2,Math.ceil(m.band[0]-m.weeklySets)))} more sets/week or a second day would close it.`;
+    }else if(m.status==="high")plain="Above the productive range — watch recovery.";
+    else return [];
+    // Low-evidence muscles are never coupled (kept soft, never elevated). Gated muscles get
+    // progress-aware copy; an unknown trend returns the plain copy verbatim.
+    if(m.evidenceTier==="low")return [plain];
+    const trend=classifyDriverTrend(m.muscle,winSessions,trendFn);
+    return [progressCopy(m.status,trend,dominantPrimaryLift(m.muscle,winSessions),plain)];
   };
   return <div style={cardStyle}>
     {Label}
