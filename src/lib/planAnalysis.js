@@ -13,6 +13,14 @@ const SESSION_FLAG_ABOVE = guidelines.perSessionCeiling.flagAbove; // >this in o
 const TIER_RANK = { low: 1, moderate: 2, high: 3 };
 const round05 = (n) => Math.round(n * 2) / 2;
 
+// Group-flag gating: only high/moderate-evidence muscles can flag a whole group.
+// Low-evidence muscles (forearms, lower back, adductors) keep a per-muscle status for
+// the expand view but never headline the group. "Below its band" = under or maintenance
+// (both sit beneath the productive low); "over its band" = high.
+const isGated = (m) => m.evidenceTier === "high" || m.evidenceTier === "moderate";
+const belowBand = (m) => m.status === "under" || m.status === "maintenance";
+const overBand = (m) => m.status === "high";
+
 function statusFor(weekly, band, floor) {
   const [lo, hi] = band;
   if (weekly > hi) return "high";
@@ -65,18 +73,29 @@ export function scoreVolume(metricsMap, goal) {
     .sort((a, b) => orderIdx(a.group) - orderIdx(b.group) || a.muscle.localeCompare(b.muscle));
 }
 
-// Roll scored fine muscles up to display groups. groupMetrics: { group: { weeklySets,
-// freq, maxDaySets } } (RAW group-level aggregates). Group band = summed productive
-// bands of the group's present fine muscles; floor scales with member count. Only
-// groups that have member muscles are returned.
+// Roll scored fine muscles up to display groups. Group status is gated by EVIDENCE:
+// it derives only from the group's high/moderate-evidence members vs their OWN bands —
+//   under  : any gated member below its band
+//   high   : any gated member over its band
+//   mixed  : both (specifics show per-muscle on expand)
+//   in_range: otherwise
+// The summed-fine-band is NOT the pass/fail target (it over-flagged groups whenever an
+// indirect-only minor muscle sat at zero). `band` is still returned (summed) for now so
+// existing displays render; the overlay/Plan-Analysis screens drop it as a target next.
+// Only groups that have member muscles are returned.
 export function rollupGroups(perMuscle, groupMetrics, goal) {
   return DISPLAY_GROUPS.map((group) => {
     const members = perMuscle.filter((m) => m.group === group);
     if (!members.length) return null;
     const gm = (groupMetrics && groupMetrics[group]) || { weeklySets: 0, freq: 0, maxDaySets: 0 };
-    const band = [members.reduce((s, m) => s + m.band[0], 0), members.reduce((s, m) => s + m.band[1], 0)];
-    const status = statusFor(gm.weeklySets || 0, band, FLOOR * members.length);
-    const inOrAbove = status === "in_range" || status === "high";
+    const gated = members.filter(isGated);
+    const anyUnder = gated.some(belowBand);
+    const anyOver = gated.some(overBand);
+    const status = anyUnder && anyOver ? "mixed" : anyUnder ? "under" : anyOver ? "high" : "in_range";
+    const inOrAbove = status === "in_range" || status === "high" || status === "mixed";
+    // Evidence tier from the gated members (so a flagged group never carries low-evidence
+    // soft copy at the headline); fall back to all members if a group has no gated ones.
+    const tierPool = gated.length ? gated : members;
     return {
       group,
       weeklySets: round05(gm.weeklySets || 0),
@@ -85,17 +104,21 @@ export function rollupGroups(perMuscle, groupMetrics, goal) {
       status,
       frequencyFlag: inOrAbove && (gm.freq || 0) < FREQ_TARGET,
       sessionFlag: members.some((m) => m.sessionFlag),
-      band,
-      evidenceTier: members.map((m) => m.evidenceTier).sort((a, b) => TIER_RANK[a] - TIER_RANK[b])[0],
+      band: [members.reduce((s, m) => s + m.band[0], 0), members.reduce((s, m) => s + m.band[1], 0)],
+      evidenceTier: tierPool.map((m) => m.evidenceTier).sort((a, b) => TIER_RANK[a] - TIER_RANK[b])[0],
       fineMuscles: members,
     };
   }).filter(Boolean);
 }
 
+// Counts are evidence-gated to match group flagging: only high/moderate-evidence
+// muscles below/over their band count toward under/high (so a low-evidence minor at
+// zero never makes a plan read as "unbalanced"). Frequency/session flags are unchanged.
 export function summarize(perMuscle) {
+  const gated = perMuscle.filter(isGated);
   return {
-    underCount: perMuscle.filter((m) => m.status === "under").length,
-    highCount: perMuscle.filter((m) => m.status === "high").length,
+    underCount: gated.filter(belowBand).length,
+    highCount: gated.filter(overBand).length,
     flagged: perMuscle
       .filter((m) => m.frequencyFlag || m.sessionFlag)
       .map((m) => ({ muscle: m.muscle, group: m.group, frequencyFlag: m.frequencyFlag, sessionFlag: m.sessionFlag })),

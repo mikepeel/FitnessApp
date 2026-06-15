@@ -1,4 +1,4 @@
-import { analyzePlan } from "./planAnalysis";
+import { analyzePlan, scoreVolume, rollupGroups } from "./planAnalysis";
 
 const find = (r, mu) => r.perMuscle.find((x) => x.muscle === mu);
 const day = (...exercises) => ({ exercises });
@@ -89,5 +89,70 @@ describe("analyzePlan", () => {
     expect(shoulders).toBeTruthy();
     expect(shoulders.weeklySets).toBe(2);
     expect(shoulders.fineMuscles.map((m) => m.muscle)).toContain("Front Delts");
+  });
+});
+
+// Group status is gated by evidence: only high/moderate-evidence members flag a group.
+// (This intentionally replaces the old summed-fine-band group pass/fail. No existing test
+// asserted the old summed-band group STATUS — test 9 only checks rollup weeklySets/members —
+// so the deliberate behavior change is captured by the new assertions below.)
+describe("group status — evidence-gated (not summed bands)", () => {
+  const roll = (metrics, groupMetrics, goal = "hypertrophy") => {
+    const perMuscle = scoreVolume(metrics, goal);
+    const perGroup = rollupGroups(perMuscle, groupMetrics, goal);
+    return { perMuscle, perGroup, legs: perGroup.find((g) => g.group === "Legs") };
+  };
+
+  test("low-evidence minor at 0 does NOT flag the group; majors in range → Legs in_range (minor still 'under' on expand)", () => {
+    const metrics = {
+      Quads: { weeklySets: 14, freq: 2, maxDaySets: 7 },
+      Hamstrings: { weeklySets: 12, freq: 2, maxDaySets: 6 },
+      Glutes: { weeklySets: 12, freq: 2, maxDaySets: 6 },
+      Calves: { weeklySets: 10, freq: 2, maxDaySets: 5 },
+      Adductors: { weeklySets: 0, freq: 0, maxDaySets: 0 }, // low-evidence minor
+    };
+    const { perMuscle, legs } = roll(metrics, { Legs: { weeklySets: 48, freq: 2, maxDaySets: 7 } });
+    expect(legs.status).toBe("in_range"); // OLD summed-band logic flagged this group below-range
+    expect(perMuscle.find((m) => m.muscle === "Adductors").status).toBe("under"); // still surfaced on expand
+    expect(legs.evidenceTier).not.toBe("low"); // never a soft group headline
+  });
+
+  test("a high-evidence major under → group under", () => {
+    const metrics = {
+      Quads: { weeklySets: 4, freq: 1, maxDaySets: 4 }, // high-evidence, under its own band
+      Hamstrings: { weeklySets: 14, freq: 2, maxDaySets: 7 },
+      Glutes: { weeklySets: 12, freq: 2, maxDaySets: 6 },
+      Calves: { weeklySets: 10, freq: 2, maxDaySets: 5 },
+      Adductors: { weeklySets: 0, freq: 0, maxDaySets: 0 },
+    };
+    const { legs } = roll(metrics, { Legs: { weeklySets: 40, freq: 2, maxDaySets: 7 } });
+    expect(legs.status).toBe("under");
+  });
+
+  test("both a gated-under and a gated-over member → group 'mixed'", () => {
+    const metrics = {
+      Quads: { weeklySets: 24, freq: 2, maxDaySets: 12 }, // high-evidence, over (>20)
+      Hamstrings: { weeklySets: 4, freq: 1, maxDaySets: 4 }, // high-evidence, under
+      Glutes: { weeklySets: 12, freq: 2, maxDaySets: 6 },
+      Calves: { weeklySets: 10, freq: 2, maxDaySets: 5 },
+      Adductors: { weeklySets: 0, freq: 0, maxDaySets: 0 },
+    };
+    const { legs } = roll(metrics, { Legs: { weeklySets: 50, freq: 2, maxDaySets: 12 } });
+    expect(legs.status).toBe("mixed");
+  });
+
+  test("flagged group's evidence tier comes from gated members, never 'low'", () => {
+    // Back: Lats (high) under flags the group; Lower Back (low) is ignored for status + tier.
+    const metrics = {
+      Lats: { weeklySets: 4, freq: 1, maxDaySets: 4 }, // high, under → drives group under
+      "Upper Back": { weeklySets: 12, freq: 2, maxDaySets: 6 },
+      Traps: { weeklySets: 8, freq: 2, maxDaySets: 4 },
+      "Lower Back": { weeklySets: 0, freq: 0, maxDaySets: 0 }, // low evidence, ignored for flag
+    };
+    const perMuscle = scoreVolume(metrics, "hypertrophy");
+    const back = rollupGroups(perMuscle, { Back: { weeklySets: 24, freq: 2, maxDaySets: 6 } }, "hypertrophy").find((g) => g.group === "Back");
+    expect(back.status).toBe("under");
+    expect(back.evidenceTier).not.toBe("low");
+    expect(perMuscle.find((m) => m.muscle === "Lower Back").status).toBe("under"); // still on expand
   });
 });

@@ -56,6 +56,18 @@ describe("analyzeRealized", () => {
     expect(realChest.status).toBe("in_range");
   });
 
+  test("group-status parity: plan and realized give the same group status for identical metrics", () => {
+    const plan = [
+      { exercises: [{ name: "Barbell Bench Press", sets: "6", muscle: "Chest" }] },
+      { exercises: [{ name: "Barbell Bench Press", sets: "6", muscle: "Chest" }] },
+    ];
+    const planG = analyzePlan(plan, { goal: "hypertrophy" }).perGroup.find((g) => g.group === "Chest");
+    // realized: 48 chest sets across 8 days over 28d → 12/wk, same as the 2×6 plan
+    const realG = analyzeRealized(chestSessions(6), { goal: "hypertrophy", now: NOW }).perGroup.find((g) => g.group === "Chest");
+    expect(planG.status).toBe(realG.status);
+    expect(realG.status).toBe("in_range");
+  });
+
   test("scoreVolume core scores under / in_range / high + flags", () => {
     const out = scoreVolume(
       { Chest: { weeklySets: 12, freq: 2, maxDaySets: 6 }, Quads: { weeklySets: 4, freq: 1, maxDaySets: 4 }, Triceps: { weeklySets: 22, freq: 1, maxDaySets: 18 } },
