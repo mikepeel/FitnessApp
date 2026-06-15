@@ -2282,18 +2282,29 @@ function PlanAnalysisView({plan,goalRaw,C,onBack}){
   const a=analyzePlan(plan,{goal:goalRaw});
   const mono="'SF Mono','Courier New',monospace";
   const byGroup={}; a.perGroup.forEach(g=>{byGroup[g.group]=g;});
-  const STATUS={under:{t:"under",c:C.dangerInk},maintenance:{t:"maintenance",c:C.muted},in_range:{t:"in range",c:C.neonInk},high:{t:"high",c:C.goldInk}};
+  const STATUS={under:{t:"under",c:C.dangerInk},maintenance:{t:"maintenance",c:C.muted},in_range:{t:"in range",c:C.neonInk},high:{t:"high",c:C.goldInk},mixed:{t:"mixed",c:C.blueInk}};
   const Chip=({status})=>{const s=STATUS[status]||STATUS.in_range;return <span style={{fontFamily:mono,fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:s.c,border:`1px solid ${s.c}55`,borderRadius:999,padding:"2px 8px",whiteSpace:"nowrap",flexShrink:0}}>{s.t}</span>;};
   const band=(b)=>`${b[0]}–${b[1]}`;
-  // Copy rules. Below-range (under/maintenance) softens for low-evidence muscles.
-  const lines=(row)=>{const[lo,hi]=row.band;const out=[];
-    if(row.status==="under"||row.status==="maintenance"){
-      if(row.evidenceTier==="low")out.push("Below typical range, though the evidence here is limited.");
-      else{const add=Math.min(4,Math.max(2,Math.ceil(lo-row.weeklySets)));out.push(`Below the ~${lo}–${hi} range — consider adding ~${add} sets or a second day.`);}
-    }else if(row.status==="in_range")out.push("In range.");
-    else if(row.status==="high")out.push("Above the productive range — added volume gives diminishing returns; watch recovery.");
+  // Group headline is qualitative (status is evidence-gated, no summed-band target); the
+  // actionable / evidence-tier copy lives at the fine level on expand.
+  const groupLines=(row)=>{const out=[];
+    if(row.status==="under")out.push("Below the productive range on a key muscle — expand for which and how much.");
+    else if(row.status==="high")out.push("Over the productive range on a key muscle — added volume gives diminishing returns; watch recovery.");
+    else if(row.status==="mixed"){
+      const lo=row.fineMuscles.filter(m=>m.evidenceTier!=="low"&&(m.status==="under"||m.status==="maintenance")).map(m=>m.muscle);
+      const hi=row.fineMuscles.filter(m=>m.evidenceTier!=="low"&&m.status==="high").map(m=>m.muscle);
+      out.push(`${lo.join(" & ")} ${lo.length>1?"are":"is"} below range and ${hi.join(" & ")} ${hi.length>1?"are":"is"} above — expand for detail.`);
+    }
+    else if(row.status==="in_range")out.push("In range.");
     if(row.frequencyFlag)out.push("Hitting volume in one day — splitting across 2 days usually works better.");
     if(row.sessionFlag)out.push("High single-session load — consider redistributing.");
+    return out;
+  };
+  const fineLines=(m)=>{const out=[];
+    if(m.status==="under"||m.status==="maintenance"){
+      if(m.evidenceTier==="low")out.push("Below typical range, though the evidence here is limited.");
+      else{const add=Math.min(4,Math.max(2,Math.ceil(m.band[0]-m.weeklySets)));out.push(`~${add} more sets/week or a second day would close it.`);}
+    }else if(m.status==="high")out.push("Above the productive range — watch recovery.");
     return out;
   };
   const balanced=a.summary.underCount===0&&a.summary.highCount===0&&a.summary.flagged.length===0;
@@ -2340,20 +2351,23 @@ function PlanAnalysisView({plan,goalRaw,C,onBack}){
             <span style={{color:C.faint,display:"inline-flex",flexShrink:0}}>{expanded?<ChevronDown size={ICON.sm} strokeWidth={1.75}/>:<ChevronRight size={ICON.sm} strokeWidth={1.75}/>}</span>
             <Mono style={{fontSize:13,color:C.text,fontWeight:600,flex:1}}>{group}</Mono>
             <Mono style={{fontSize:11,color:C.muted}}>{g.weeklySets} sets</Mono>
-            <button onClick={e=>{e.stopPropagation();setShowSources(true);}} aria-label="See sources" style={{background:"transparent",border:`1px solid ${C.border}`,borderRadius:6,color:C.muted,fontFamily:mono,fontSize:10,padding:"2px 7px",cursor:"pointer",flexShrink:0}}>{band(g.band)}</button>
+            <button onClick={e=>{e.stopPropagation();setShowSources(true);}} aria-label="See sources" style={{background:"transparent",border:`1px solid ${C.border}`,borderRadius:6,color:C.muted,fontFamily:mono,fontSize:9,letterSpacing:"0.06em",textTransform:"uppercase",padding:"2px 7px",cursor:"pointer",flexShrink:0}}>sources</button>
             <Chip status={g.status}/>
           </div>
-          {lines(g).map((ln,i)=><Mono key={i} style={{fontSize:11,color:C.muted,display:"block",marginTop:5,marginLeft:24,lineHeight:1.5}}>{ln}</Mono>)}
+          {groupLines(g).map((ln,i)=><Mono key={i} style={{fontSize:11,color:C.muted,display:"block",marginTop:5,marginLeft:24,lineHeight:1.5}}>{ln}</Mono>)}
           {expanded&&<div style={{marginLeft:24,marginTop:8}}>
-            {g.fineMuscles.map(m=><div key={m.muscle} style={{padding:"6px 0",borderTop:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:8}}>
-              <Mono style={{fontSize:11,color:C.muted,flex:1}}>{m.muscle}{m.evidenceTier==="low"?" · limited evidence":""}</Mono>
-              <Mono style={{fontSize:10,color:C.faint}}>{m.weeklySets} · {band(m.band)}</Mono>
-              <Chip status={m.status}/>
+            {g.fineMuscles.map(m=><div key={m.muscle} style={{padding:"6px 0",borderTop:`1px solid ${C.border}`}}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <Mono style={{fontSize:11,color:C.muted,flex:1}}>{m.muscle}{m.evidenceTier==="low"?" · limited evidence":""}</Mono>
+                <Mono style={{fontSize:10,color:C.faint}}>{m.weeklySets} · {band(m.band)}</Mono>
+                <Chip status={m.status}/>
+              </div>
+              {fineLines(m).map((ln,i)=><Mono key={i} style={{fontSize:10,color:C.faint,display:"block",marginTop:3,lineHeight:1.5}}>{ln}</Mono>)}
             </div>)}
           </div>}
         </div>;
       })}
-      <Mono style={{fontSize:10,color:C.faint,display:"block",marginTop:14,lineHeight:1.6}}>Working-set proxy: counts planned non-warmup sets, not RIR-verified hard sets; ranges assume sets ~0–3 reps from failure. Tap a range for sources.</Mono>
+      <Mono style={{fontSize:10,color:C.faint,display:"block",marginTop:14,lineHeight:1.6}}>Working-set proxy: counts planned non-warmup sets, not RIR-verified hard sets; ranges assume sets ~0–3 reps from failure. Ranges are per muscle (on expand); tap “sources” for citations.</Mono>
     </div>
     {showSources&&<Modal onClose={()=>setShowSources(false)} C={C}>
       <SectionLabel C={C}>Sources</SectionLabel>
@@ -3661,18 +3675,33 @@ function RealizedVolumeInsight({sessions,settings,C}){
   if(!rv.sufficient)return <div style={cardStyle}>{Label}
     <Mono style={{fontSize:11,color:C.muted,display:"block",lineHeight:1.6}}>Keep logging — about 4 weeks of sessions unlocks volume guidance.</Mono>
   </div>;
-  const flagged=rv.perGroup.filter(g=>g.status==="under"||g.status==="high");
+  // Group status is evidence-gated (see lib/planAnalysis): only under/high/mixed groups
+  // surface; in_range groups never appear. The summed band is not shown as a target — the
+  // real comparison is per fine muscle, on expand.
+  const flagged=rv.perGroup.filter(g=>g.status!=="in_range");
   if(!flagged.length)return null; // balanced → no card (absence is the signal)
-  const STATUS={under:{t:"under",c:C.dangerInk},maintenance:{t:"maintenance",c:C.muted},in_range:{t:"in range",c:C.neonInk},high:{t:"high",c:C.goldInk}};
+  const STATUS={under:{t:"under",c:C.dangerInk},maintenance:{t:"maintenance",c:C.muted},in_range:{t:"in range",c:C.neonInk},high:{t:"high",c:C.goldInk},mixed:{t:"mixed",c:C.blueInk}};
   const Chip=({status})=>{const s=STATUS[status]||STATUS.in_range;return <span style={{fontFamily:mono,fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:s.c,border:`1px solid ${s.c}55`,borderRadius:999,padding:"2px 8px",whiteSpace:"nowrap",flexShrink:0}}>{s.t}</span>;};
   const band=(b)=>`${b[0]}–${b[1]}`;
-  const lines=(row)=>{const[lo,hi]=row.band;const out=[];
-    if(row.status==="under"){
-      if(row.evidenceTier==="low")out.push("Below typical range, though the evidence here is limited.");
-      else{const add=Math.min(4,Math.max(2,Math.ceil(lo-row.weeklySets)));out.push(`Below the ~${lo}–${hi} range — ~${add} more sets/week or a second day would close it.`);}
-    }else if(row.status==="high")out.push("Above the productive range — more volume gives diminishing returns; watch recovery.");
+  // Group headline is qualitative (no summed-band target); the actionable / evidence-tier
+  // copy lives at the fine level on expand.
+  const groupLines=(row)=>{const out=[];
+    if(row.status==="under")out.push("Below the productive range on a key muscle — open for which and how much.");
+    else if(row.status==="high")out.push("Over the productive range on a key muscle — more isn't better here; watch recovery.");
+    else if(row.status==="mixed"){
+      const lo=row.fineMuscles.filter(m=>m.evidenceTier!=="low"&&(m.status==="under"||m.status==="maintenance")).map(m=>m.muscle);
+      const hi=row.fineMuscles.filter(m=>m.evidenceTier!=="low"&&m.status==="high").map(m=>m.muscle);
+      out.push(`${lo.join(" & ")} ${lo.length>1?"are":"is"} below range and ${hi.join(" & ")} ${hi.length>1?"are":"is"} above — expand for detail.`);
+    }
     if(row.frequencyFlag)out.push("Hitting volume in one day — splitting across 2 days usually works better.");
     if(row.sessionFlag)out.push("High single-session load — consider redistributing.");
+    return out;
+  };
+  const fineLines=(m)=>{const out=[];
+    if(m.status==="under"||m.status==="maintenance"){
+      if(m.evidenceTier==="low")out.push("Below typical range, though evidence here is limited.");
+      else{const add=Math.min(4,Math.max(2,Math.ceil(m.band[0]-m.weeklySets)));out.push(`~${add} more sets/week or a second day would close it.`);}
+    }else if(m.status==="high")out.push("Above the productive range — watch recovery.");
     return out;
   };
   return <div style={cardStyle}>
@@ -3685,20 +3714,23 @@ function RealizedVolumeInsight({sessions,settings,C}){
           <span style={{color:C.faint,display:"inline-flex",flexShrink:0}}>{expanded?<ChevronDown size={ICON.sm} strokeWidth={1.75}/>:<ChevronRight size={ICON.sm} strokeWidth={1.75}/>}</span>
           <Mono style={{fontSize:13,color:C.text,fontWeight:600,flex:1}}>{g.group}</Mono>
           <Mono style={{fontSize:11,color:C.muted}}>{g.weeklySets}/wk</Mono>
-          <button onClick={e=>{e.stopPropagation();setShowSources(true);}} aria-label="See sources" style={{background:"transparent",border:`1px solid ${C.border}`,borderRadius:6,color:C.muted,fontFamily:mono,fontSize:10,padding:"2px 7px",cursor:"pointer",flexShrink:0}}>{band(g.band)}</button>
+          <button onClick={e=>{e.stopPropagation();setShowSources(true);}} aria-label="See sources" style={{background:"transparent",border:`1px solid ${C.border}`,borderRadius:6,color:C.muted,fontFamily:mono,fontSize:9,letterSpacing:"0.06em",textTransform:"uppercase",padding:"2px 7px",cursor:"pointer",flexShrink:0}}>sources</button>
           <Chip status={g.status}/>
         </div>
-        {lines(g).map((ln,i)=><Mono key={i} style={{fontSize:11,color:C.muted,display:"block",marginTop:5,marginLeft:24,lineHeight:1.5}}>{ln}</Mono>)}
+        {groupLines(g).map((ln,i)=><Mono key={i} style={{fontSize:11,color:C.muted,display:"block",marginTop:5,marginLeft:24,lineHeight:1.5}}>{ln}</Mono>)}
         {expanded&&<div style={{marginLeft:24,marginTop:8}}>
-          {g.fineMuscles.map(m=><div key={m.muscle} style={{padding:"6px 0",borderTop:`1px solid ${C.border}`,display:"flex",alignItems:"center",gap:8}}>
-            <Mono style={{fontSize:11,color:C.muted,flex:1}}>{m.muscle}{m.evidenceTier==="low"?" · limited evidence":""}</Mono>
-            <Mono style={{fontSize:10,color:C.faint}}>{m.weeklySets} · {band(m.band)}</Mono>
-            <Chip status={m.status}/>
+          {g.fineMuscles.map(m=><div key={m.muscle} style={{padding:"6px 0",borderTop:`1px solid ${C.border}`}}>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <Mono style={{fontSize:11,color:C.muted,flex:1}}>{m.muscle}{m.evidenceTier==="low"?" · limited evidence":""}</Mono>
+              <Mono style={{fontSize:10,color:C.faint}}>{m.weeklySets} · {band(m.band)}</Mono>
+              <Chip status={m.status}/>
+            </div>
+            {fineLines(m).map((ln,i)=><Mono key={i} style={{fontSize:10,color:C.faint,display:"block",marginTop:3,lineHeight:1.5}}>{ln}</Mono>)}
           </div>)}
         </div>}
       </div>;
     })}
-    <Mono style={{fontSize:10,color:C.faint,display:"block",marginTop:12,lineHeight:1.6}}>Working-set proxy — logged non-warmup sets over 28 days ÷ 4, not RIR-verified. Tap a range for sources.</Mono>
+    <Mono style={{fontSize:10,color:C.faint,display:"block",marginTop:12,lineHeight:1.6}}>Working-set proxy — logged non-warmup sets over 28 days ÷ 4, not RIR-verified. Ranges are per muscle (on expand); tap “sources” for citations.</Mono>
     {showSources&&<Modal onClose={()=>setShowSources(false)} C={C}>
       <SectionLabel C={C}>Sources</SectionLabel>
       {volumeGuidelines.citations.map(c=><div key={c.id} style={{marginBottom:10}}>
