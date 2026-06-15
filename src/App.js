@@ -3354,6 +3354,15 @@ function SessionEditModal({session,onSave,onClose,allSessions=[],onRenameAll,C})
   });
   const [newExName,setNewExName]=useState("");
   const [addingEx,setAddingEx]=useState(false);
+  const addRowRef=useRef(null);
+  const addNameRef=useRef(null);
+  // When the add-exercise row opens, bring it into view and focus the field without a
+  // scroll jump (preventScroll, then a controlled smooth scroll).
+  useEffect(()=>{
+    if(!addingEx)return;
+    const t=setTimeout(()=>{addRowRef.current?.scrollIntoView({block:"nearest",behavior:"smooth"});addNameRef.current?.focus({preventScroll:true});},30);
+    return ()=>clearTimeout(t);
+  },[addingEx]);
   const initDur=session.completedAt&&session.startedAt?Math.max(1,Math.round((new Date(session.completedAt)-new Date(session.startedAt))/60000)):60;
   const [durationMins,setDurationMins]=useState(initDur);
 
@@ -3520,14 +3529,19 @@ function SessionEditModal({session,onSave,onClose,allSessions=[],onRenameAll,C})
       </div>;
     })}
 
-    {/* Add exercise */}
-    {addingEx?<div style={{display:"flex",gap:8,marginBottom:14,alignItems:"center"}}>
-      <input value={newExName} onChange={e=>setNewExName(e.target.value)}
-        placeholder="Exercise name" autoFocus
-        onKeyDown={e=>e.key==="Enter"&&addExercise()}
-        style={{...inputStyle,flex:1}}/>
-      <Btn size="sm" C={C} onClick={addExercise}>Add</Btn>
-      <Btn size="sm" variant="ghost" C={C} onClick={()=>{setAddingEx(false);setNewExName("");}}>✕</Btn>
+    {/* Add exercise — appends to the end; reposition with the ↑/↓ controls above */}
+    {addingEx?<div ref={addRowRef} style={{marginBottom:14,padding:"10px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:10}}>
+      <Mono style={{fontSize:10,color:C.muted,letterSpacing:"0.08em",display:"block",marginBottom:6}}>ADD EXERCISE</Mono>
+      <div style={{display:"flex",gap:8,alignItems:"center"}}>
+        <input ref={addNameRef} value={newExName} onChange={e=>setNewExName(e.target.value)}
+          placeholder="Exercise name" list="exercise-name-options"
+          onKeyDown={e=>{if(e.key==="Enter")addExercise();else if(e.key==="Escape"){setAddingEx(false);setNewExName("");}}}
+          style={{...inputStyle,flex:1}}/>
+        <Btn size="sm" C={C} onClick={addExercise}>Add</Btn>
+        <Btn size="sm" variant="ghost" C={C} onClick={()=>{setAddingEx(false);setNewExName("");}}>Cancel</Btn>
+      </div>
+      <datalist id="exercise-name-options">{EXERCISE_LIBRARY.map(e=><option key={e.name} value={e.name}/>)}</datalist>
+      <Mono style={{fontSize:10,color:C.faint,display:"block",marginTop:6}}>Added to the bottom — use ↑/↓ above to move it.</Mono>
     </div>:<Btn size="sm" variant="subtle" C={C} onClick={()=>setAddingEx(true)} style={{marginBottom:14}}>+ Add Exercise</Btn>}
 
     {/* Notes */}
