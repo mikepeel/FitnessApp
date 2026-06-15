@@ -1,22 +1,35 @@
 // Exercise display order for a saved History session.
 //
-// The order a workout was saved in lives in the sets_data blob's key order (written
-// in performed/plan order at save time). History must render THAT order verbatim —
-// never re-derive it from the current plan, which scrambles sessions for
-// duplicate-labeled plan days. Pure and testable.
-export function exerciseOrderForSession(session) {
-  const sd = session && session.sets;
-  if (sd && typeof sd === "object") {
-    const keys = Object.keys(sd);
-    if (keys.length) return keys;
-  }
-  // Fallback (no sets_data): unique exercise names in setsArr order — the order the
-  // card derived before.
+// Order is persisted explicitly in workout_sessions.exercise_order (a jsonb ARRAY —
+// jsonb preserves array element order, unlike object keys, which it normalizes by
+// length/bytewise). Prefer that array; fall back to sets_data key order, then to
+// unique setsArr order. Never re-derive from the plan. Pure and testable.
+function uniqueNames(setsArr) {
   const seen = new Set();
   const out = [];
-  for (const x of (session && session.setsArr) || []) {
+  for (const x of setsArr || []) {
     const n = x && x.exName;
     if (n != null && !seen.has(n)) { seen.add(n); out.push(n); }
   }
   return out;
+}
+
+export function exerciseOrderForSession(session) {
+  // Exercises actually present in the session (membership, any order).
+  const sd = session && session.sets;
+  const present = (sd && typeof sd === "object" && Object.keys(sd).length)
+    ? Object.keys(sd)
+    : uniqueNames(session && session.setsArr);
+  // Explicit saved order wins: keep it (minus exercises since removed), then append
+  // any present exercise it doesn't list (e.g. added after the order was recorded).
+  const explicit = session && session.exerciseOrder;
+  if (Array.isArray(explicit) && explicit.length) {
+    const presentSet = new Set(present);
+    const seen = new Set();
+    const out = [];
+    for (const n of explicit) if (presentSet.has(n) && !seen.has(n)) { seen.add(n); out.push(n); }
+    for (const n of present) if (!seen.has(n)) { seen.add(n); out.push(n); }
+    if (out.length) return out;
+  }
+  return present;
 }

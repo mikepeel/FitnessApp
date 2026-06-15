@@ -926,6 +926,7 @@ export default function ForgeApp(){
           user_id:uid,day_label:latest.dayLabel,day_id:null,
           started_at:latest.startedAt,completed_at:latest.completedAt,
           notes:latest.notes||"",sets_data:latest.sets||{},
+          exercise_order:Object.keys(latest.sets||{}),
           partial:latest.partial||false
         }).select("id");
         if(error){console.error("saveSessions insert error:",JSON.stringify(error));return false;}
@@ -1046,6 +1047,7 @@ export default function ForgeApp(){
             dayLabel:s.day_label, dayId:s.day_id,
             startedAt:s.started_at, completedAt:s.completed_at,
             notes:s.notes, partial:s.partial||false, sets:s.sets_data||{},
+            exerciseOrder:s.exercise_order||null,
             setsArr:Object.entries(s.sets_data||{}).flatMap(([exName,sets])=>
               Object.entries(sets).map(([setNum,x])=>{
                 const ls=lsMap[`${exName}|${setNum}`]||{};
@@ -1110,7 +1112,8 @@ export default function ForgeApp(){
               started_at:draft.started_at,
               completed_at:draft.updated_at||new Date().toISOString(),
               notes:"Session auto-saved after timeout",
-              sets_data:draft.logged_sets||{}
+              sets_data:draft.logged_sets||{},
+              exercise_order:Object.keys(draft.logged_sets||{})
             }).select("id").single();
             if(draftSaveErr){console.error("draft expired save:",draftSaveErr);return;}
             const savedId=savedSession?.id;
@@ -3053,7 +3056,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
         }
       }
     }
-    const updatedSession={...updated,setsArr};
+    const updatedSession={...updated,setsArr,exerciseOrder:Object.keys(updated.sets||{})};
     if(!updatedSession.supabaseId){
       // Manual session with no DB record — state update only
       const updatedSessions=sessions.map(s=>s.id===updatedSession.id?updatedSession:s);
@@ -3064,7 +3067,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
     const{data:{session:_sess}}=await supabase.auth.getSession().catch(()=>({data:{session:null}}));
     const uid=_sess?.user?.id;
     // STEP 1: update workout_sessions
-    const{error:updErr}=await supabase.from("workout_sessions").update({completed_at:updatedSession.completedAt,started_at:updatedSession.startedAt,notes:updatedSession.notes||"",sets_data:updatedSession.sets||{},partial:updatedSession.partial||false}).eq("id",updatedSession.supabaseId);
+    const{error:updErr}=await supabase.from("workout_sessions").update({completed_at:updatedSession.completedAt,started_at:updatedSession.startedAt,notes:updatedSession.notes||"",sets_data:updatedSession.sets||{},exercise_order:updatedSession.exerciseOrder,partial:updatedSession.partial||false}).eq("id",updatedSession.supabaseId);
     if(updErr){console.error("saveEdit update:",updErr);return false;}
     // STEP 2: delete then re-insert logged_sets — rollback on any failure
     if(uid){
@@ -3337,12 +3340,16 @@ function SessionEditModal({session,onSave,onClose,allSessions=[],onRenameAll,C})
   const [renames,setRenames]=useState([]); // [{from,to}] applied this session
   const [applyAllPrompt,setApplyAllPrompt]=useState(null); // renames with matches in other sessions
   const [editData,setEditData]=useState(()=>{
-    // Build editable sets: { exName -> { setNum -> { weight, reps } } }
-    const sets={};
+    // Build editable sets: { exName -> { setNum -> { weight, reps } } }, keyed in the
+    // session's saved order so the modal matches the card (and reorders persist).
+    const byName={};
     (session.setsArr||[]).forEach(x=>{
-      if(!sets[x.exName])sets[x.exName]={};
-      sets[x.exName][x.setNum]={weight:x.weight||"",reps:x.reps||"",minutes:x.minutes||"",level:x.level||"",isPR:x.isPR||false,type:x.type||"working"};
+      if(!byName[x.exName])byName[x.exName]={};
+      byName[x.exName][x.setNum]={weight:x.weight||"",reps:x.reps||"",minutes:x.minutes||"",level:x.level||"",isPR:x.isPR||false,type:x.type||"working"};
     });
+    const sets={};
+    for(const name of exerciseOrderForSession(session))if(byName[name])sets[name]=byName[name];
+    for(const name in byName)if(!sets[name])sets[name]=byName[name];
     return {...session,sets};
   });
   const [newExName,setNewExName]=useState("");
@@ -3386,6 +3393,20 @@ function SessionEditModal({session,onSave,onClose,allSessions=[],onRenameAll,C})
     setEditData(prev=>({...prev,sets:{...prev.sets,[newExName.trim()]:{1:{weight:"",reps:"",isPR:false}}}}));
     setNewExName("");
     setAddingEx(false);
+  }
+
+  // Reorder exercises by rebuilding sets_data with swapped keys. saveEdit persists the
+  // new order to exercise_order (a jsonb array, which keeps order — jsonb object keys
+  // do not), and the History card renders by it.
+  function moveExercise(exName,dir){
+    setEditData(prev=>{
+      const keys=Object.keys(prev.sets||{});
+      const i=keys.indexOf(exName),j=i+dir;
+      if(i<0||j<0||j>=keys.length)return prev;
+      const order=[...keys];[order[i],order[j]]=[order[j],order[i]];
+      const sets={};for(const k of order)sets[k]=prev.sets[k];
+      return {...prev,sets};
+    });
   }
 
   function renameExercise(oldName,rawNew){
@@ -3454,12 +3475,16 @@ function SessionEditModal({session,onSave,onClose,allSessions=[],onRenameAll,C})
     </div>
 
     {/* Exercises */}
-    {exNames.map(exName=>{
+    {exNames.map((exName,exPos)=>{
       const sets=editData.sets[exName]||{};
       const setNums=Object.keys(sets).map(Number).sort((a,b)=>a-b);
       const isCardioEx=isCardioName(exName)||Object.values(sets).some(s=>s.minutes);
       return <div key={exName} style={{marginBottom:14,paddingBottom:14,borderBottom:`1px solid ${C.border}`}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8,gap:8}}>
+          {exNames.length>1&&<div style={{display:"flex",flexDirection:"column",gap:1,flexShrink:0}}>
+            <button onClick={()=>moveExercise(exName,-1)} disabled={exPos===0} aria-label="Move exercise up" style={{padding:"1px 5px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:4,color:exPos===0?C.faint:C.neonInk,cursor:exPos===0?"default":"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><ChevronUp size={ICON.sm} strokeWidth={1.75}/></button>
+            <button onClick={()=>moveExercise(exName,1)} disabled={exPos===exNames.length-1} aria-label="Move exercise down" style={{padding:"1px 5px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:4,color:exPos===exNames.length-1?C.faint:C.neonInk,cursor:exPos===exNames.length-1?"default":"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><ChevronDown size={ICON.sm} strokeWidth={1.75}/></button>
+          </div>}
           {editingName===exName
             ?<div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}>
                <input autoFocus value={nameDraft} onChange={e=>setNameDraft(e.target.value)}

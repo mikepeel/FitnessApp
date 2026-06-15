@@ -31,4 +31,14 @@ describe("exerciseOrderForSession", () => {
     expect(exerciseOrderForSession({})).toEqual([]);
     expect(exerciseOrderForSession(null)).toEqual([]);
   });
+
+  test("prefers explicit exerciseOrder array over sets_data key order", () => {
+    const session = { exerciseOrder: ["Squat", "Bench", "Row"], sets: { Bench: { 1: {} }, Row: { 1: {} }, Squat: { 1: {} } } };
+    expect(exerciseOrderForSession(session)).toEqual(["Squat", "Bench", "Row"]);
+  });
+
+  test("explicit order drops removed exercises and appends newly-present ones", () => {
+    const session = { exerciseOrder: ["Squat", "Bench", "Removed"], sets: { Bench: { 1: {} }, Squat: { 1: {} }, Added: { 1: {} } } };
+    expect(exerciseOrderForSession(session)).toEqual(["Squat", "Bench", "Added"]);
+  });
 });
