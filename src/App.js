@@ -3050,11 +3050,13 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
     try{
       const{data:{user:u}}=await supabase.auth.getUser();
       if(!u)return;
-      // Full history, non-warmup, with each set's session date (inner join drops orphans).
+      // Full history, completed sessions only, non-warmup, with each set's session date
+      // (inner join drops orphans; the embedded completed_at filter excludes partial sessions).
       const{data:rows,error}=await supabase.from("logged_sets")
         .select("exercise_name,weight,set_type,workout_sessions!inner(completed_at)")
         .eq("user_id",u.id)
-        .neq("set_type","warmup");
+        .neq("set_type","warmup")
+        .not("workout_sessions.completed_at","is",null);
       if(error||!rows){console.error("recalcPRs fetch:",error);return;} // fail-safe: no writes
       const newPRs=lifetimePRs(rows.map(r=>({exName:r.exercise_name,weight:r.weight,date:r.workout_sessions?.completed_at||null})));
       await savePRs(newPRs);

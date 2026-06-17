@@ -69,8 +69,22 @@ describe("lifetimePRs — full-history PR source", () => {
   });
 
   test("ignores weight<=0 and blank exercise names", () => {
-    const prs = lifetimePRs([{ exName: "X", weight: 0 }, { exName: "", weight: 50 }, { exName: "X", weight: 90 }]);
+    const d = "2026-01-01"; // completed sessions (have a date) so only weight/name filtering is tested
+    const prs = lifetimePRs([{ exName: "X", weight: 0, date: d }, { exName: "", weight: 50, date: d }, { exName: "X", weight: 90, date: d }]);
     expect(prs.X.weight).toBe(90);
     expect(prs[""]).toBeUndefined();
+  });
+
+  test("COMPLETED-ONLY: a set in a non-completed session (no completed_at) does NOT set a PR; a completed one does", () => {
+    // A heavier set logged in a partial/in-progress session (completed_at null → date null)
+    // must be ignored; the completed-session set is the PR.
+    expect(
+      lifetimePRs([
+        { exName: "Deadlift", weight: 500, date: null }, // partial session — must be excluded
+        { exName: "Deadlift", weight: 405, date: "2026-02-01" }, // completed
+      ]).Deadlift.weight
+    ).toBe(405);
+    // The same 500 set, once its session is completed (has a date), DOES set the PR.
+    expect(lifetimePRs([{ exName: "Deadlift", weight: 500, date: "2026-03-01" }]).Deadlift.weight).toBe(500);
   });
 });
