@@ -7,6 +7,7 @@ import { projectExercise } from "./lib/projections";
 import { rollingVolume } from "./lib/volume";
 import { detectPlateaus } from "./lib/plateaus";
 import { flagPRs } from "./lib/prFlags";
+import { lifetimePRs } from "./lib/lifetimePRs";
 import { muscleContributions, rollupToGroup, DISPLAY_GROUPS } from "./lib/muscleVolume";
 import { analyzePlan } from "./lib/planAnalysis";
 import { analyzeRealized } from "./lib/realizedVolume";
@@ -3033,35 +3034,38 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
       manual:true
     };
     const ok=await saveSessions([...sessions,newSess]);
-    if(ok){recalcPRs([...sessions,newSess]);
+    if(ok){await recalcPRs();
       setAddingSession(false);
       setManualSession({dayLabel:"",date:new Date().toLocaleDateString("en-CA"),duration:"",notes:"",exercises:[{name:"",sets:"3",reps:"10",weight:""}]});
     }
   }
 
-  function recalcPRs(updatedSessions){
-    const newPRs={};
-    for(const sess of updatedSessions){
-      for(const set of (sess.setsArr||[])){
-        const w=parseFloat(set.weight)||0;
-        if(w>0&&(!newPRs[set.exName]||w>newPRs[set.exName].weight)){
-          newPRs[set.exName]={weight:w,date:sess.completedAt};
-        }
-      }
-    }
-    savePRs(newPRs);
-    // Clean up orphaned PR rows for exercise names no longer present in any session
-    // (e.g. after a rename) — newPRs is the complete recomputed set, so anything else is stale
-    (async()=>{
-      try{
-        const{data:{user:u}}=await supabase.auth.getUser();
-        if(!u)return;
-        const{data:rows}=await supabase.from("personal_records").select("exercise_name").eq("user_id",u.id);
-        const keep=new Set(Object.keys(newPRs));
-        const orphans=(rows||[]).map(r=>r.exercise_name).filter(n=>!keep.has(n));
-        if(orphans.length)await supabase.from("personal_records").delete().eq("user_id",u.id).in("exercise_name",orphans);
-      }catch(e){console.error("recalcPRs orphan cleanup:",e);}
-    })();
+  // Recompute lifetime PRs from FULL history — NOT the capped `sessions` window — so a PR set
+  // outside the loaded 100 can never be overwritten/deleted. Sources non-warmup sets via an
+  // inner join to workout_sessions so a deleted session's sets (orphans) are excluded
+  // regardless of FK cascade. Best-effort + fail-safe: on any query failure the function makes
+  // NO change to personal_records (never downgrade or orphan-delete from a failed/partial read),
+  // and the caller's primary action has already persisted independently.
+  async function recalcPRs(){
+    try{
+      const{data:{user:u}}=await supabase.auth.getUser();
+      if(!u)return;
+      // Full history, non-warmup, with each set's session date (inner join drops orphans).
+      const{data:rows,error}=await supabase.from("logged_sets")
+        .select("exercise_name,weight,set_type,workout_sessions!inner(completed_at)")
+        .eq("user_id",u.id)
+        .neq("set_type","warmup");
+      if(error||!rows){console.error("recalcPRs fetch:",error);return;} // fail-safe: no writes
+      const newPRs=lifetimePRs(rows.map(r=>({exName:r.exercise_name,weight:r.weight,date:r.workout_sessions?.completed_at||null})));
+      await savePRs(newPRs);
+      // Orphan-delete ONLY for exercises with no non-warmup set anywhere in FULL history
+      // (not merely absent from the loaded window). Skip cleanup if the read fails.
+      const{data:stored,error:e2}=await supabase.from("personal_records").select("exercise_name").eq("user_id",u.id);
+      if(e2||!stored)return;
+      const keep=new Set(Object.keys(newPRs));
+      const orphans=stored.map(r=>r.exercise_name).filter(n=>!keep.has(n));
+      if(orphans.length)await supabase.from("personal_records").delete().eq("user_id",u.id).in("exercise_name",orphans);
+    }catch(e){console.error("recalcPRs:",e);} // fail-safe: never break the primary action
   }
 
   async function saveEdit(updated){
@@ -3077,7 +3081,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
     if(!updatedSession.supabaseId){
       // Manual session with no DB record — state update only
       const updatedSessions=sessions.map(s=>s.id===updatedSession.id?updatedSession:s);
-      setSessions(updatedSessions);recalcPRs(updatedSessions);
+      setSessions(updatedSessions);await recalcPRs();
       return true;
     }
     const original=sessions.find(s=>s.id===updatedSession.id);
@@ -3112,7 +3116,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
     // All DB writes confirmed — now update local state
     const updatedSessions=sessions.map(s=>s.id===updatedSession.id?updatedSession:s);
     setSessions(updatedSessions);
-    recalcPRs(updatedSessions);
+    await recalcPRs();
     return true;
   }
 
@@ -3139,14 +3143,12 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
         }
       }
       // Refresh state from the freshest sessions (functional updater) so the just-saved edit isn't clobbered
-      setSessions(prev=>{
-        const next=prev.map(s=>{
-          if(s.sets&&s.sets[oldName]){const ns=renameInSets(s.sets,oldName,newName);return {...s,sets:ns,setsArr:setsToArr(ns)};}
-          return s;
-        });
-        setTimeout(()=>recalcPRs(next),0);
-        return next;
-      });
+      setSessions(prev=>prev.map(s=>{
+        if(s.sets&&s.sets[oldName]){const ns=renameInSets(s.sets,oldName,newName);return {...s,sets:ns,setsArr:setsToArr(ns)};}
+        return s;
+      }));
+      // DB now reflects the rename (logged_sets reinserted above); recompute PRs from full history.
+      await recalcPRs();
       return true;
     }catch(e){console.error("renameExerciseEverywhere:",e);return false;}
   }
@@ -3165,7 +3167,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
     }
     const updatedSessions=sessions.filter(s=>s.id!==sessId);
     saveSessions(updatedSessions);
-    recalcPRs(updatedSessions);
+    await recalcPRs();
     setConfirmDelete(null);
     setExpanded(null);
   }
