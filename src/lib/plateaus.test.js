@@ -111,4 +111,47 @@ describe("detectPlateaus — multi-axis 'no recent PR' definition", () => {
     const r = detectPlateaus({ Stuck: stuck.series }, opts({ Stuck: stuck.tonnage }));
     expect(r[0].stalledWeeks).toBe(10); // floor(74 / 7)
   });
+
+  // ISOLATION TEST — proves the e1RM axis uses the multi-formula disjunction
+  // (any of Epley / Brzycki / Lombardi), NOT Epley alone.
+  //
+  // In-window session beats the prior best on the LOMBARDI axis only:
+  //   pre-window (110 x 1):  W 110   E 113.7   B 110.0   L 110.0   vol 110
+  //   pre-window ( 90 x 12): W  90   E 126.0   B 129.6   L 115.4   vol 1080
+  //   in-window  (105 x 5):  W 105   E 122.5   B 118.1   L 123.3   vol 525
+  //
+  //   prior bests:  W 110 | vol 1080 | E 126.0 | B 129.6 | L 115.4
+  //   in-window:    W 105 (<110)   vol 525 (<1080)   E 122.5 (<126.0)
+  //                 B 118.1 (<129.6)   L 123.3 (>115.4)  <-- the only new best
+  //
+  // An Epley-only check would see no PR on weight/volume/Epley and FLAG this
+  // lift. It must NOT be flagged, because Lombardi set a new best.
+  it('does not flag when only a non-Epley e1RM formula (Lombardi) sets a new best', () => {
+    const name = 'Lombardi Iso';
+
+    // Per-day enriched series (one set per day, so per-day max == that set).
+    // Reconcile field names with what seriesFor now emits
+    // (ormEpley/ormBrzycki/ormLombardi). The comparison must use full-precision
+    // e1RM; the Lombardi margin (~8) survives integer rounding regardless.
+    const series = {
+      [name]: [
+        { date: '2026-03-25', label: 'd', weight: 110, orm: 114, ormEpley: 113.67, ormBrzycki: 110.00, ormLombardi: 110.00 },
+        { date: '2026-04-10', label: 'd', weight: 90,  orm: 126, ormEpley: 126.00, ormBrzycki: 129.60, ormLombardi: 115.39 },
+        { date: '2026-06-10', label: 'd', weight: 105, orm: 123, ormEpley: 122.50, ormBrzycki: 118.13, ormLombardi: 123.33 },
+      ],
+    };
+
+    // Per-day total volume (tonnage), carried under `orm` per the existing shape.
+    const tonnage = {
+      [name]: [
+        { date: '2026-03-25', orm: 110 },
+        { date: '2026-04-10', orm: 1080 },
+        { date: '2026-06-10', orm: 525 },
+      ],
+    };
+
+    const result = detectPlateaus(series, { tonnage });
+
+    expect(result.find(p => p.exercise === name)).toBeUndefined();
+  });
 });
