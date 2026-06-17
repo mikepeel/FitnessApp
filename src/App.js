@@ -3949,7 +3949,6 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
             const lifts=allExNames.map(n=>({name:n,series:seriesFor(n)})).filter(x=>x.series.length>0);
             if(!lifts.length) return <div style={emptySt}>Log weighted sessions to see progress.</div>;
             const plateaus=detectPlateaus(Object.fromEntries(lifts.map(l=>[l.name,l.series])),{tonnage:Object.fromEntries(lifts.map(l=>[l.name,tonnageSeriesFor(l.name)]))});
-            const shownPlateaus=plateausExpanded?plateaus:plateaus.slice(0,3);
             // Volume-aware plateau advice: cross each stall with the muscle's realized 28-day
             // volume status (same engine as the Muscles overlay → consistent advice). Additive:
             // the 'plain' tier renders today's suggestion unchanged.
@@ -3957,8 +3956,11 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
             const perMuscleStatus=rvP.sufficient?Object.fromEntries(rvP.perMuscle.map(m=>[m.muscle,m.status])):{};
             return <>
               {plateaus.length>0&&<div style={{...cardSt,padding:"12px 14px"}}>
-                <SectionLabel C={C}>Plateaus</SectionLabel>
-                {shownPlateaus.map(p=>{
+                <div onClick={()=>setPlateausExpanded(v=>!v)} style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
+                  <span style={{color:C.faint,display:"inline-flex",flexShrink:0}}>{plateausExpanded?<ChevronDown size={ICON.sm} strokeWidth={1.75}/>:<ChevronRight size={ICON.sm} strokeWidth={1.75}/>}</span>
+                  <SectionLabel C={C}>Plateaus ({plateaus.length})</SectionLabel>
+                </div>
+                {plateausExpanded&&plateaus.map(p=>{
                   const adv=volumeAwarePlateauAdvice(p.exercise,perMuscleStatus,primaryGatedMuscles,p.suggestion);
                   return <div key={p.exercise} onClick={()=>setSelEx(p.exercise)} style={{cursor:"pointer",padding:"7px 0",borderTop:`1px solid ${C.border}`}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -3968,7 +3970,6 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
                     {adv.tier!=="plain"&&<Mono style={{fontSize:11,color:C.muted,display:"block",marginTop:4,lineHeight:1.5}}>{adv.copy}</Mono>}
                   </div>;
                 })}
-                {plateaus.length>shownPlateaus.length&&<div onClick={()=>setPlateausExpanded(true)} style={{cursor:"pointer",paddingTop:8,fontSize:11,color:C.accentInk,fontFamily:mono}}>+{plateaus.length-shownPlateaus.length} more</div>}
               </div>}
               {lifts.map(({name,series})=>{
               const first=series[0].weight,cur=series[series.length-1].weight,delta=Math.round(cur-first);
