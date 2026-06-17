@@ -234,3 +234,11 @@ Before every commit verify:
 ## Known Deferred Items
 - URL rename to iron-app.vercel.app (not done yet)
 - Apple Watch companion (requires native app, not possible in React PWA)
+
+## Uncertainty & Debugging
+- Never guess at a solution without saying so explicitly
+- If you're not confident in a diagnosis, say that before attempting a fix
+- If a debugging thread has stalled, say so and recommend a reset rather than
+  continuing to try things
+- Surface "I don't know the root cause yet" as a valid and preferred response
+  over speculative fixes
