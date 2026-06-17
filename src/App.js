@@ -3775,8 +3775,14 @@ function StatsTab({sessions,prs,settings,C,activePlan,toggleTheme,themeMode,body
   // Per-day best-weight series for one exercise (used by Progress charts + tables)
   const seriesFor=(name)=>{
     const grouped={};
-    sessions.forEach(s=>{ if(!s.completedAt)return; const sets=(s.setsArr||[]).filter(x=>x.exName===name&&x.type!=="warmup"); const bestW=sets.reduce((m,x)=>Math.max(m,parseFloat(x.weight)||0),0); if(bestW>0){const bestOrm=sets.reduce((m,x)=>Math.max(m,estimate1RM(x.weight,x.reps)),0); const d=new Date(s.completedAt).toLocaleDateString("en-CA"); const prev=grouped[d]||{weight:0,orm:0}; grouped[d]={weight:Math.max(prev.weight,bestW),orm:Math.max(prev.orm,bestOrm)};} });
-    return Object.entries(grouped).sort(([a],[b])=>a>b?1:-1).map(([d,v])=>({date:d,label:d.slice(5),weight:v.weight,orm:Math.round(v.orm)}));
+    sessions.forEach(s=>{ if(!s.completedAt)return; const sets=(s.setsArr||[]).filter(x=>x.exName===name&&x.type!=="warmup"); const bestW=sets.reduce((m,x)=>Math.max(m,parseFloat(x.weight)||0),0); if(bestW>0){
+      // per-day max for each e1RM formula, computed independently (the best set can differ per formula)
+      const bestEp=sets.reduce((m,x)=>Math.max(m,estimate1RM(x.weight,x.reps)),0);
+      const bestBr=sets.reduce((m,x)=>{const w=parseFloat(x.weight)||0;const r=parseInt(x.reps,10)||1;return (w<=0||r>=37)?m:Math.max(m,w*36/(37-r));},0); // Brzycki guard: skip reps>=37
+      const bestLo=sets.reduce((m,x)=>{const w=parseFloat(x.weight)||0;const r=parseInt(x.reps,10)||1;return w<=0?m:Math.max(m,w*Math.pow(r,0.10));},0);
+      const d=new Date(s.completedAt).toLocaleDateString("en-CA"); const prev=grouped[d]||{weight:0,orm:0,ormEpley:0,ormBrzycki:0,ormLombardi:0};
+      grouped[d]={weight:Math.max(prev.weight,bestW),orm:Math.max(prev.orm,bestEp),ormEpley:Math.max(prev.ormEpley,bestEp),ormBrzycki:Math.max(prev.ormBrzycki,bestBr),ormLombardi:Math.max(prev.ormLombardi,bestLo)};} });
+    return Object.entries(grouped).sort(([a],[b])=>a>b?1:-1).map(([d,v])=>({date:d,label:d.slice(5),weight:v.weight,orm:Math.round(v.orm),ormEpley:v.ormEpley,ormBrzycki:v.ormBrzycki,ormLombardi:v.ormLombardi}));
   };
   // Per-day total tonnage (Σ weight×reps over non-warmup sets) for one exercise;
   // shaped as { date, orm: tonnage } so the trend engine runs on it unchanged.
