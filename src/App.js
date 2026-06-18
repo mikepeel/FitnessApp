@@ -3199,19 +3199,32 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
   }
 
   async function deleteSession(sessId){
-    const sess=sessions.find(s=>s.id===sessId);
-    if(!sess){setConfirmDelete(null);return;}
-    if(sess.supabaseId){
-      const{error}=await supabase.from("workout_sessions").delete().eq("id",sess.supabaseId);
+    // Delete by id regardless of whether the row is in the loaded (capped) prop — the History
+    // window can display sessions beyond the .limit(100) load. sessId is the DB id for any
+    // displayed row (mapSessionRow sets id===supabaseId). RLS scopes to the user; the user_id
+    // filter is belt-and-suspenders. On error: graceful message, no state change.
+    try{
+      const{data:{session:_s}}=await supabase.auth.getSession().catch(()=>({data:{session:null}}));
+      const uid=_s?.user?.id;
+      let q=supabase.from("workout_sessions").delete().eq("id",sessId);
+      if(uid)q=q.eq("user_id",uid);
+      const{error}=await q;
       if(error){
         console.error("deleteSession:",error);
         setDeleteError("Could not delete — check your connection and try again.");
         setConfirmDelete(null);
         return;
       }
+    }catch(e){
+      console.error("deleteSession:",e);
+      setDeleteError("Could not delete — check your connection and try again.");
+      setConfirmDelete(null);
+      return;
     }
-    const updatedSessions=sessions.filter(s=>s.id!==sessId);
-    saveSessions(updatedSessions);
+    // Local prop update is best-effort: the filter no-ops for a beyond-cap row not in the prop.
+    // recalcPRs (full history) and the window re-fetch run regardless, so PRs recompute and the
+    // displayed list corrects even for beyond-cap deletes.
+    saveSessions(sessions.filter(s=>s.id!==sessId));
     await recalcPRs();
     setReloadNonce(n=>n+1);
     setConfirmDelete(null);

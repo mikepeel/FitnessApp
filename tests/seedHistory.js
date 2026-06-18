@@ -21,7 +21,7 @@ loadEnv(".env.test.local");
 const SUPABASE_URL = "https://ldbrabnvpiidrdkmjpbo.supabase.co";
 const KEY = process.env.SUPABASE_SERVICE_KEY;
 const MARKER = "[AUTOMATED TEST — SAFE TO DELETE]";
-const LABELS = ["AutoTest-Bulk", "AutoTest-Partial"];
+const LABELS = ["AutoTest-Bulk", "AutoTest-Partial", "AutoTest-BeyondCap-Del", "AutoTest-BeyondCap-Edit"];
 const DAY = 86400000;
 
 const hasKey = () => !!KEY && !KEY.includes("anon");
@@ -60,6 +60,14 @@ async function seed({ bulk = 90 } = {}) {
     rows.push({ user_id: uid, day_label: "AutoTest-Bulk", started_at: d, completed_at: d, notes: MARKER, sets_data: {}, partial: false });
   }
   rows.push({ user_id: uid, day_label: "AutoTest-Partial", started_at: new Date(now - DAY).toISOString(), completed_at: null, notes: MARKER, sets_data: {}, partial: true });
+  // Two beyond-cap rows aged 178d: inside the 6m window, but past the 100-row prop cap given the
+  // bulk above — so they're displayable in History 6M yet absent from the loaded `sessions` prop.
+  // Used to prove delete/edit operate by id on rows not in the prop. dur ~60min (started 60m before).
+  const bcCompleted = new Date(now - 178 * DAY);
+  const bcStarted = new Date(bcCompleted.getTime() - 60 * 60000).toISOString();
+  ["AutoTest-BeyondCap-Del", "AutoTest-BeyondCap-Edit"].forEach((lbl) => {
+    rows.push({ user_id: uid, day_label: lbl, started_at: bcStarted, completed_at: bcCompleted.toISOString(), notes: MARKER, sets_data: {}, partial: false });
+  });
   const { error } = await sb.from("workout_sessions").insert(rows);
   if (error) throw new Error("seedHistory insert failed: " + error.message);
   return { skipped: false, uid, count: rows.length };
