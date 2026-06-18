@@ -6,6 +6,7 @@ import { estimate1RM } from "./lib/oneRepMax";
 import { projectExercise } from "./lib/projections";
 import { rollingVolume } from "./lib/volume";
 import { detectPlateaus, priorBests } from "./lib/plateaus";
+import { liftSeriesFromSets } from "./lib/liftSeries";
 import { flagPRs } from "./lib/prFlags";
 import { lifetimePRs } from "./lib/lifetimePRs";
 import { muscleContributions, rollupToGroup, DISPLAY_GROUPS } from "./lib/muscleVolume";
@@ -3707,10 +3708,16 @@ function RealizedVolumeInsight({sessions,settings,C}){
   const band=(b)=>`${b[0]}–${b[1]}`;
   // Progress coupling (Lane 3): enrich a flagged muscle's plain copy with the user's own
   // strength trend on that muscle's primary lifts. Primary lifts are identified from the
-  // same 28-day window; the per-lift trend uses the FULL e1RM history (projectExercise).
+  // same 28-day window; the per-lift trend is computed by projectExercise.
   // Additive only: an unknown trend falls back to the exact plain copy.
   const winCut=Date.now()-28*86400000;
   const winSessions=(sessions||[]).filter(s=>s&&s.completedAt&&new Date(s.completedAt).getTime()>winCut);
+  // RECENT-WINDOW consumer (intentionally capped): builds the e1RM series from the loaded
+  // sessions (.limit(100)). projectExercise gates on >=5 distinct dates over >=21 days, which is
+  // satisfiable within the loaded window for any lift with a current trend; a lift without
+  // enough recent data correctly returns insufficient_data ("unknown"). A trend is a recent
+  // signal, not an all-time series, so this is left on the capped load by design (not part of
+  // the all-time-chart fix).
   const seriesFor=(name)=>{const g={};(sessions||[]).forEach(s=>{if(!s||!s.completedAt)return;const sets=(s.setsArr||[]).filter(x=>x.exName===name&&x.type!=="warmup");const orm=sets.reduce((mx,x)=>Math.max(mx,estimate1RM(x.weight,x.reps)),0);if(orm>0){const d=new Date(s.completedAt).toLocaleDateString("en-CA");g[d]=Math.max(g[d]||0,orm);}});return Object.entries(g).sort(([a],[b])=>a>b?1:-1).map(([d,orm])=>({date:d,orm:Math.round(orm)}));};
   const trendCache={};
   const trendFn=(lift)=>lift in trendCache?trendCache[lift]:(trendCache[lift]=projectExercise(seriesFor(lift)).status);
@@ -3816,6 +3823,30 @@ function StatsTab({sessions,programStart,prs,settings,C,activePlan,toggleTheme,t
     return ()=>{cancelled=true;};
   },[]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Drill-down: the selected lift's FULL completed history (not the .limit(100) load), so the
+  // Max-Weight / Est-1RM charts, projection, and session table aren't truncated for high-volume
+  // lifters. { name, series } | null. Best-effort: on fetch error stays null → the capped
+  // seriesFor(selEx) below is used as the fallback.
+  const [drill,setDrill]=useState(null);
+  useEffect(()=>{
+    if(!selEx){setDrill(null);return;}
+    let cancelled=false;
+    (async()=>{
+      try{
+        const {data:{user:u}}=await supabase.auth.getUser();
+        if(!u)return;
+        const {data:rows,error}=await supabase.from("logged_sets")
+          .select("weight,reps,workout_sessions!inner(completed_at)")
+          .eq("user_id",u.id).eq("exercise_name",selEx).neq("set_type","warmup")
+          .not("workout_sessions.completed_at","is",null);
+        if(error||!rows)return; // fail-safe: leave null → capped seriesFor(selEx) fallback
+        const sets=rows.map(r=>({weight:r.weight,reps:r.reps,date:r.workout_sessions?.completed_at?new Date(r.workout_sessions.completed_at).toLocaleDateString("en-CA"):null}));
+        if(!cancelled)setDrill({name:selEx,series:liftSeriesFromSets(sets)});
+      }catch(e){console.error("drill series fetch:",e);}
+    })();
+    return ()=>{cancelled=true;};
+  },[selEx]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const allExNames=[...new Set(sessions.flatMap(s=>(s.setsArr||[]).map(x=>x.exName)))].sort();
   // Per-day best-weight series for one exercise (used by Progress charts + tables)
   const seriesFor=(name)=>{
@@ -3836,7 +3867,9 @@ function StatsTab({sessions,programStart,prs,settings,C,activePlan,toggleTheme,t
     sessions.forEach(s=>{ if(!s.completedAt)return; const ton=(s.setsArr||[]).filter(x=>x.exName===name&&x.type!=="warmup").reduce((sum,x)=>sum+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0),0); if(ton>0){const d=new Date(s.completedAt).toLocaleDateString("en-CA"); grouped[d]=(grouped[d]||0)+ton;} });
     return Object.entries(grouped).sort(([a],[b])=>a>b?1:-1).map(([d,t])=>({date:d,orm:t}));
   };
-  const chartData=selEx?seriesFor(selEx):[];
+  // Drill-down charts use the lift's FULL history once fetched; fall back to the capped
+  // seriesFor(selEx) until it loads or if the fetch failed.
+  const chartData=selEx?((drill&&drill.name===selEx)?drill.series:seriesFor(selEx)):[];
   const prList=Object.entries(prs).sort((a,b)=>b[1].weight-a[1].weight);
   const totalVol=sessions.reduce((a,s)=>(a+(s.setsArr||[]).filter(x=>x.type!=="warmup").reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
 
