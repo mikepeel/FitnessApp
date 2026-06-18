@@ -67,3 +67,28 @@ const toLocalDate = (d = new Date()) => d.toLocaleDateString("en-CA"); // "YYYY-
 Never use:
 - `new Date("YYYY-MM-DD").getDay()` — parses as UTC midnight, returns wrong weekday
 - `.toISOString().split("T")[0]` — returns UTC date, one day behind in US timezones after ~7pm
+
+### 15. UI testing (Playwright) — required for UI-behavior changes
+Any commit that changes UI behavior — rendered output, user interactions, async-driven
+display, or layout — requires a Playwright UI test. Pure-function tests plus a clean build are
+NOT sufficient on their own for a UI change. This is the automated complement to the manual
+checks in §9 ("verify all tabs render") and the §10 iOS/layout checklist — do both; an
+automated test does not replace the §10 mobile pass, and the manual pass does not replace the
+automated test.
+
+- **Never happy-path only.** Every UI test must include at least one non-happy-path case —
+  error, empty state, or edge — in addition to any happy-path assertion.
+- **Bug fixes: fails-before / passes-after, at the UI.** The test must reproduce the broken UI
+  state before the fix (red) and pass after (green) — the same discipline applied to logic
+  fixes, now at the rendered layer. If the fix already landed, substitute a mutation check:
+  reverting the fixed line(s) must make the test fail. A test that passes whether or not the
+  fix is present is vacuous — don't ship it.
+- **Exercise the fail-safe / error path.** The graceful fallback required by §11 must be
+  proven by a test, not assumed: force the failure (e.g. Playwright `page.route` interception
+  to make a fetch fail or return an error) and assert the fallback renders correctly AND that
+  no false error banner appears on the user's primary action.
+- **Data seeding.** Tests needing large datasets — e.g. >100 sessions to hit
+  cap/truncation/pagination boundaries — require a seeded account in iron-test; seed it
+  deterministically rather than relying on whatever data happens to exist. Fail-safe,
+  pagination, partial-session display, and layout tests run on normal seed data. Clean up any
+  rows seeded for a test afterward (0 residue).
