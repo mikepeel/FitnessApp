@@ -25,7 +25,10 @@ module.exports = defineConfig({
   reporter: [["list"], ["html", { open: "never" }]],
 
   use: {
-    baseURL: "https://fitness-app-iota-pied.vercel.app",
+    // Defaults to the live deploy (what CI / the normal suite targets). Override with
+    // E2E_BASE_URL=http://localhost:3000 to run against a local dev server — needed for
+    // mutation-checks, where a guarded line is reverted locally and the test must fail.
+    baseURL: process.env.E2E_BASE_URL || "https://fitness-app-iota-pied.vercel.app",
     viewport: { width: 390, height: 844 },
     browserName: "chromium",
     trace: "on-first-retry",
