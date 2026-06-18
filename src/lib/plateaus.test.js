@@ -1,4 +1,4 @@
-import { detectPlateaus } from "./plateaus";
+import { detectPlateaus, priorBests } from "./plateaus";
 
 // New definition: an exercise is plateaued only if, in the trailing 6-week window, it set
 // NO new personal best vs its pre-window history on ANY axis — max single-set WEIGHT, e1RM
@@ -153,5 +153,47 @@ describe("detectPlateaus — multi-axis 'no recent PR' definition", () => {
     const result = detectPlateaus(series, { tonnage });
 
     expect(result.find(p => p.exercise === name)).toBeUndefined();
+  });
+
+  // Prior-best from FULL history (opts.priorBest) vs the capped pre-window slice.
+  test("opts.priorBest flags a plateau the capped pre-window slice would miss", () => {
+    const NOW2 = new Date("2026-06-17T12:00:00");
+    // Loaded (capped) series: the only pre-window point is 240 (the true 300 dropped off the
+    // cap); in-window best is 250.
+    const series = {
+      Lift: [
+        { date: "2026-04-20", weight: 240, ormEpley: 240, ormBrzycki: 240, ormLombardi: 240 }, // pre-window (capped prior)
+        { date: "2026-06-10", weight: 250, ormEpley: 250, ormBrzycki: 250, ormLombardi: 250 }, // in-window
+      ],
+    };
+    const tonnage = { Lift: [ { date: "2026-04-20", orm: 240 }, { date: "2026-06-10", orm: 250 } ] };
+    // BEFORE (capped prior 240): in-window 250 > 240 → reads as a PR → NOT flagged.
+    expect(detectPlateaus(series, { now: NOW2, tonnage })).toEqual([]);
+    // AFTER (full-history priorBest 300): 250 < 300 on every axis → flagged.
+    const priorBest = { Lift: { weight: 300, ormEpley: 300, ormBrzycki: 300, ormLombardi: 300, volume: 300 } };
+    const r = detectPlateaus(series, { now: NOW2, tonnage, priorBest });
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject({ exercise: "Lift", status: "stalled" });
+  });
+});
+
+describe("priorBests", () => {
+  const WS = new Date("2026-05-06T12:00:00").getTime(); // windowStart
+
+  test("per-axis maxes from pre-window sets; excludes in-window; volume is per session", () => {
+    const sets = [
+      { exName: "Bench", weight: 200, reps: 5, date: "2026-01-01", sessionId: "s1" }, // pre-window, vol 1000
+      { exName: "Bench", weight: 185, reps: 8, date: "2026-02-01", sessionId: "s2" }, // pre-window, vol 1480
+      { exName: "Bench", weight: 300, reps: 1, date: "2026-06-10", sessionId: "s9" }, // IN-window → excluded
+    ];
+    const pb = priorBests(sets, WS).Bench;
+    expect(pb.weight).toBe(200); // 300 is in-window, excluded
+    expect(pb.volume).toBe(1480); // max single-session Σ(w*r) pre-window: s2 = 185*8
+    expect(pb.ormEpley).toBeGreaterThan(0);
+  });
+
+  test("warmup-free caller contract: all-in-window or empty → no entry", () => {
+    expect(priorBests([{ exName: "X", weight: 100, reps: 5, date: "2026-06-10", sessionId: "a" }], WS).X).toBeUndefined();
+    expect(priorBests([], WS)).toEqual({});
   });
 });

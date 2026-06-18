@@ -5,7 +5,7 @@ import { planWeekOf, elapsedDaysSince, parsePlanDate, programWeekFromDate } from
 import { estimate1RM } from "./lib/oneRepMax";
 import { projectExercise } from "./lib/projections";
 import { rollingVolume } from "./lib/volume";
-import { detectPlateaus } from "./lib/plateaus";
+import { detectPlateaus, priorBests } from "./lib/plateaus";
 import { flagPRs } from "./lib/prFlags";
 import { lifetimePRs } from "./lib/lifetimePRs";
 import { muscleContributions, rollupToGroup, DISPLAY_GROUPS } from "./lib/muscleVolume";
@@ -3790,6 +3790,31 @@ function StatsTab({sessions,programStart,prs,settings,C,activePlan,toggleTheme,t
   const [trainerInsight,setTrainerInsight]=useState("");
   const [loadingInsight,setLoadingInsight]=useState(false);
   const [coachUpgrade,setCoachUpgrade]=useState(null);
+  // Full-history prior-bests for plateau detection (so a true PR older than the loaded 100
+  // isn't missed). { map: {exercise:{weight,ormEpley,ormBrzycki,ormLombardi,volume}}, now } |
+  // null. Best-effort: null → detectPlateaus falls back to the capped pre-window slice.
+  const [plateauPB,setPlateauPB]=useState(null);
+  useEffect(()=>{
+    let cancelled=false;
+    (async()=>{
+      try{
+        const now=new Date(); now.setHours(12,0,0,0);
+        const windowStart=now.getTime()-42*86400000;
+        const {data:{user:u}}=await supabase.auth.getUser();
+        if(!u)return;
+        const {data:rows,error}=await supabase.from("logged_sets")
+          .select("exercise_name,weight,reps,session_id,workout_sessions!inner(completed_at)")
+          .eq("user_id",u.id)
+          .neq("set_type","warmup")
+          .not("workout_sessions.completed_at","is",null)
+          .lt("workout_sessions.completed_at",new Date(windowStart).toISOString());
+        if(error||!rows){return;} // fail-safe: leave null → capped fallback in detectPlateaus
+        const sets=rows.map(r=>({exName:r.exercise_name,weight:r.weight,reps:r.reps,sessionId:r.session_id,date:r.workout_sessions?.completed_at?new Date(r.workout_sessions.completed_at).toLocaleDateString("en-CA"):null}));
+        if(!cancelled)setPlateauPB({map:priorBests(sets,windowStart),now:now.toISOString()});
+      }catch(e){console.error("plateau priorBest fetch:",e);}
+    })();
+    return ()=>{cancelled=true;};
+  },[]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const allExNames=[...new Set(sessions.flatMap(s=>(s.setsArr||[]).map(x=>x.exName)))].sort();
   // Per-day best-weight series for one exercise (used by Progress charts + tables)
@@ -3974,7 +3999,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
             // ===== ALL MODE — one compact card per lift (tap to drill in) =====
             const lifts=allExNames.map(n=>({name:n,series:seriesFor(n)})).filter(x=>x.series.length>0);
             if(!lifts.length) return <div style={emptySt}>Log weighted sessions to see progress.</div>;
-            const plateaus=detectPlateaus(Object.fromEntries(lifts.map(l=>[l.name,l.series])),{tonnage:Object.fromEntries(lifts.map(l=>[l.name,tonnageSeriesFor(l.name)]))});
+            const plateaus=detectPlateaus(Object.fromEntries(lifts.map(l=>[l.name,l.series])),{tonnage:Object.fromEntries(lifts.map(l=>[l.name,tonnageSeriesFor(l.name)])),priorBest:plateauPB?.map,now:plateauPB?.now});
             // Volume-aware plateau advice: cross each stall with the muscle's realized 28-day
             // volume status (same engine as the Muscles overlay → consistent advice). Additive:
             // the 'plain' tier renders today's suggestion unchanged.
