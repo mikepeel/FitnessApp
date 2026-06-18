@@ -3997,10 +3997,9 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
         {/* Weekly summary */}
         <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px",marginBottom:14}}>
           <SectionLabel C={C}>This Week</SectionLabel>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
             <div style={{textAlign:"center"}}><div style={{fontSize:22,fontWeight:800,color:C.neonInk,fontFamily:"'SF Mono','Courier New',monospace"}}>{weekSessions.length}</div><Mono style={{fontSize:10,color:C.muted}}>sessions</Mono></div>
             <div style={{textAlign:"center"}}><div style={{fontSize:22,fontWeight:800,color:C.accentInk,fontFamily:"'SF Mono','Courier New',monospace"}}>{weekVol>0?`${Math.round(weekVol/1000)}k`:"0"}</div><Mono style={{fontSize:10,color:C.muted}}>lbs</Mono></div>
-            <div style={{textAlign:"center"}}><div style={{fontSize:22,fontWeight:800,color:C.goldInk,fontFamily:"'SF Mono','Courier New',monospace"}}>{sessions.filter(s=>s.completedAt).length}</div><Mono style={{fontSize:10,color:C.muted}}>total</Mono></div>
           </div>
         </div>
 
