@@ -8,6 +8,7 @@ import { rollingVolume } from "./lib/volume";
 import { detectPlateaus, priorBests } from "./lib/plateaus";
 import { liftSeriesFromSets } from "./lib/liftSeries";
 import { mapSessionRow } from "./lib/sessionMap";
+import { historyWindow } from "./lib/historyWindow";
 import { flagPRs } from "./lib/prFlags";
 import { lifetimePRs } from "./lib/lifetimePRs";
 import { muscleContributions, rollupToGroup, DISPLAY_GROUPS } from "./lib/muscleVolume";
@@ -2981,15 +2982,56 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
   const [historyFilter,setHistoryFilter]=useState("3m");
   const [editingSession,setEditingSession]=useState(null);
 
-  // Sort all sessions newest first -- include ALL sessions, even if completedAt is missing
-  const sorted=[...sessions]
-    .filter(s=>s.completedAt||s.startedAt)
-    .map(s=>({...s,completedAt:s.completedAt||s.startedAt}))
-    .sort((a,b)=>new Date(b.completedAt)-new Date(a.completedAt));
+  // The loaded `sessions` prop is the global .limit(100) (most-recent) load. The 1m view is
+  // always within that cap (~20 for 4-5/wk), so it reads the prop. 3m/6m/all query the DB by
+  // date range so a window that legitimately holds >100 sessions isn't truncated. Date basis is
+  // COALESCE(completed_at, started_at) so in-progress/partial sessions still appear here.
+  const [windowSessions,setWindowSessions]=useState(null); // fetched rows for the active non-1m filter | null
+  const [allHasMore,setAllHasMore]=useState(false);        // more pages for the paginated "all" view
+  const [reloadNonce,setReloadNonce]=useState(0);          // bump to re-fetch the current window after a mutation
+  const SEL="*, logged_sets(*)";
+  const ALL_PAGE=100;
+  useEffect(()=>{
+    if(historyFilter==="1m"){setWindowSessions(null);setAllHasMore(false);return;}
+    let cancelled=false;
+    setWindowSessions(null); setAllHasMore(false);
+    (async()=>{
+      try{
+        const {data:{user:u}}=await supabase.auth.getUser();
+        if(!u)return;
+        if(historyFilter==="all"){
+          const {data,error}=await supabase.from("workout_sessions").select(SEL).eq("user_id",u.id).order("completed_at",{ascending:false,nullsFirst:false}).range(0,ALL_PAGE-1);
+          if(error||!data)return; // fail-safe: leave null → prop fallback, no banner
+          if(!cancelled){setWindowSessions(data.map(mapSessionRow));setAllHasMore(data.length===ALL_PAGE);}
+        }else{
+          const days={"3m":90,"6m":180}[historyFilter];
+          const cutoff=new Date(Date.now()-days*86400000).toISOString();
+          const {data,error}=await supabase.from("workout_sessions").select(SEL).eq("user_id",u.id).or(`completed_at.gte.${cutoff},and(completed_at.is.null,started_at.gte.${cutoff})`);
+          if(error||!data)return; // fail-safe
+          if(!cancelled)setWindowSessions(data.map(mapSessionRow));
+        }
+      }catch(e){console.error("History window fetch:",e);}
+    })();
+    return ()=>{cancelled=true;};
+  },[historyFilter,reloadNonce]); // eslint-disable-line react-hooks/exhaustive-deps
+  const loadMore=async()=>{
+    if(historyFilter!=="all"||!windowSessions)return;
+    try{
+      const {data:{user:u}}=await supabase.auth.getUser();
+      if(!u)return;
+      const from=windowSessions.length;
+      const {data,error}=await supabase.from("workout_sessions").select(SEL).eq("user_id",u.id).order("completed_at",{ascending:false,nullsFirst:false}).range(from,from+ALL_PAGE-1);
+      if(error||!data)return;
+      setWindowSessions(prev=>[...(prev||[]),...data.map(mapSessionRow)]);
+      setAllHasMore(data.length===ALL_PAGE);
+    }catch(e){console.error("History load more:",e);}
+  };
 
-  const cutoffDays={"1m":30,"3m":90,"6m":180}[historyFilter];
-  const cutoff=cutoffDays?new Date(Date.now()-cutoffDays*24*60*60*1000):null;
-  const filteredSorted=cutoff?sorted.filter(s=>new Date(s.completedAt)>=cutoff):sorted;
+  // Display source: 1m (or before the fetch resolves / on fetch error) → the loaded prop;
+  // 3m/6m/all → the fetched full window. historyWindow applies the COALESCE date basis + sort.
+  const displaySessions=(historyFilter==="1m"||windowSessions==null)?sessions:windowSessions;
+  const sorted=historyWindow(displaySessions,"all");           // all loaded/fetched, for the empty-state check
+  const filteredSorted=historyWindow(displaySessions,historyFilter); // windowed + sorted
 
   const grouped=filteredSorted.reduce((acc,s)=>{
     const m=new Date(s.completedAt).toLocaleDateString("en-CA").slice(0,7);
@@ -3033,7 +3075,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
       manual:true
     };
     const ok=await saveSessions([...sessions,newSess]);
-    if(ok){await recalcPRs();
+    if(ok){await recalcPRs();setReloadNonce(n=>n+1);
       setAddingSession(false);
       setManualSession({dayLabel:"",date:new Date().toLocaleDateString("en-CA"),duration:"",notes:"",exercises:[{name:"",sets:"3",reps:"10",weight:""}]});
     }
@@ -3082,7 +3124,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
     if(!updatedSession.supabaseId){
       // Manual session with no DB record — state update only
       const updatedSessions=sessions.map(s=>s.id===updatedSession.id?updatedSession:s);
-      setSessions(updatedSessions);await recalcPRs();
+      setSessions(updatedSessions);await recalcPRs();setReloadNonce(n=>n+1);
       return true;
     }
     const original=sessions.find(s=>s.id===updatedSession.id);
@@ -3118,6 +3160,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
     const updatedSessions=sessions.map(s=>s.id===updatedSession.id?updatedSession:s);
     setSessions(updatedSessions);
     await recalcPRs();
+    setReloadNonce(n=>n+1);
     return true;
   }
 
@@ -3150,6 +3193,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
       }));
       // DB now reflects the rename (logged_sets reinserted above); recompute PRs from full history.
       await recalcPRs();
+      setReloadNonce(n=>n+1);
       return true;
     }catch(e){console.error("renameExerciseEverywhere:",e);return false;}
   }
@@ -3169,6 +3213,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
     const updatedSessions=sessions.filter(s=>s.id!==sessId);
     saveSessions(updatedSessions);
     await recalcPRs();
+    setReloadNonce(n=>n+1);
     setConfirmDelete(null);
     setExpanded(null);
   }
@@ -3332,6 +3377,9 @@ ${prCount>0?`${prCount} new PR${prCount>1?"s":""}!`:""}
           })}
         </div>
       ))}
+      {historyFilter==="all"&&allHasMore&&<div style={{textAlign:"center",marginTop:4,marginBottom:8}}>
+        <Btn size="sm" variant="subtle" C={C} onClick={loadMore}>Load more</Btn>
+      </div>}
     </div>
 
     {/* Edit modal */}
