@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, Component } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { createClient } from "@supabase/supabase-js";
-import { planWeekOf, elapsedDaysSince, parsePlanDate } from "./lib/planWeek";
+import { planWeekOf, elapsedDaysSince, parsePlanDate, programWeekFromDate } from "./lib/planWeek";
 import { estimate1RM } from "./lib/oneRepMax";
 import { projectExercise } from "./lib/projections";
 import { rollingVolume } from "./lib/volume";
@@ -843,6 +843,7 @@ export default function ForgeApp(){
   const [activePlanKey,setActivePlanKey]=useState(null);
   const [settings,setSettings]=useState(DEFAULT_SETTINGS);
   const [sessions,setSessions]=useState([]);
+  const [programStart,setProgramStart]=useState(null); // user's TRUE earliest completed-session date (full history), for the program-week fallback
   const [prs,setPrs]=useState({});
   const [themeMode,setThemeMode]=useState("dark");
   const [loading,setLoading]=useState(true);
@@ -1065,6 +1066,18 @@ export default function ForgeApp(){
         });
         setSessions(mapped);
       }
+      // Program-week anchor: the user's TRUE earliest completed session (full history, not the
+      // capped load). Targeted 1-row query; best-effort — on error leave it null so the
+      // program-week fallback keeps its existing (capped) behavior.
+      try{
+        const {data:firstRows,error:firstErr}=await supabase.from("workout_sessions")
+          .select("completed_at").eq("user_id",u.id)
+          .not("completed_at","is",null)
+          .order("completed_at",{ascending:true}).limit(1);
+        if(!firstErr&&firstRows&&firstRows[0]?.completed_at){
+          setProgramStart(new Date(firstRows[0].completed_at).toLocaleDateString("en-CA"));
+        }
+      }catch(e){console.error("loadUserData earliest session:",e);}
       // Load PRs
       const {data:prData}=await supabase.from("personal_records").select("*").eq("user_id",u.id);
       if(prData){
@@ -1177,7 +1190,7 @@ export default function ForgeApp(){
     const {data:{subscription}}=supabase.auth.onAuthStateChange((event,session)=>{
       setAuthUser(session?.user||null);
       if(event==="SIGNED_IN"&&session?.user){loadUserData(session.user);}
-      else if(!session?.user){setSessions([]);setPrs({});setPlans({});setSettings(DEFAULT_SETTINGS);setActivePlanKey(null);setLoading(false);}
+      else if(!session?.user){setSessions([]);setProgramStart(null);setPrs({});setPlans({});setSettings(DEFAULT_SETTINGS);setActivePlanKey(null);setLoading(false);}
     });
     return()=>subscription.unsubscribe();
   },[]);// eslint-disable-line react-hooks/exhaustive-deps
@@ -1316,7 +1329,7 @@ export default function ForgeApp(){
     {minimizedWorkout&&<div style={{height:44}}/>}
     {tab==="today"&&<TodayTab plan={activePlan} plans={plans} activePlanKey={activePlanKey}
       setActivePlanKey={persistActivePlanKey}
-      settings={settings} sessions={sessions} streak={streak} complianceStreak={complianceStreak} deloadDue={deloadDue&&deloadDismissed!==new Date().toLocaleDateString("en-CA").slice(0,7)}
+      settings={settings} sessions={sessions} programStart={programStart} streak={streak} complianceStreak={complianceStreak} deloadDue={deloadDue&&deloadDismissed!==new Date().toLocaleDateString("en-CA").slice(0,7)}
       onDeloadDismiss={()=>{setDeloadDismissed(new Date().toLocaleDateString("en-CA").slice(0,7));}}
       onStart={day=>{setWorkoutDraft(null);setActiveWorkout(day);}} C={C} toggleTheme={toggleTheme} themeMode={themeMode}
       authUser={authUser} todayDay={(()=>{const days=activePlan?.days||[];if(!activePlan?.startDate||!days.length)return undefined;const elapsed=elapsedDaysSince(activePlan.startDate);if(elapsed<0)return undefined;const slot=days[elapsed%days.length];return slot?.isRest?undefined:slot;})()}
@@ -1329,7 +1342,7 @@ export default function ForgeApp(){
       setActiveWorkout({...day,_rerunSets:sess.sets});
       setTab("today");
     }}/>}
-    {tab==="stats"&&<StatsTab sessions={sessions} prs={prs} settings={settings} C={C} activePlan={activePlan} toggleTheme={toggleTheme} themeMode={themeMode} bodyStatsInit={bodyStatsGlobal} onBodyStatsChange={async(stats)=>{
+    {tab==="stats"&&<StatsTab sessions={sessions} programStart={programStart} prs={prs} settings={settings} C={C} activePlan={activePlan} toggleTheme={toggleTheme} themeMode={themeMode} bodyStatsInit={bodyStatsGlobal} onBodyStatsChange={async(stats)=>{
       setBodyStatsGlobal(stats);
       const {data:{user:u}}=await supabase.auth.getUser().catch(()=>({data:{user:null}}));
       if(u)await supabase.auth.updateUser({data:{body_stats:JSON.stringify(stats)}}).catch(()=>{});
@@ -1357,7 +1370,7 @@ function getDayColor(day){
 }
 
 // -- TODAY ---------------------------------------------------------------------
-function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,streak,complianceStreak,deloadDue,onDeloadDismiss,onStart,C,toggleTheme,themeMode,authUser,todayDay,onGoToPlan}){
+function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,programStart,streak,complianceStreak,deloadDue,onDeloadDismiss,onStart,C,toggleTheme,themeMode,authUser,todayDay,onGoToPlan}){
   const rawDays=plan?.days||[];
   const numDays=rawDays.length;
   const toLocalDateStr=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
@@ -1379,9 +1392,12 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,s
   const wkTotal = plan?.durationWeeks || 10;
   const isProgramComplete = !!wkNum && wkNum > wkTotal;
   const [dismissedComplete,setDismissedComplete]=useState(false);
+  // Fallback when the plan has no start_date: anchor on the user's TRUE earliest completed
+  // session (full history) if known, else the capped earliest-loaded session (best-effort).
+  const fallbackWeek = programStart ? programWeekFromDate(programStart) : (sessions.length > 0 ? programWeek(sessions) : null);
   const weekLabel = wkNum
     ? (isProgramComplete ? `COMPLETE · WEEK ${wkTotal} OF ${wkTotal}` : `WEEK ${wkNum} OF ${wkTotal}`)
-    : (sessions.length > 0 ? `WEEK ${programWeek(sessions)}` : "");
+    : (fallbackWeek ? `WEEK ${fallbackWeek}` : "");
 
   return <div>
     <div style={{background:C.bg,borderBottom:`1px solid ${C.border}`,padding:"16px 14px 14px"}}>
@@ -3763,7 +3779,7 @@ function RealizedVolumeInsight({sessions,settings,C}){
   </div>;
 }
 
-function StatsTab({sessions,prs,settings,C,activePlan,toggleTheme,themeMode,bodyStatsInit=[],onBodyStatsChange}){
+function StatsTab({sessions,programStart,prs,settings,C,activePlan,toggleTheme,themeMode,bodyStatsInit=[],onBodyStatsChange}){
   const [selEx,setSelEx]=useState(null); // null = "All exercises"
   const [progressView,setProgressView]=useState("chart"); // chart | table
   const [plateausExpanded,setPlateausExpanded]=useState(false);
@@ -3878,7 +3894,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
         <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>Progress</div>
         <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
       </div>
-      <Mono style={{fontSize:11,color:C.muted,display:"block",marginBottom:12}}>{(()=>{const wk=planWeekOf(activePlan);const tot=activePlan?.durationWeeks||10;return wk?`Week ${Math.min(wk,tot)} of ${tot} in your program`:`Week ${programWeek(sessions)} of your program`;})()}</Mono>
+      <Mono style={{fontSize:11,color:C.muted,display:"block",marginBottom:12}}>{(()=>{const wk=planWeekOf(activePlan);const tot=activePlan?.durationWeeks||10;const fb=programStart?programWeekFromDate(programStart):programWeek(sessions);return wk?`Week ${Math.min(wk,tot)} of ${tot} in your program`:`Week ${fb} of your program`;})()}</Mono>
       <div style={{display:"flex",gap:4,background:C.card,padding:4,borderRadius:10}}>
         {[["overview","Overview"],["progress","Progress"],["muscles","Muscles"],["body","Body"],["trainer","✦ Coach"]].map(([k,label])=>(
           <button key={k} onClick={()=>{setStatsView(k);if(k==="trainer"&&!trainerInsight)loadTrainerInsight();}} style={tabStyle(statsView===k)}>{label}</button>

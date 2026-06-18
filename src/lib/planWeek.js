@@ -24,3 +24,14 @@ export const planWeekOf = (plan, now = new Date()) => {
   if (days < 0) return 1;
   return Math.max(1, Math.ceil((days + 1) / 7));
 };
+
+// Program week (1-based) from a bare start-date string — same math as planWeekOf, but
+// anchored on a date (e.g. the user's earliest COMPLETED session) rather than a plan object.
+// Used for the program-week fallback when a plan has no start_date, so the anchor can come
+// from a full-history query instead of the capped sessions array. `now` injectable for tests.
+export const programWeekFromDate = (startDateStr, now = new Date()) => {
+  const days = elapsedDaysSince(startDateStr, now);
+  if (days === null) return null;
+  if (days < 0) return 1;
+  return Math.max(1, Math.ceil((days + 1) / 7));
+};

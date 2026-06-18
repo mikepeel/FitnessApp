@@ -1,4 +1,4 @@
-import { planWeekOf, elapsedDaysSince, parsePlanDate } from "./planWeek";
+import { planWeekOf, elapsedDaysSince, parsePlanDate, programWeekFromDate } from "./planWeek";
 
 // start_date is a local "YYYY-MM-DD" string; the module anchors it to local noon.
 // `now` values are constructed as local datetimes (no trailing Z) to mirror that.
@@ -67,6 +67,32 @@ describe("elapsedDaysSince", () => {
     elapsedDaysSince("2026-05-26", now);
     expect(now.getTime()).toBe(before);
     expect(now.getHours()).toBe(9);
+  });
+});
+
+describe("programWeekFromDate (program-week fallback anchor)", () => {
+  const NOW = new Date("2026-06-17T12:00:00");
+
+  // The program-week fallback must anchor on the user's TRUE earliest completed session
+  // (full history), not the earliest session that happens to be in the capped load window.
+  test("capped oldest-loaded anchor under-counts; true earliest gives the correct week", () => {
+    const loadedEarliest = "2026-05-01"; // oldest session still inside the 100-row window
+    const trueEarliest = "2026-01-01"; // real first session, dropped off the cap
+    expect(programWeekFromDate(loadedEarliest, NOW)).toBe(7); // BEFORE: capped anchor → too small
+    expect(programWeekFromDate(trueEarliest, NOW)).toBe(24); // AFTER: full-history anchor → correct
+  });
+
+  test("missing date -> null (caller keeps existing fallback)", () => {
+    expect(programWeekFromDate(null, NOW)).toBe(null);
+    expect(programWeekFromDate("", NOW)).toBe(null);
+  });
+
+  test("future start (now before start) -> 1", () => {
+    expect(programWeekFromDate("2026-07-01", NOW)).toBe(1);
+  });
+
+  test("exact start day -> 1", () => {
+    expect(programWeekFromDate("2026-06-17", NOW)).toBe(1);
   });
 });
 
