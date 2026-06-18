@@ -4056,7 +4056,6 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
                 })}
               </div>}
               {lifts.map(({name,series})=>{
-              const first=series[0].weight,cur=series[series.length-1].weight,delta=Math.round(cur-first);
               const pr=prs[name]?.weight||Math.max(...series.map(s=>s.weight));
               return <div key={name} onClick={()=>setSelEx(name)} style={{...cardSt,cursor:"pointer",position:"relative"}}>
                 <div style={{position:"absolute",right:12,top:10,color:C.faint,fontSize:18,lineHeight:1}}>›</div>
@@ -4064,7 +4063,6 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
                   <span style={{fontSize:14,fontWeight:700}}>{name}</span>
                   <span style={{fontFamily:mono,fontSize:11,flexShrink:0,whiteSpace:"nowrap"}}>
                     <PRMark value={pr} C={C}/>
-                    {delta!==0&&<span style={{color:delta>0?C.neonInk:C.dangerInk,fontWeight:700}}>&nbsp; {delta>0?`▲ +${delta}`:`▼ ${delta}`}</span>}
                   </span>
                 </div>
                 {progressView==="chart"
@@ -4077,7 +4075,6 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
                         <td style={{...tdSt,textAlign:"right",color:hi?C.neonInk:C.muted}}>{d.orm}</td>
                       </tr>;})}
                     </tbody></table>}
-                <Mono style={{fontSize:10,color:C.muted,marginTop:6,display:"block"}}>{series.length} session{series.length!==1?"s":""} · {first} → {cur} lbs</Mono>
               </div>;
             })}
             </>;
