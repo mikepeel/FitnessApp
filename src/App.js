@@ -3111,7 +3111,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
     }catch(e){console.error("recalcPRs:",e);} // fail-safe: never break the primary action
   }
 
-  async function saveEdit(updated){
+  async function saveEdit(updated,origFromModal){
     const setsArr=[];
     for(const[exName,sets]of Object.entries(updated.sets||{})){
       for(const[sn,vals]of Object.entries(sets)){
@@ -3127,7 +3127,9 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
       setSessions(updatedSessions);await recalcPRs();setReloadNonce(n=>n+1);
       return true;
     }
-    const original=sessions.find(s=>s.id===updatedSession.id);
+    // Rollback baseline: prefer the pre-edit session passed by the modal (present even for
+    // beyond-cap rows not in the loaded prop), fall back to the prop find for any other caller.
+    const original=origFromModal||sessions.find(s=>s.id===updatedSession.id);
     const{data:{session:_sess}}=await supabase.auth.getSession().catch(()=>({data:{session:null}}));
     const uid=_sess?.user?.id;
     // STEP 1: update workout_sessions
@@ -3654,7 +3656,7 @@ function SessionEditModal({session,onSave,onClose,allSessions=[],onRenameAll,C})
         </div>
       </div>
       :<div style={{display:"flex",gap:10}}>
-        <Btn style={{flex:1}} C={C} disabled={saving} onClick={async()=>{setSaving(true);setSaveError(null);try{const ok=await onSave(editData);if(ok===false){setSaveError("Save failed — your original data is unchanged. Check connection and try again.");}else{const pending=renames.filter(r=>allSessions.some(s=>s.id!==session.id&&s.sets&&s.sets[r.from]));if(pending.length&&onRenameAll){setApplyAllPrompt(pending);}else{onClose();}}}catch(e){setSaveError("Save failed — your original data is unchanged. Check connection and try again.");}finally{setSaving(false);}}}>
+        <Btn style={{flex:1}} C={C} disabled={saving} onClick={async()=>{setSaving(true);setSaveError(null);try{const ok=await onSave(editData,session);if(ok===false){setSaveError("Save failed — your original data is unchanged. Check connection and try again.");}else{const pending=renames.filter(r=>allSessions.some(s=>s.id!==session.id&&s.sets&&s.sets[r.from]));if(pending.length&&onRenameAll){setApplyAllPrompt(pending);}else{onClose();}}}catch(e){setSaveError("Save failed — your original data is unchanged. Check connection and try again.");}finally{setSaving(false);}}}>
           {saving?"Saving…":"Save Changes"}
         </Btn>
         <Btn variant="ghost" style={{flex:1}} C={C} disabled={saving} onClick={onClose}>Cancel</Btn>

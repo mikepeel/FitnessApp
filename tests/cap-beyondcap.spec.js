@@ -55,4 +55,42 @@ test.describe("cap-cleanup beyond-cap delete/edit", () => {
     // 287min is distinctive (no real session has it), so it uniquely identifies the edited card.
     await expect(page.getByText(/287\s*min/)).toBeVisible({ timeout: 10000 });
   });
+
+  test("a failed beyond-cap edit rolls sets_data back to the original (rollback baseline from the modal)", async ({ page }) => {
+    // Force ONLY the logged_sets INSERT to fail: the first POST 500s; the session PATCH, the
+    // logged_sets DELETE, and the rollback's re-insert (a later POST) all succeed.
+    let firstInsertFailed = false;
+    await page.route(/\/rest\/v1\/logged_sets(\?|$)/, (route) => {
+      if (route.request().method() === "POST" && !firstInsertFailed) {
+        firstInsertFailed = true;
+        return route.fulfill({ status: 500, contentType: "application/json", body: '{"message":"forced insert failure"}' });
+      }
+      return route.continue();
+    });
+
+    await ensureCleanHome(page);
+    await page.getByRole("button", { name: /History/i }).click();
+    await page.getByRole("button", { name: "6M" }).click();
+    await expect(page.getByText("AutoTest-BeyondCap-Rollback")).toBeVisible({ timeout: 10000 });
+
+    // Edit the Bench Press weight 100 -> 200; the save's logged_sets insert fails -> rollback.
+    await page.getByText("AutoTest-BeyondCap-Rollback").click();
+    await page.getByRole("button", { name: /Edit/ }).first().click();
+    await expect(page.getByText("✎ Edit Workout")).toBeVisible({ timeout: 5000 });
+    await page.getByPlaceholder("lbs").fill("200");
+    await page.getByRole("button", { name: /Save Changes/ }).click();
+    await expect(page.getByText(/Save failed/)).toBeVisible({ timeout: 8000 });
+    await page.getByRole("button", { name: "Cancel" }).click();
+
+    // Reload, re-open: sets_data must be rolled back to 100. The rollback needs the modal's
+    // pre-edit session as its baseline (the row isn't in the prop); with prop-find only it's
+    // skipped and the half-applied 200 persists.
+    await ensureCleanHome(page);
+    await page.getByRole("button", { name: /History/i }).click();
+    await page.getByRole("button", { name: "6M" }).click();
+    await page.getByText("AutoTest-BeyondCap-Rollback").click();
+    await page.getByRole("button", { name: /Edit/ }).first().click();
+    await expect(page.getByText("✎ Edit Workout")).toBeVisible({ timeout: 5000 });
+    await expect(page.getByPlaceholder("lbs")).toHaveValue("100");
+  });
 });

@@ -21,7 +21,7 @@ loadEnv(".env.test.local");
 const SUPABASE_URL = "https://ldbrabnvpiidrdkmjpbo.supabase.co";
 const KEY = process.env.SUPABASE_SERVICE_KEY;
 const MARKER = "[AUTOMATED TEST — SAFE TO DELETE]";
-const LABELS = ["AutoTest-Bulk", "AutoTest-Partial", "AutoTest-BeyondCap-Del", "AutoTest-BeyondCap-Edit", "AutoTest-InCap-Rollback"];
+const LABELS = ["AutoTest-Bulk", "AutoTest-Partial", "AutoTest-BeyondCap-Del", "AutoTest-BeyondCap-Edit", "AutoTest-InCap-Rollback", "AutoTest-BeyondCap-Rollback"];
 const DAY = 86400000;
 
 const hasKey = () => !!KEY && !KEY.includes("anon");
@@ -71,6 +71,9 @@ async function seed({ bulk = 90 } = {}) {
   // Recent (in-cap → in the loaded prop) row WITH a set, for the saveEdit rollback (.catch) test:
   // editing its weight then forcing the logged_sets insert to fail must roll sets_data back to 100.
   rows.push({ user_id: uid, day_label: "AutoTest-InCap-Rollback", started_at: new Date(now - 2 * DAY - 3600000).toISOString(), completed_at: new Date(now - 2 * DAY).toISOString(), notes: MARKER, sets_data: { "Bench Press": { "1": { weight: "100", reps: "5" } } }, partial: false });
+  // Beyond-cap (~178d, past the prop cap) row WITH a set, for the beyond-cap rollback test: a
+  // failed edit must roll sets_data back to 100 using the modal-passed baseline (no prop entry).
+  rows.push({ user_id: uid, day_label: "AutoTest-BeyondCap-Rollback", started_at: bcStarted, completed_at: bcCompleted.toISOString(), notes: MARKER, sets_data: { "Bench Press": { "1": { weight: "100", reps: "5" } } }, partial: false });
   const { error } = await sb.from("workout_sessions").insert(rows);
   if (error) throw new Error("seedHistory insert failed: " + error.message);
   return { skipped: false, uid, count: rows.length };
