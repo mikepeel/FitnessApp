@@ -3138,7 +3138,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
       const{error:delErr}=await supabase.from("logged_sets").delete().eq("session_id",updatedSession.supabaseId);
       if(delErr){
         console.error("saveEdit delete:",delErr);
-        if(original)await supabase.from("workout_sessions").update({completed_at:original.completedAt,started_at:original.startedAt,notes:original.notes||"",sets_data:original.sets||{},partial:original.partial||false}).eq("id",updatedSession.supabaseId).catch(e=>console.error("saveEdit rollback session:",e));
+        if(original){const{error:rbErr}=await supabase.from("workout_sessions").update({completed_at:original.completedAt,started_at:original.startedAt,notes:original.notes||"",sets_data:original.sets||{},partial:original.partial||false}).eq("id",updatedSession.supabaseId);if(rbErr)console.error("saveEdit rollback session:",rbErr);}
         return false;
       }
       if(setsArr.length>0){
@@ -3149,9 +3149,9 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
           // Re-insert originals to restore previous sets, then rollback session
           if(original&&(original.setsArr||[]).length>0){
             const origRows=(original.setsArr||[]).map(x=>({session_id:updatedSession.supabaseId,user_id:uid,exercise_name:x.exName,set_number:x.setNum,weight:parseFloat(x.weight)||null,reps:x.minutes?(parseInt(x.level)||null):(parseInt(x.reps)||null),minutes:parseFloat(x.minutes)||null,is_pr:x.isPR||false,set_type:x.type||"working"}));
-            await supabase.from("logged_sets").insert(origRows).catch(e=>console.error("saveEdit sets rollback:",e));
+            const{error:rbSetsErr}=await supabase.from("logged_sets").insert(origRows);if(rbSetsErr)console.error("saveEdit sets rollback:",rbSetsErr);
           }
-          if(original)await supabase.from("workout_sessions").update({completed_at:original.completedAt,started_at:original.startedAt,notes:original.notes||"",sets_data:original.sets||{},partial:original.partial||false}).eq("id",updatedSession.supabaseId).catch(e=>console.error("saveEdit session rollback:",e));
+          if(original){const{error:rbSessErr}=await supabase.from("workout_sessions").update({completed_at:original.completedAt,started_at:original.startedAt,notes:original.notes||"",sets_data:original.sets||{},partial:original.partial||false}).eq("id",updatedSession.supabaseId);if(rbSessErr)console.error("saveEdit session rollback:",rbSessErr);}
           return false;
         }
       }
