@@ -34,6 +34,22 @@ export function setsToArr(setsObj) {
   return arr;
 }
 
+// Stamp each set leaf with its stored is_pr (from prMap, keyed by `${exName}|${setNum}`) BEFORE a
+// rename, so renameSetsData carries the flag with the moved leaf object through any renumber and
+// the logged_sets rebuilt from the blob preserve the pre-rebuild badges (preserve, NOT recompute).
+// Falls back to the leaf's existing isPR when prMap has no entry. Pure (returns a new object).
+export function enrichIsPR(setsObj, prMap = {}) {
+  const out = {};
+  for (const [exName, sets] of Object.entries(setsObj || {})) {
+    out[exName] = {};
+    for (const [sn, leaf] of Object.entries(sets || {})) {
+      const k = `${exName}|${sn}`;
+      out[exName][sn] = { ...leaf, isPR: k in prMap ? !!prMap[k] : !!(leaf && leaf.isPR) };
+    }
+  }
+  return out;
+}
+
 // Plan the sets_data rewrites for a rename across the GIVEN rows ([{id, sets_data}]). Returns
 // {id, sets_data} only for rows whose blob holds oldName. Pure — the caller decides which rows to
 // pass; the cap bug passed only the loaded prop, so occurrences beyond that window were missed.

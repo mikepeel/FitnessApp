@@ -67,4 +67,35 @@ test.describe("cap-cleanup rename across full history", () => {
     await expect(page.getByText(/Workout History/i)).toBeVisible({ timeout: 8000 });
     await expect(page.getByText(/Save failed|couldn.?t load|something went wrong/i)).toHaveCount(0);
   });
+
+  test("a renamed session keeps its per-set PR badge (preserve, not clear)", async ({ page }) => {
+    await ensureCleanHome(page);
+    await page.getByRole("button", { name: /History/i }).click();
+    await renameInModal(page, "AutoTest-RenameEdit", "NewLift");
+
+    await ensureCleanHome(page);
+    await page.getByRole("button", { name: /History/i }).click();
+    await page.getByRole("button", { name: "6M" }).click();
+    await page.getByText("AutoTest-RenameBeyond").click(); // expand the beyond-cap session
+    // Its set (100 lbs × 5) kept the PR badge through the rebuild. Before the fix the rebuild
+    // re-inserts is_pr=false (sets_data lacks isPR) and the badge is cleared.
+    await expect(page.getByText(/100lbs/).first()).toContainText("PR", { timeout: 10000 });
+  });
+
+  test("saveEdit (edit-only, no rename) keeps the per-set PR badge", async ({ page }) => {
+    await ensureCleanHome(page);
+    await page.getByRole("button", { name: /History/i }).click();
+    // Edit the in-cap session's DURATION (no exercise rename → no apply-to-all prompt), save.
+    await page.getByText("AutoTest-RenameInCap").click();
+    await page.getByRole("button", { name: /Edit/ }).first().click();
+    await expect(page.getByText("✎ Edit Workout")).toBeVisible({ timeout: 5000 });
+    await page.locator('input[max="300"]').fill("99");
+    await page.getByRole("button", { name: /Save Changes/ }).click();
+    await expect(page.getByText("✎ Edit Workout")).toHaveCount(0, { timeout: 10000 }); // modal closed = saved
+
+    await ensureCleanHome(page);
+    await page.getByRole("button", { name: /History/i }).click();
+    await page.getByText("AutoTest-RenameInCap").click(); // expand (default 3M; in-cap is recent)
+    await expect(page.getByText(/100lbs/).first()).toContainText("PR", { timeout: 10000 });
+  });
 });

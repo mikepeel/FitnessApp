@@ -11,7 +11,7 @@ import { mapSessionRow } from "./lib/sessionMap";
 import { historyWindow } from "./lib/historyWindow";
 import { flagPRs } from "./lib/prFlags";
 import { lifetimePRs } from "./lib/lifetimePRs";
-import { renameSetsData, setsToArr, planRename } from "./lib/renameExercise";
+import { renameSetsData, setsToArr, enrichIsPR } from "./lib/renameExercise";
 import { muscleContributions, rollupToGroup, DISPLAY_GROUPS } from "./lib/muscleVolume";
 import { analyzePlan } from "./lib/planAnalysis";
 import { analyzeRealized } from "./lib/realizedVolume";
@@ -3148,7 +3148,9 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
   // skipped via skipId). Per affected session we rebuild rather than blind-UPDATE exercise_name:
   // renameSetsData merges+renumbers when the rename collides with an existing exercise, and the
   // logged_sets are rebuilt from that blob, so the two stores stay consistent (a blind UPDATE would
-  // leave duplicate set_numbers on a merge). Write order is logged_sets first, sets_data PATCH LAST:
+  // leave duplicate set_numbers on a merge). Existing per-set is_pr is carried over (enrichIsPR) so
+  // the rebuild PRESERVES PR badges rather than clearing them (preserve, not recompute). Write
+  // order is logged_sets first, sets_data PATCH LAST:
   // sets_data still holding oldName is the "not done yet" marker, so any per-session partial failure
   // is fully recoverable by re-running. Idempotent (a re-run finds only remaining oldName). supabase
   // { error } pattern on every write (the builder has no .catch — see saveEdit/997f131).
@@ -3163,19 +3165,30 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
         const{data:rows,error:fErr}=await supabase.from("workout_sessions").select("id,sets_data").eq("user_id",uid).range(from,from+PAGE-1);
         if(fErr){console.error("renameAll fetch:",fErr);return false;}
         if(!rows||rows.length===0)break;
-        for(const w of planRename(rows.filter(r=>r.id!==skipId),oldName,newName)){
-          const arr=setsToArr(w.sets_data);
-          // logged_sets first (delete all for the session, re-insert from the renamed blob)...
-          const{error:e2}=await supabase.from("logged_sets").delete().eq("session_id",w.id);
-          if(e2){console.error("renameAll delete:",e2);return false;}
-          if(arr.length){
-            const lsRows=arr.map(x=>({session_id:w.id,user_id:uid,exercise_name:x.exName,set_number:x.setNum,weight:parseFloat(x.weight)||null,reps:x.minutes?(parseInt(x.level)||null):(parseInt(x.reps)||null),minutes:parseFloat(x.minutes)||null,is_pr:x.isPR||false,set_type:x.type||"working"}));
-            const{error:e3}=await supabase.from("logged_sets").insert(lsRows);
-            if(e3){console.error("renameAll insert:",e3);return false;}
+        const affected=rows.filter(r=>r.id!==skipId&&r.sets_data&&Object.prototype.hasOwnProperty.call(r.sets_data,oldName));
+        if(affected.length){
+          // Read existing per-set is_pr for the affected sessions so the rebuild PRESERVES the
+          // pre-rebuild badges (carry-over, NOT recompute — see project_deferred_infra). enrichIsPR
+          // stamps every leaf (all exercises, since the rebuild replaces all of a session's
+          // logged_sets) and renameSetsData carries the flag with the moved leaf through any renumber.
+          const{data:ls,error:lErr}=await supabase.from("logged_sets").select("session_id,exercise_name,set_number,is_pr").in("session_id",affected.map(r=>r.id));
+          if(lErr){console.error("renameAll flags read:",lErr);return false;}
+          const prBy={};(ls||[]).forEach(x=>{(prBy[x.session_id]||(prBy[x.session_id]={}))[`${x.exercise_name}|${x.set_number}`]=x.is_pr;});
+          for(const r of affected){
+            const renamed=renameSetsData(enrichIsPR(r.sets_data,prBy[r.id]||{}),oldName,newName);
+            const arr=setsToArr(renamed);
+            // logged_sets first (delete all for the session, re-insert from the renamed+enriched blob)...
+            const{error:e2}=await supabase.from("logged_sets").delete().eq("session_id",r.id);
+            if(e2){console.error("renameAll delete:",e2);return false;}
+            if(arr.length){
+              const lsRows=arr.map(x=>({session_id:r.id,user_id:uid,exercise_name:x.exName,set_number:x.setNum,weight:parseFloat(x.weight)||null,reps:x.minutes?(parseInt(x.level)||null):(parseInt(x.reps)||null),minutes:parseFloat(x.minutes)||null,is_pr:x.isPR||false,set_type:x.type||"working"}));
+              const{error:e3}=await supabase.from("logged_sets").insert(lsRows);
+              if(e3){console.error("renameAll insert:",e3);return false;}
+            }
+            // ...sets_data PATCH last (flips the oldName marker only once logged_sets are consistent).
+            const{error:e1}=await supabase.from("workout_sessions").update({sets_data:renamed}).eq("id",r.id);
+            if(e1){console.error("renameAll session:",e1);return false;}
           }
-          // ...sets_data PATCH last (flips the oldName marker only once logged_sets are consistent).
-          const{error:e1}=await supabase.from("workout_sessions").update({sets_data:w.sets_data}).eq("id",w.id);
-          if(e1){console.error("renameAll session:",e1);return false;}
         }
         if(rows.length<PAGE)break;
       }

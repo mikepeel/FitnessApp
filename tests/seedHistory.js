@@ -101,7 +101,9 @@ async function seedRename() {
   const mk = (label, daysAgo) => ({ user_id: uid, day_label: label, started_at: new Date(now - daysAgo * DAY - 3600000).toISOString(), completed_at: new Date(now - daysAgo * DAY).toISOString(), notes: MARKER, sets_data: blob, partial: false });
   const { data: ins, error: ie } = await sb.from("workout_sessions").insert([mk("AutoTest-RenameEdit", 1), mk("AutoTest-RenameInCap", 2), mk("AutoTest-RenameBeyond", 178)]).select("id,day_label");
   if (ie) throw new Error("seedRename rows: " + ie.message);
-  const ls = (ins || []).map((r) => ({ session_id: r.id, user_id: uid, exercise_name: "OldLift", set_number: 1, weight: 100, reps: 5, set_type: "working" }));
+  // Each OldLift set is a PR (is_pr=true) while its sets_data leaf lacks isPR — so a rebuild that
+  // doesn't preserve would clear the badge. Used by the badge-persists (rename) and saveEdit-guard tests.
+  const ls = (ins || []).map((r) => ({ session_id: r.id, user_id: uid, exercise_name: "OldLift", set_number: 1, weight: 100, reps: 5, set_type: "working", is_pr: true }));
   if (ls.length) { const { error: le } = await sb.from("logged_sets").insert(ls); if (le) throw new Error("seedRename logged_sets: " + le.message); }
   return { skipped: false, beyondId: (ins || []).find((r) => r.day_label === "AutoTest-RenameBeyond")?.id };
 }

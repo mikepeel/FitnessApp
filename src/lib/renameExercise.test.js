@@ -1,4 +1,38 @@
-import { renameSetsData, setsToArr, planRename } from "./renameExercise";
+import { renameSetsData, setsToArr, planRename, enrichIsPR } from "./renameExercise";
+
+describe("enrichIsPR + rename PRESERVES is_pr on the correct set (carry-over, not recompute)", () => {
+  test("non-merge: each set keeps its stored flag after rename", () => {
+    const sets = { A: { 1: { weight: "100", reps: "5" }, 2: { weight: "100", reps: "5" } } };
+    const prMap = { "A|1": true, "A|2": false }; // set 1 was a PR when performed, set 2 not
+    const arr = setsToArr(renameSetsData(enrichIsPR(sets, prMap), "A", "B"));
+    expect(arr.find((x) => x.setNum === 1)).toMatchObject({ exName: "B", isPR: true });
+    expect(arr.find((x) => x.setNum === 2)).toMatchObject({ exName: "B", isPR: false });
+  });
+
+  test("FAILS-BEFORE: without enrich, a stored flag absent from sets_data is dropped; with enrich, kept", () => {
+    const sets = { A: { 1: { weight: "100", reps: "5" } } }; // sets_data lacks isPR (the ~half case)
+    expect(setsToArr(renameSetsData(sets, "A", "B"))[0].isPR).toBe(false); // before: badge lost
+    expect(setsToArr(renameSetsData(enrichIsPR(sets, { "A|1": true }), "A", "B"))[0].isPR).toBe(true); // after: kept
+  });
+
+  test("merge/renumber: the flag follows the physical lift instance and none is invented", () => {
+    // Session has A (flagged) and B (not). Rename A→B → A's set moves to B#2 and keeps its flag;
+    // existing B#1 stays unflagged.
+    const sets = { A: { 1: { weight: "100", reps: "5" } }, B: { 1: { weight: "90", reps: "5" } } };
+    const arr = setsToArr(renameSetsData(enrichIsPR(sets, { "A|1": true, "B|1": false }), "A", "B"));
+    const bySet = Object.fromEntries(arr.map((x) => [x.setNum, x]));
+    expect(bySet[1]).toMatchObject({ exName: "B", weight: "90", isPR: false }); // original B, unchanged
+    expect(bySet[2]).toMatchObject({ exName: "B", weight: "100", isPR: true }); // moved A keeps its flag
+    expect(arr.filter((x) => x.isPR).length).toBe(1); // exactly one — none invented
+  });
+
+  test("idempotent: re-running after the rename (oldName gone) changes nothing", () => {
+    const renamed = { B: { 1: { weight: "90", reps: "5", isPR: false }, 2: { weight: "100", reps: "5", isPR: true } } };
+    const prMap = { "B|1": false, "B|2": true };
+    const again = setsToArr(renameSetsData(enrichIsPR(renamed, prMap), "A", "B")); // no A → no-op rename
+    expect(again.filter((x) => x.isPR).map((x) => x.setNum)).toEqual([2]);
+  });
+});
 
 describe("renameSetsData", () => {
   test("renames a key", () => {
