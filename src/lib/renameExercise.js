@@ -34,6 +34,16 @@ export function setsToArr(setsObj) {
   return arr;
 }
 
+// True if any session other than excludeId contains the exercise — used to decide whether to offer
+// "apply rename to other sessions?". Pure; the caller supplies the session list. The loaded prop is
+// capped, so the app pairs this (a fast path over the prop) with a bounded DB count by
+// exercise_name to also catch occurrences beyond the cap.
+export function otherOccurrence(sessions, exName, excludeId) {
+  return (sessions || []).some(
+    (s) => s && s.id !== excludeId && s.sets && Object.prototype.hasOwnProperty.call(s.sets, exName)
+  );
+}
+
 // Stamp each set leaf with its stored is_pr (from prMap, keyed by `${exName}|${setNum}`) BEFORE a
 // rename, so renameSetsData carries the flag with the moved leaf object through any renumber and
 // the logged_sets rebuilt from the blob preserve the pre-rebuild badges (preserve, NOT recompute).

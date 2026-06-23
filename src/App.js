@@ -11,7 +11,7 @@ import { mapSessionRow } from "./lib/sessionMap";
 import { historyWindow } from "./lib/historyWindow";
 import { flagPRs } from "./lib/prFlags";
 import { lifetimePRs } from "./lib/lifetimePRs";
-import { renameSetsData, setsToArr, enrichIsPR } from "./lib/renameExercise";
+import { renameSetsData, setsToArr, enrichIsPR, otherOccurrence } from "./lib/renameExercise";
 import { muscleContributions, rollupToGroup, DISPLAY_GROUPS } from "./lib/muscleVolume";
 import { analyzePlan } from "./lib/planAnalysis";
 import { analyzeRealized } from "./lib/realizedVolume";
@@ -3659,7 +3659,7 @@ function SessionEditModal({session,onSave,onClose,allSessions=[],onRenameAll,C})
         </div>
       </div>
       :<div style={{display:"flex",gap:10}}>
-        <Btn style={{flex:1}} C={C} disabled={saving} onClick={async()=>{setSaving(true);setSaveError(null);try{const ok=await onSave(editData,session);if(ok===false){setSaveError("Save failed — your original data is unchanged. Check connection and try again.");}else{const pending=renames.filter(r=>allSessions.some(s=>s.id!==session.id&&s.sets&&s.sets[r.from]));if(pending.length&&onRenameAll){setApplyAllPrompt(pending);}else{onClose();}}}catch(e){setSaveError("Save failed — your original data is unchanged. Check connection and try again.");}finally{setSaving(false);}}}>
+        <Btn style={{flex:1}} C={C} disabled={saving} onClick={async()=>{setSaving(true);setSaveError(null);try{const ok=await onSave(editData,session);if(ok===false){setSaveError("Save failed — your original data is unchanged. Check connection and try again.");}else{const pending=[];for(const r of renames){let other=otherOccurrence(allSessions,r.from,session.id);if(!other){try{const{data:{session:_s}}=await supabase.auth.getSession().catch(()=>({data:{session:null}}));const uid=_s?.user?.id;if(!uid){other=true;}else{const{count,error}=await supabase.from("logged_sets").select("session_id",{count:"exact",head:true}).eq("user_id",uid).eq("exercise_name",r.from).neq("session_id",session.id);other=error?true:(count||0)>0;}}catch(e){console.error("rename occurrence check:",e);other=true;}}if(other)pending.push(r);}if(pending.length&&onRenameAll){setApplyAllPrompt(pending);}else{onClose();}}}catch(e){setSaveError("Save failed — your original data is unchanged. Check connection and try again.");}finally{setSaving(false);}}}>
           {saving?"Saving…":"Save Changes"}
         </Btn>
         <Btn variant="ghost" style={{flex:1}} C={C} disabled={saving} onClick={onClose}>Cancel</Btn>

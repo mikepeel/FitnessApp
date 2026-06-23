@@ -79,11 +79,12 @@ async function seed({ bulk = 90 } = {}) {
   return { skipped: false, uid, count: rows.length };
 }
 
-// Seeds fixtures for the across-history rename test: 90 bulk (to push the beyond-cap occurrence
-// past the 100-row prop) + three sessions holding "OldLift" — one recent (the one we edit), one
-// recent in-cap (so the "apply to all?" prompt fires), one ~178d beyond-cap. Each OldLift session
-// gets a logged_set so both stores are exercised. Returns the beyond-cap session id.
-async function seedRename() {
+// Seeds fixtures for the across-history rename tests: 90 bulk (to push the beyond-cap occurrence
+// past the 100-row prop) + sessions holding "OldLift" — one recent (the one we edit), one ~178d
+// beyond-cap, and (when inCap) one recent in-cap so the "apply to all?" prompt fires off the prop.
+// With inCap:false the ONLY other occurrence is beyond-cap (the Edge B trigger case). Each OldLift
+// set is flagged is_pr=true. Returns the beyond-cap session id.
+async function seedRename({ inCap = true } = {}) {
   if (!hasKey()) return { skipped: true };
   const sb = admin();
   const uid = await getUid(sb);
@@ -99,7 +100,10 @@ async function seedRename() {
   if (be) throw new Error("seedRename bulk: " + be.message);
   const blob = { OldLift: { "1": { weight: "100", reps: "5" } } };
   const mk = (label, daysAgo) => ({ user_id: uid, day_label: label, started_at: new Date(now - daysAgo * DAY - 3600000).toISOString(), completed_at: new Date(now - daysAgo * DAY).toISOString(), notes: MARKER, sets_data: blob, partial: false });
-  const { data: ins, error: ie } = await sb.from("workout_sessions").insert([mk("AutoTest-RenameEdit", 1), mk("AutoTest-RenameInCap", 2), mk("AutoTest-RenameBeyond", 178)]).select("id,day_label");
+  const toInsert = [mk("AutoTest-RenameEdit", 1)];
+  if (inCap) toInsert.push(mk("AutoTest-RenameInCap", 2));
+  toInsert.push(mk("AutoTest-RenameBeyond", 178));
+  const { data: ins, error: ie } = await sb.from("workout_sessions").insert(toInsert).select("id,day_label");
   if (ie) throw new Error("seedRename rows: " + ie.message);
   // Each OldLift set is a PR (is_pr=true) while its sets_data leaf lacks isPR — so a rebuild that
   // doesn't preserve would clear the badge. Used by the badge-persists (rename) and saveEdit-guard tests.

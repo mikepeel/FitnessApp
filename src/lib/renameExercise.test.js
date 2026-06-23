@@ -1,4 +1,21 @@
-import { renameSetsData, setsToArr, planRename, enrichIsPR } from "./renameExercise";
+import { renameSetsData, setsToArr, planRename, enrichIsPR, otherOccurrence } from "./renameExercise";
+
+describe("otherOccurrence — prompt detection sees all given sessions (cap-coverage)", () => {
+  const edited = { id: "e", sets: { Squat: {} } };
+  const beyond = { id: "b", sets: { Squat: {} } };
+  test("finds an occurrence in another session", () => {
+    expect(otherOccurrence([edited, beyond], "Squat", "e")).toBe(true);
+  });
+  test("excludes the edited session itself", () => {
+    expect(otherOccurrence([edited], "Squat", "e")).toBe(false);
+  });
+  test("FAILS-BEFORE: a capped list missing the beyond-cap session reports no occurrence", () => {
+    expect(otherOccurrence([edited], "Squat", "e")).toBe(false); // 'b' (beyond cap) absent → missed
+  });
+  test("PASSES-AFTER: the full (uncapped) list finds the beyond-cap occurrence", () => {
+    expect(otherOccurrence([edited, beyond], "Squat", "e")).toBe(true);
+  });
+});
 
 describe("enrichIsPR + rename PRESERVES is_pr on the correct set (carry-over, not recompute)", () => {
   test("non-merge: each set keeps its stored flag after rename", () => {
