@@ -11,6 +11,7 @@ import { mapSessionRow } from "./lib/sessionMap";
 import { historyWindow } from "./lib/historyWindow";
 import { flagPRs } from "./lib/prFlags";
 import { lifetimePRs } from "./lib/lifetimePRs";
+import { renameSetsData, setsToArr, planRename } from "./lib/renameExercise";
 import { muscleContributions, rollupToGroup, DISPLAY_GROUPS } from "./lib/muscleVolume";
 import { analyzePlan } from "./lib/planAnalysis";
 import { analyzeRealized } from "./lib/realizedVolume";
@@ -2949,32 +2950,8 @@ function DayForm({onSave,onClose,C}){
   </div>;
 }
 
-// Rename an exercise key within a session's sets object (merges + renumbers if the target name already exists)
-function renameInSets(setsObj,oldName,newName){
-  if(!setsObj||!setsObj[oldName]||oldName===newName)return setsObj;
-  const sets={...setsObj};
-  const moving=sets[oldName];
-  delete sets[oldName];
-  if(sets[newName]){
-    const merged={...sets[newName]};
-    let next=Math.max(0,...Object.keys(merged).map(Number))+1;
-    for(const k of Object.keys(moving)){merged[next++]=moving[k];}
-    sets[newName]=merged;
-  }else{
-    sets[newName]=moving;
-  }
-  return sets;
-}
-// Rebuild a flat setsArr from a sets object (mirrors saveEdit's logic — keeps set numbers consistent)
-function setsToArr(setsObj){
-  const arr=[];
-  for(const[exName,sets]of Object.entries(setsObj||{})){
-    for(const[sn,v]of Object.entries(sets)){
-      if(v.weight||v.reps||v.minutes)arr.push({exName,setNum:parseInt(sn),weight:v.weight||"",reps:v.reps||"",minutes:v.minutes||"",level:v.level||"",isPR:v.isPR||false,type:v.type||"working"});
-    }
-  }
-  return arr;
-}
+// renameSetsData (merge-aware key rename) + setsToArr (sets_data → set rows) live in
+// ./lib/renameExercise so the across-history rename is unit-tested and operates uncapped.
 
 // -- HISTORY -------------------------------------------------------------------
 function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggleTheme,themeMode,onRerun}){
@@ -3166,34 +3143,47 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
     return true;
   }
 
-  // Rename an exercise across ALL other sessions (the edited session is handled by saveEdit).
-  // Writes sets_data + logged_sets per affected session, then refreshes state + PRs.
+  // Rename an exercise across the user's FULL history — not just the loaded .limit(100) prop — so
+  // occurrences beyond that window are renamed too (the edited session is handled by saveEdit and
+  // skipped via skipId). Per affected session we rebuild rather than blind-UPDATE exercise_name:
+  // renameSetsData merges+renumbers when the rename collides with an existing exercise, and the
+  // logged_sets are rebuilt from that blob, so the two stores stay consistent (a blind UPDATE would
+  // leave duplicate set_numbers on a merge). Write order is logged_sets first, sets_data PATCH LAST:
+  // sets_data still holding oldName is the "not done yet" marker, so any per-session partial failure
+  // is fully recoverable by re-running. Idempotent (a re-run finds only remaining oldName). supabase
+  // { error } pattern on every write (the builder has no .catch — see saveEdit/997f131).
   async function renameExerciseEverywhere(oldName,newName,skipId){
+    if(oldName===newName)return true;
     try{
       const{data:{session:_s}}=await supabase.auth.getSession().catch(()=>({data:{session:null}}));
       const uid=_s?.user?.id;
-      const affected=sessions.filter(s=>s.id!==skipId&&s.sets&&s.sets[oldName]);
-      for(const s of affected){
-        const ns=renameInSets(s.sets,oldName,newName);
-        const arr=setsToArr(ns);
-        if(s.supabaseId&&uid){
-          const{error:e1}=await supabase.from("workout_sessions").update({sets_data:ns}).eq("id",s.supabaseId);
-          if(e1){console.error("renameAll session:",e1);return false;}
-          const{error:e2}=await supabase.from("logged_sets").delete().eq("session_id",s.supabaseId);
+      if(!uid)return false;
+      const PAGE=1000;
+      for(let from=0;;from+=PAGE){
+        const{data:rows,error:fErr}=await supabase.from("workout_sessions").select("id,sets_data").eq("user_id",uid).range(from,from+PAGE-1);
+        if(fErr){console.error("renameAll fetch:",fErr);return false;}
+        if(!rows||rows.length===0)break;
+        for(const w of planRename(rows.filter(r=>r.id!==skipId),oldName,newName)){
+          const arr=setsToArr(w.sets_data);
+          // logged_sets first (delete all for the session, re-insert from the renamed blob)...
+          const{error:e2}=await supabase.from("logged_sets").delete().eq("session_id",w.id);
           if(e2){console.error("renameAll delete:",e2);return false;}
           if(arr.length){
-            const rows=arr.map(x=>({session_id:s.supabaseId,user_id:uid,exercise_name:x.exName,set_number:x.setNum,weight:parseFloat(x.weight)||null,reps:x.minutes?(parseInt(x.level)||null):(parseInt(x.reps)||null),minutes:parseFloat(x.minutes)||null,is_pr:x.isPR||false,set_type:x.type||"working"}));
-            const{error:e3}=await supabase.from("logged_sets").insert(rows);
+            const lsRows=arr.map(x=>({session_id:w.id,user_id:uid,exercise_name:x.exName,set_number:x.setNum,weight:parseFloat(x.weight)||null,reps:x.minutes?(parseInt(x.level)||null):(parseInt(x.reps)||null),minutes:parseFloat(x.minutes)||null,is_pr:x.isPR||false,set_type:x.type||"working"}));
+            const{error:e3}=await supabase.from("logged_sets").insert(lsRows);
             if(e3){console.error("renameAll insert:",e3);return false;}
           }
+          // ...sets_data PATCH last (flips the oldName marker only once logged_sets are consistent).
+          const{error:e1}=await supabase.from("workout_sessions").update({sets_data:w.sets_data}).eq("id",w.id);
+          if(e1){console.error("renameAll session:",e1);return false;}
         }
+        if(rows.length<PAGE)break;
       }
-      // Refresh state from the freshest sessions (functional updater) so the just-saved edit isn't clobbered
+      // Refresh loaded state for immediate UI (DB is source of truth); skip the just-saved edit.
       setSessions(prev=>prev.map(s=>{
-        if(s.sets&&s.sets[oldName]){const ns=renameInSets(s.sets,oldName,newName);return {...s,sets:ns,setsArr:setsToArr(ns)};}
+        if(s.id!==skipId&&s.sets&&s.sets[oldName]){const ns=renameSetsData(s.sets,oldName,newName);return {...s,sets:ns,setsArr:setsToArr(ns)};}
         return s;
       }));
-      // DB now reflects the rename (logged_sets reinserted above); recompute PRs from full history.
       await recalcPRs();
       setReloadNonce(n=>n+1);
       return true;
@@ -3505,7 +3495,7 @@ function SessionEditModal({session,onSave,onClose,allSessions=[],onRenameAll,C})
     const newName=(rawNew||"").trim();
     setEditingName(null);
     if(!newName||newName===oldName)return;
-    setEditData(prev=>({...prev,sets:renameInSets(prev.sets,oldName,newName)}));
+    setEditData(prev=>({...prev,sets:renameSetsData(prev.sets,oldName,newName)}));
     // Track the rename (collapse chains so X→A→B records as X→B), drop no-ops
     setRenames(prev=>{
       const chained=prev.some(r=>r.to===oldName);

@@ -21,7 +21,7 @@ loadEnv(".env.test.local");
 const SUPABASE_URL = "https://ldbrabnvpiidrdkmjpbo.supabase.co";
 const KEY = process.env.SUPABASE_SERVICE_KEY;
 const MARKER = "[AUTOMATED TEST — SAFE TO DELETE]";
-const LABELS = ["AutoTest-Bulk", "AutoTest-Partial", "AutoTest-BeyondCap-Del", "AutoTest-BeyondCap-Edit", "AutoTest-InCap-Rollback", "AutoTest-BeyondCap-Rollback"];
+const LABELS = ["AutoTest-Bulk", "AutoTest-Partial", "AutoTest-BeyondCap-Del", "AutoTest-BeyondCap-Edit", "AutoTest-InCap-Rollback", "AutoTest-BeyondCap-Rollback", "AutoTest-RenameBulk", "AutoTest-RenameEdit", "AutoTest-RenameInCap", "AutoTest-RenameBeyond"];
 const DAY = 86400000;
 
 const hasKey = () => !!KEY && !KEY.includes("anon");
@@ -79,4 +79,31 @@ async function seed({ bulk = 90 } = {}) {
   return { skipped: false, uid, count: rows.length };
 }
 
-module.exports = { seed, cleanup, hasKey };
+// Seeds fixtures for the across-history rename test: 90 bulk (to push the beyond-cap occurrence
+// past the 100-row prop) + three sessions holding "OldLift" — one recent (the one we edit), one
+// recent in-cap (so the "apply to all?" prompt fires), one ~178d beyond-cap. Each OldLift session
+// gets a logged_set so both stores are exercised. Returns the beyond-cap session id.
+async function seedRename() {
+  if (!hasKey()) return { skipped: true };
+  const sb = admin();
+  const uid = await getUid(sb);
+  if (!uid) return { skipped: true };
+  await cleanup();
+  const now = Date.now();
+  const bulk = [];
+  for (let i = 0; i < 90; i++) {
+    const d = new Date(now - (95 + i) * DAY).toISOString();
+    bulk.push({ user_id: uid, day_label: "AutoTest-RenameBulk", started_at: d, completed_at: d, notes: MARKER, sets_data: {}, partial: false });
+  }
+  const { error: be } = await sb.from("workout_sessions").insert(bulk);
+  if (be) throw new Error("seedRename bulk: " + be.message);
+  const blob = { OldLift: { "1": { weight: "100", reps: "5" } } };
+  const mk = (label, daysAgo) => ({ user_id: uid, day_label: label, started_at: new Date(now - daysAgo * DAY - 3600000).toISOString(), completed_at: new Date(now - daysAgo * DAY).toISOString(), notes: MARKER, sets_data: blob, partial: false });
+  const { data: ins, error: ie } = await sb.from("workout_sessions").insert([mk("AutoTest-RenameEdit", 1), mk("AutoTest-RenameInCap", 2), mk("AutoTest-RenameBeyond", 178)]).select("id,day_label");
+  if (ie) throw new Error("seedRename rows: " + ie.message);
+  const ls = (ins || []).map((r) => ({ session_id: r.id, user_id: uid, exercise_name: "OldLift", set_number: 1, weight: 100, reps: 5, set_type: "working" }));
+  if (ls.length) { const { error: le } = await sb.from("logged_sets").insert(ls); if (le) throw new Error("seedRename logged_sets: " + le.message); }
+  return { skipped: false, beyondId: (ins || []).find((r) => r.day_label === "AutoTest-RenameBeyond")?.id };
+}
+
+module.exports = { seed, seedRename, cleanup, hasKey };
