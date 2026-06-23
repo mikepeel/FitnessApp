@@ -242,3 +242,9 @@ Before every commit verify:
   continuing to try things
 - Surface "I don't know the root cause yet" as a valid and preferred response
   over speculative fixes
+- A confirm-first conclusion must rest on inspected evidence (a real row, a
+  probe), not inference; if it rests on inference, label it a hypothesis and
+  verify before relying on it
+- Don't assume an API/library behaves as expected — verify against the actual
+  interface (e.g. the PostgREST builder has no .catch; writes use the
+  { error } pattern)
