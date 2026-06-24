@@ -4222,7 +4222,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
 
       {/* MUSCLE VOLUME DASHBOARD */}
       {statsView==="muscles"&&<div>
-        <RealizedVolumeInsight sessions={sessions} settings={settings} C={C}/>
+        {settings.showVolumeTargets&&settings.showCoaching&&<RealizedVolumeInsight sessions={sessions} settings={settings} C={C}/>}
         <SectionLabel C={C}>Volume by Muscle — Last 7 Days</SectionLabel>
         {muscleOrder.filter(m=>muscleVolMapped[m]>0||groupSets[m]>0).length===0&&cardioSets===0&&<div style={{textAlign:"center",padding:"32px 0",color:C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:12}}>Log workouts to see muscle volume breakdown.</div>}
         {muscleOrder.map(muscle=>{
