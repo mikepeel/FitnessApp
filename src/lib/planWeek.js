@@ -35,3 +35,32 @@ export const programWeekFromDate = (startDateStr, now = new Date()) => {
   if (days < 0) return 1;
   return Math.max(1, Math.ceil((days + 1) / 7));
 };
+
+// Local-noon Date for the START of the plan week that contains `now` — the windowing companion
+// to planWeekOf, built on the SAME anchor + 7-day blocks (NOT a separate week definition):
+// block = floor(days/7) = planWeekOf - 1, so the boundary can never drift from the week label.
+// Returns null when there's no start date. `now` injectable for tests.
+export const planWeekStart = (startDateStr, now = new Date()) => {
+  const days = elapsedDaysSince(startDateStr, now);
+  if (days === null) return null;
+  const start = parsePlanDate(startDateStr);
+  const block = days < 0 ? 0 : Math.floor(days / 7);
+  const ws = new Date(start);
+  ws.setDate(ws.getDate() + block * 7);
+  return ws; // local noon
+};
+
+// Sessions completed within the CURRENT plan week — the window for the Stats "This Week" card so
+// its count + volume match the plan/History views instead of a Sunday-start calendar week.
+// `startDateStr` is the canonical anchor (plan.startDate, else the earliest-completed-session
+// program start). Lower-bounded at the plan-week start (matching the card's prior `>=` semantics,
+// just re-anchored). Compares LOCAL dates on both sides (session completedAt → local; planWeekStart
+// → local noon), so no UTC/midnight drift. Returns [] when there's no anchor.
+export const planWeekSessions = (sessions, startDateStr, now = new Date()) => {
+  const ws = planWeekStart(startDateStr, now);
+  if (!ws) return [];
+  const wsStr = ws.toLocaleDateString("en-CA");
+  return (sessions || []).filter(
+    (s) => s && s.completedAt && new Date(s.completedAt).toLocaleDateString("en-CA") >= wsStr
+  );
+};

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, Component } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { createClient } from "@supabase/supabase-js";
-import { planWeekOf, elapsedDaysSince, parsePlanDate, programWeekFromDate } from "./lib/planWeek";
+import { planWeekOf, elapsedDaysSince, parsePlanDate, programWeekFromDate, planWeekSessions } from "./lib/planWeek";
 import { estimate1RM } from "./lib/oneRepMax";
 import { projectExercise } from "./lib/projections";
 import { rollingVolume } from "./lib/volume";
@@ -3933,10 +3933,11 @@ function StatsTab({sessions,programStart,prs,settings,C,activePlan,toggleTheme,t
   const {current:vol28,previous:volPrev28}=rollingVolume(sessions);
   const vol28Delta = volPrev28>0 ? Math.round(((vol28-volPrev28)/volPrev28)*100) : null;
 
-  // Weekly volume summary
-  const weekStart = new Date(); weekStart.setDate(weekStart.getDate()-weekStart.getDay());
-  const weekStr = weekStart.toLocaleDateString("en-CA");
-  const weekSessions = sessions.filter(s=>s.completedAt&&new Date(s.completedAt).toLocaleDateString("en-CA")>=weekStr);
+  // Weekly summary — "This Week" = the current PLAN week (matches the plan/History views), not a
+  // Sunday-start calendar week, so a session from the adjacent plan week can't leak in. Anchor
+  // mirrors the week label: plan.startDate when present, else the earliest-completed-session
+  // program start. Both cells (count + volume) derive from this one plan-week window.
+  const weekSessions = planWeekSessions(sessions, activePlan?.startDate || programStart || getProgramStart(sessions));
   const weekVol = weekSessions.reduce((a,s)=>(a+(s.setsArr||[]).filter(x=>x.type!=="warmup").reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
 
   // Muscle volume by group (last 7 days)

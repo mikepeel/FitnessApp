@@ -1,4 +1,4 @@
-import { planWeekOf, elapsedDaysSince, parsePlanDate, programWeekFromDate } from "./planWeek";
+import { planWeekOf, elapsedDaysSince, parsePlanDate, programWeekFromDate, planWeekStart, planWeekSessions } from "./planWeek";
 
 // start_date is a local "YYYY-MM-DD" string; the module anchors it to local noon.
 // `now` values are constructed as local datetimes (no trailing Z) to mirror that.
@@ -93,6 +93,68 @@ describe("programWeekFromDate (program-week fallback anchor)", () => {
 
   test("exact start day -> 1", () => {
     expect(programWeekFromDate("2026-06-17", NOW)).toBe(1);
+  });
+});
+
+describe("planWeekStart (plan-week window boundary)", () => {
+  // Tuesday-anchored plan (BDP). Local-noon timestamps keep the day deterministic across TZs.
+  const TUE = "2026-06-23";
+
+  test("mid-week -> the plan-week's anchor weekday, NOT the calendar Sunday", () => {
+    // now = Thursday 06-25; the plan week started Tuesday 06-23 (the bug used Sunday 06-21).
+    expect(planWeekStart(TUE, new Date("2026-06-25T10:00:00")).toLocaleDateString("en-CA")).toBe("2026-06-23");
+  });
+
+  test("second plan week -> anchor + 7 days (block math = planWeekOf - 1)", () => {
+    expect(planWeekStart(TUE, new Date("2026-07-01T10:00:00")).toLocaleDateString("en-CA")).toBe("2026-06-30");
+  });
+
+  test("now before start -> the start itself (block 0)", () => {
+    expect(planWeekStart(TUE, new Date("2026-06-20T10:00:00")).toLocaleDateString("en-CA")).toBe("2026-06-23");
+  });
+
+  test("no start date -> null", () => {
+    expect(planWeekStart(null, new Date("2026-06-25T10:00:00"))).toBe(null);
+  });
+});
+
+describe("planWeekSessions (This Week card window)", () => {
+  // Tuesday-anchored plan. `now` = Thursday 06-25, so the Sunday-start calendar week begins
+  // 06-21 — pulling in a session that belongs to the PRIOR plan week. The plan week starts 06-23.
+  const TUE = "2026-06-23";
+  const NOW = new Date("2026-06-25T10:00:00");
+  const vol = (w, r) => [{ type: "working", weight: String(w), reps: String(r) }];
+  const sundayPriorWeek = { completedAt: "2026-06-21T12:00:00", setsArr: vol(100, 5) }; // 500 — prior plan week
+  const wedThisWeek = { completedAt: "2026-06-24T12:00:00", setsArr: vol(200, 5) }; // 1000 — current plan week
+  const sessions = [sundayPriorWeek, wedThisWeek];
+  const weekVol = (rows) => rows.reduce((a, s) => a + (s.setsArr || []).filter((x) => x.type !== "warmup").reduce((b, x) => b + (parseFloat(x.weight) || 0) * (parseInt(x.reps) || 0), 0), 0);
+
+  test("FAILS-BEFORE: the Sunday-start calendar window counts 2 (the adjacent-week session leaks in)", () => {
+    const weekStart = new Date(NOW); weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // the OLD bug
+    const weekStr = weekStart.toLocaleDateString("en-CA");
+    const before = sessions.filter((s) => s.completedAt && new Date(s.completedAt).toLocaleDateString("en-CA") >= weekStr);
+    expect(weekStr).toBe("2026-06-21");
+    expect(before).toHaveLength(2); // both the Sunday and the Wednesday → wrong
+  });
+
+  test("PASSES-AFTER: the plan-week window counts 1 (only the in-week session)", () => {
+    const after = planWeekSessions(sessions, TUE, NOW);
+    expect(after).toHaveLength(1);
+    expect(after[0]).toBe(wedThisWeek);
+  });
+
+  test("the volume cell uses the SAME window — the out-of-week session contributes nothing", () => {
+    // Both cells derive from planWeekSessions, so volume = the in-week session only (1000, not 1500).
+    expect(weekVol(planWeekSessions(sessions, TUE, NOW))).toBe(1000);
+  });
+
+  test("partials / null-completed rows never enter the window", () => {
+    const withPartial = [...sessions, { completedAt: null, setsArr: vol(999, 9) }];
+    expect(planWeekSessions(withPartial, TUE, NOW)).toHaveLength(1);
+  });
+
+  test("no anchor -> empty window", () => {
+    expect(planWeekSessions(sessions, null, NOW)).toEqual([]);
   });
 });
 

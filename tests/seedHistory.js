@@ -21,7 +21,7 @@ loadEnv(".env.test.local");
 const SUPABASE_URL = "https://ldbrabnvpiidrdkmjpbo.supabase.co";
 const KEY = process.env.SUPABASE_SERVICE_KEY;
 const MARKER = "[AUTOMATED TEST — SAFE TO DELETE]";
-const LABELS = ["AutoTest-Bulk", "AutoTest-Partial", "AutoTest-BeyondCap-Del", "AutoTest-BeyondCap-Edit", "AutoTest-InCap-Rollback", "AutoTest-BeyondCap-Rollback", "AutoTest-RenameBulk", "AutoTest-RenameEdit", "AutoTest-RenameInCap", "AutoTest-RenameBeyond", "AutoTest-Muscle", "AutoTest-Drill"];
+const LABELS = ["AutoTest-Bulk", "AutoTest-Partial", "AutoTest-BeyondCap-Del", "AutoTest-BeyondCap-Edit", "AutoTest-InCap-Rollback", "AutoTest-BeyondCap-Rollback", "AutoTest-RenameBulk", "AutoTest-RenameEdit", "AutoTest-RenameInCap", "AutoTest-RenameBeyond", "AutoTest-Muscle", "AutoTest-Drill", "AutoTest-Week"];
 const DAY = 86400000;
 
 const hasKey = () => !!KEY && !KEY.includes("anon");
@@ -185,4 +185,51 @@ async function seedDrill() {
   return { skipped: false, sidOld, sidNew };
 }
 
-module.exports = { seed, seedRename, seedMuscles, seedRecentPR, seedDrill, cleanup, cleanupPRs, hasKey };
+// Seeds two sessions to exercise the Stats "This Week" card's PLAN-week window: one IN the current
+// plan week (counted) and one the day BEFORE the plan-week start (prior plan week — but inside the
+// old Sunday-start calendar window on Tue–Sat run days, so it would wrongly inflate the count to 2
+// / volume to 6k under the bug). Aligns to the SAME anchor the app uses: the active plan's
+// start_date (else the earliest-completed-session date), computing the plan-week start with the
+// same floor(days/7) blocks as planWeekStart — so the seed can't drift from the card's window.
+// After the fix the card shows 1 session / 1k lbs regardless of which weekday the test runs.
+async function seedThisWeek() {
+  if (!hasKey()) return { skipped: true };
+  const sb = admin();
+  const uid = await getUid(sb);
+  if (!uid) return { skipped: true };
+  await cleanup();
+  // Resolve the app's anchor: active plan start_date, else earliest completed session.
+  const { data: prof } = await sb.from("profiles").select("active_plan_key").eq("id", uid).maybeSingle();
+  let startStr = null;
+  if (prof?.active_plan_key) {
+    const { data: plan } = await sb.from("plans").select("start_date").eq("user_id", uid).eq("plan_key", prof.active_plan_key).maybeSingle();
+    startStr = plan?.start_date || null;
+  }
+  if (!startStr) {
+    const { data: first } = await sb.from("workout_sessions").select("completed_at").eq("user_id", uid).not("completed_at", "is", null).order("completed_at", { ascending: true }).limit(1);
+    startStr = first?.[0]?.completed_at ? new Date(first[0].completed_at).toLocaleDateString("en-CA") : null;
+  }
+  if (!startStr) throw new Error("seedThisWeek: no plan start_date and no completed session to anchor on");
+  // Current plan-week start (local noon), same anchor + 7-day blocks as planWeekStart.
+  const start = new Date(startStr + "T12:00:00");
+  const nowNoon = new Date(); nowNoon.setHours(12, 0, 0, 0);
+  const days = Math.floor((nowNoon - start) / DAY);
+  const block = days < 0 ? 0 : Math.floor(days / 7);
+  const pws = new Date(start); pws.setDate(start.getDate() + block * 7); // plan-week start (noon)
+  const inWeek = new Date(nowNoon);            // today → always in the current plan week
+  const leak = new Date(pws); leak.setDate(pws.getDate() - 1); // day before pws → prior plan week
+  const mk = async (completed, sets_data, rows) => {
+    const { data, error } = await sb.from("workout_sessions").insert({ user_id: uid, day_label: "AutoTest-Week", started_at: new Date(completed.getTime() - 3600000).toISOString(), completed_at: completed.toISOString(), notes: MARKER, sets_data, partial: false }).select("id");
+    if (error) throw new Error("seedThisWeek session: " + error.message);
+    const sid = data[0].id;
+    const ls = rows.map((r, i) => ({ session_id: sid, user_id: uid, exercise_name: "AutoTest-WeekLift", set_number: i + 1, weight: r.w, reps: r.r, set_type: "working", is_pr: false }));
+    const { error: le } = await sb.from("logged_sets").insert(ls);
+    if (le) throw new Error("seedThisWeek logged_sets: " + le.message);
+  };
+  // in-week: 200×5 = 1000 → card "1k". leak: 1000×5 = 5000 → would push the card to "6k" / 2 sessions if windowed by calendar week.
+  await mk(inWeek, { "AutoTest-WeekLift": { "1": { weight: "200", reps: "5" } } }, [{ w: 200, r: 5 }]);
+  await mk(leak, { "AutoTest-WeekLift": { "1": { weight: "1000", reps: "5" } } }, [{ w: 1000, r: 5 }]);
+  return { skipped: false, pws: pws.toLocaleDateString("en-CA"), leak: leak.toLocaleDateString("en-CA") };
+}
+
+module.exports = { seed, seedRename, seedMuscles, seedRecentPR, seedDrill, seedThisWeek, cleanup, cleanupPRs, hasKey };
