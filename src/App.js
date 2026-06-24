@@ -12,6 +12,7 @@ import { historyWindow } from "./lib/historyWindow";
 import { flagPRs } from "./lib/prFlags";
 import { lifetimePRs } from "./lib/lifetimePRs";
 import { renameSetsData, setsToArr, enrichIsPR, otherOccurrence } from "./lib/renameExercise";
+import { recentPRs } from "./lib/recentPRs";
 import { muscleContributions, rollupToGroup, DISPLAY_GROUPS, primaryMoverGroup } from "./lib/muscleVolume";
 import { analyzePlan } from "./lib/planAnalysis";
 import { analyzeRealized } from "./lib/realizedVolume";
@@ -4228,24 +4229,17 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
           <Mono style={{fontSize:12,color:C.text,fontWeight:600}}>Cardio</Mono>
           <Mono style={{fontSize:11,color:C.muted}}>{cardioSets} set{cardioSets!==1?"s":""} · {Math.round(cardioMinutes)} min</Mono>
         </div>}
-        {/* Strength scores per muscle */}
+        {/* Personal records — per LIFT (from personal_records), most-recently-achieved first. No
+            strength level: getStrengthScore uses absolute-lbs benchmarks with no bodyweight/sex
+            normalization, so a Beginner..Elite label was never decision-grade. */}
         <div style={{marginTop:20}}>
-          <SectionLabel C={C}>Strength Score by Muscle</SectionLabel>
-          {Object.entries(prs).slice(0,8).map(([name,pr])=>{
-            const score=getStrengthScore(name,pr.weight);
-            const level=STRENGTH_LEVELS[score];
-            const colors=["#8a96a8","#4f8ef7","#3ecf8e","#f7c948","#f06584"];
-            const txt=[C.faint,C.blueInk,C.greenInk,C.goldInk,C.redInk]; // AA-safe text (vivid in dark, darkened in light)
-            return <div key={name} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
-              <div style={{flex:1}}>
-                <div style={{fontSize:12}}>{name}</div>
-                <Mono style={{fontSize:10,color:C.muted}}>{pr.weight} lbs PR</Mono>
-              </div>
-              <div style={{padding:"3px 10px",borderRadius:12,background:colors[score]+"22",border:`1px solid ${colors[score]}44`,display:"flex",alignItems:"center"}}>
-                <Mono style={{fontSize:10,color:txt[score],fontWeight:700,lineHeight:1}}>{level}</Mono>
-              </div>
-            </div>;
-          })}
+          <SectionLabel C={C}>Personal Records</SectionLabel>
+          {recentPRs(prs,8).map(([name,pr])=>(
+            <div key={name} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${C.border}`}}>
+              <div style={{fontSize:12}}>{name}</div>
+              <Mono style={{fontSize:10,color:C.muted,flexShrink:0,marginLeft:8}}>{pr.weight} lbs{pr.date?` · ${new Date(pr.date).toLocaleDateString("en",{month:"short",day:"numeric",year:"numeric"})}`:""}</Mono>
+            </div>
+          ))}
         </div>
       </div>}
 

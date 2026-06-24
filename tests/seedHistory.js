@@ -134,4 +134,29 @@ async function seedMuscles() {
   return { skipped: false, sid };
 }
 
-module.exports = { seed, seedRename, seedMuscles, cleanup, hasKey };
+// Seeds a personal_records row achieved "now" (newest), so the Muscles-tab PR card has a known
+// most-recent PR to display. Also clears "OldLift" — residue the rename tests leave in
+// personal_records (the marker cleanup only removes workout_sessions/logged_sets, not PR rows).
+async function seedRecentPR() {
+  if (!hasKey()) return { skipped: true };
+  const sb = admin();
+  const uid = await getUid(sb);
+  if (!uid) return { skipped: true };
+  await cleanupPRs();
+  const { error } = await sb.from("personal_records").upsert(
+    { user_id: uid, exercise_name: "AutoTest-PRLift", max_weight: 137, achieved_at: new Date().toISOString() },
+    { onConflict: "user_id,exercise_name" }
+  );
+  if (error) throw new Error("seedRecentPR: " + error.message);
+  return { skipped: false };
+}
+
+async function cleanupPRs() {
+  if (!hasKey()) return;
+  const sb = admin();
+  const uid = await getUid(sb);
+  if (!uid) return;
+  await sb.from("personal_records").delete().eq("user_id", uid).in("exercise_name", ["AutoTest-PRLift", "OldLift"]);
+}
+
+module.exports = { seed, seedRename, seedMuscles, seedRecentPR, cleanup, cleanupPRs, hasKey };
