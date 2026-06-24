@@ -2524,7 +2524,7 @@ No explanation, no markdown, just the JSON array.`;
     setExpandedDay(null);
   }
 
-  if(analysisOpen&&plan)return <PlanAnalysisView plan={plan} goalRaw={(settings.aiGoal||"").toLowerCase()} C={C} onBack={()=>setAnalysisOpen(false)}/>;
+  if(analysisOpen&&plan&&settings.showPlanAnalysis&&settings.showCoaching)return <PlanAnalysisView plan={plan} goalRaw={(settings.aiGoal||"").toLowerCase()} C={C} onBack={()=>setAnalysisOpen(false)}/>;
 
   return <div>
     <div style={{background:C.bg,borderBottom:`2px solid ${C.accent}`,padding:"16px 18px 14px"}}>
@@ -2588,7 +2588,7 @@ No explanation, no markdown, just the JSON array.`;
           </div>
         </div>
       </div>}
-      {plan&&days.length>0&&<button onClick={()=>setAnalysisOpen(true)} style={{width:"100%",padding:"11px",marginBottom:12,borderRadius:10,border:`1px solid ${C.accent}55`,background:C.accent+"12",color:C.accentInk,fontFamily:"'SF Mono','Courier New',monospace",fontSize:12,fontWeight:700,letterSpacing:"0.04em",cursor:"pointer"}}>Analyze plan</button>}
+      {plan&&days.length>0&&settings.showPlanAnalysis&&settings.showCoaching&&<button onClick={()=>setAnalysisOpen(true)} style={{width:"100%",padding:"11px",marginBottom:12,borderRadius:10,border:`1px solid ${C.accent}55`,background:C.accent+"12",color:C.accentInk,fontFamily:"'SF Mono','Courier New',monospace",fontSize:12,fontWeight:700,letterSpacing:"0.04em",cursor:"pointer"}}>Analyze plan</button>}
       {days.map((day,i)=>(
         <div key={day.id} style={{marginBottom:8}}>
           <div onClick={dayReorderMode?undefined:()=>setExpandedDay(expandedDay===i?null:i)}
