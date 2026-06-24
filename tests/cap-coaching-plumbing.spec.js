@@ -1,20 +1,21 @@
 // @ts-check
-// COMMIT 1 — coaching/insight toggles plumbing only (persistence + Settings UI, NO gating yet).
-// Asserts: the "Coaching & Insights" section + rows render; flipping the master persists to
-// user_settings and survives a reload (round-trip); and — critically — NO surface is gated yet,
-// so with the master OFF the Coach tab and "Analyze plan" still appear. The ?? true coalesce
-// (existing users keep their surfaces) is covered by the pure coachingSettings.test.js.
+// Coaching/insight toggles — plumbing + master switch. Asserts the "Coaching & Insights" Settings
+// section renders, and the master switch persists to user_settings + survives a reload (round-trip,
+// reflected by the sub-rows dimming). With the master OFF, every interpretive surface is hidden —
+// the master governs all four gates (this is the integrated capstone; each gate spec covers its own
+// surface in detail). The ?? true coalesce (existing users keep their surfaces) is covered by the
+// pure coachingSettings.test.js.
 const { test, expect } = require("@playwright/test");
 const { ensureCleanHome } = require("./helpers");
 const seedHistory = require("./seedHistory");
 
-test.describe("cap-cleanup coaching toggles — plumbing (no gating)", () => {
+test.describe("cap-cleanup coaching toggles — plumbing + master switch", () => {
   test.skip(!seedHistory.hasKey(), "needs SUPABASE_SERVICE_KEY to read/reset settings");
 
   test.beforeEach(async () => { await seedHistory.resetCoaching(); }); // known start: all ON
   test.afterAll(async () => { await seedHistory.resetCoaching(); });   // restore baseline
 
-  test("toggles persist (round-trip) and no surface is gated yet", async ({ page }) => {
+  test("master toggle persists (round-trip) and governs all surfaces", async ({ page }) => {
     await ensureCleanHome(page);
     await page.getByRole("button", { name: /Settings/i }).click();
 
@@ -43,10 +44,10 @@ test.describe("cap-cleanup coaching toggles — plumbing (no gating)", () => {
     await expect(page.getByText("Coaching & Insights", { exact: true })).toBeVisible({ timeout: 10000 });
     await expect(page.getByText("Coach tab", { exact: true }).locator("xpath=../..")).toHaveCSS("opacity", "0.4");
 
-    // NO GATING YET: with the master OFF, the surfaces still appear.
+    // Master OFF → every interpretive surface is hidden (the master governs all four gates).
     await page.getByRole("button", { name: /Stats/i }).click();
-    await expect(page.getByRole("button", { name: /Coach/i })).toBeVisible({ timeout: 10000 }); // Coach sub-tab still present
+    await expect(page.getByRole("button", { name: /✦ Coach/ })).toHaveCount(0); // Coach tab gated by master
     await page.getByRole("button", { name: /^Plan$/i }).click();
-    await expect(page.getByRole("button", { name: /Analyze plan/i })).toBeVisible({ timeout: 10000 }); // Analyze-plan still present
+    await expect(page.getByRole("button", { name: /Analyze plan/i })).toHaveCount(0); // Analyze-plan gated by master
   });
 });
