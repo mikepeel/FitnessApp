@@ -4019,7 +4019,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
       </div>
       <Mono style={{fontSize:11,color:C.muted,display:"block",marginBottom:12}}>{(()=>{const wk=planWeekOf(activePlan);const tot=activePlan?.durationWeeks||10;const fb=programStart?programWeekFromDate(programStart):programWeek(sessions);return wk?`Week ${Math.min(wk,tot)} of ${tot} in your program`:`Week ${fb} of your program`;})()}</Mono>
       <div style={{display:"flex",gap:4,background:C.card,padding:4,borderRadius:10}}>
-        {[["overview","Overview"],["progress","Progress"],["muscles","Muscles"],["body","Body"],["trainer","✦ Coach"]].map(([k,label])=>(
+        {[["overview","Overview"],["progress","Progress"],["muscles","Muscles"],["body","Body"],["trainer","✦ Coach"]].filter(([k])=>k!=="trainer"||(settings.showCoach&&settings.showCoaching)).map(([k,label])=>(
           <button key={k} onClick={()=>{setStatsView(k);if(k==="trainer"&&!trainerInsight)loadTrainerInsight();}} style={tabStyle(statsView===k)}>{label}</button>
         ))}
       </div>
@@ -4323,7 +4323,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
       </div>}
 
       {/* AI TRAINER */}
-      {statsView==="trainer"&&<div>
+      {statsView==="trainer"&&settings.showCoach&&settings.showCoaching&&<div>
         <div style={{background:`linear-gradient(135deg,${C.accent}18,${C.neon}10)`,border:`1px solid ${C.accent}33`,borderRadius:12,padding:"18px",marginBottom:16}}>
           <div style={{fontSize:16,fontWeight:700,marginBottom:6}}>✦ Personal Trainer AI</div>
           <div style={{fontSize:13,color:C.muted,lineHeight:1.6,marginBottom:14}}>Weekly insight based on your actual training data.</div>
