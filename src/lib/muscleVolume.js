@@ -67,3 +67,14 @@ export function rollupToGroup(muscle) {
   if (DISPLAY_GROUPS.includes(muscle)) return muscle;
   return muscle;
 }
+
+// The single DISPLAY GROUP that should receive an exercise's TONNAGE — its primary mover — using
+// the SAME resolver as set credit (muscleContributions → rollupToGroup), so a muscle row's bar
+// (tonnage) and its set count never come from different maps. Unresolvable (no fine mapping and no
+// coarse fallback) → "Other".
+export function primaryMoverGroup(exerciseName, coarseFallback) {
+  const r = muscleContributions(exerciseName, coarseFallback);
+  if (!r.counted || !r.contributions.length) return "Other";
+  const primary = r.contributions.find((c) => c.factor >= 1) || r.contributions[0];
+  return rollupToGroup(primary.muscle);
+}

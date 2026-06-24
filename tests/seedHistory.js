@@ -21,7 +21,7 @@ loadEnv(".env.test.local");
 const SUPABASE_URL = "https://ldbrabnvpiidrdkmjpbo.supabase.co";
 const KEY = process.env.SUPABASE_SERVICE_KEY;
 const MARKER = "[AUTOMATED TEST — SAFE TO DELETE]";
-const LABELS = ["AutoTest-Bulk", "AutoTest-Partial", "AutoTest-BeyondCap-Del", "AutoTest-BeyondCap-Edit", "AutoTest-InCap-Rollback", "AutoTest-BeyondCap-Rollback", "AutoTest-RenameBulk", "AutoTest-RenameEdit", "AutoTest-RenameInCap", "AutoTest-RenameBeyond"];
+const LABELS = ["AutoTest-Bulk", "AutoTest-Partial", "AutoTest-BeyondCap-Del", "AutoTest-BeyondCap-Edit", "AutoTest-InCap-Rollback", "AutoTest-BeyondCap-Rollback", "AutoTest-RenameBulk", "AutoTest-RenameEdit", "AutoTest-RenameInCap", "AutoTest-RenameBeyond", "AutoTest-Muscle"];
 const DAY = 86400000;
 
 const hasKey = () => !!KEY && !KEY.includes("anon");
@@ -112,4 +112,26 @@ async function seedRename({ inCap = true } = {}) {
   return { skipped: false, beyondId: (ins || []).find((r) => r.day_label === "AutoTest-RenameBeyond")?.id };
 }
 
-module.exports = { seed, seedRename, cleanup, hasKey };
+// Seeds a recent (today) session whose ONLY lift is "Dumbbell Lateral Raise" — absent from the
+// app's hardcoded tonnage muscleMap but resolved to Shoulders by muscleContributions. With no
+// other Shoulders lift in iron-test's 7-day window, this isolates the Muscles-tab tonnage bug:
+// before the resolver fix the tonnage orphans to "Other" (Shoulders bar absent / 0k lbs); after,
+// it lands on Shoulders. Returns the session id.
+async function seedMuscles() {
+  if (!hasKey()) return { skipped: true };
+  const sb = admin();
+  const uid = await getUid(sb);
+  if (!uid) return { skipped: true };
+  await cleanup();
+  const now = new Date();
+  const sets_data = { "Dumbbell Lateral Raise": { "1": { weight: "30", reps: "15" }, "2": { weight: "30", reps: "15" }, "3": { weight: "30", reps: "15" } } };
+  const { data: ins, error: se } = await sb.from("workout_sessions").insert({ user_id: uid, day_label: "AutoTest-Muscle", started_at: new Date(now.getTime() - 3600000).toISOString(), completed_at: now.toISOString(), notes: MARKER, sets_data, partial: false }).select("id");
+  if (se) throw new Error("seedMuscles session: " + se.message);
+  const sid = ins[0].id;
+  const rows = [1, 2, 3].map((n) => ({ session_id: sid, user_id: uid, exercise_name: "Dumbbell Lateral Raise", set_number: n, weight: 30, reps: 15, set_type: "working", is_pr: false }));
+  const { error: le } = await sb.from("logged_sets").insert(rows);
+  if (le) throw new Error("seedMuscles logged_sets: " + le.message);
+  return { skipped: false, sid };
+}
+
+module.exports = { seed, seedRename, seedMuscles, cleanup, hasKey };

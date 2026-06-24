@@ -1,6 +1,52 @@
-import { muscleContributions, rollupToGroup, normalizeName, DISPLAY_GROUPS } from "./muscleVolume";
+import { muscleContributions, rollupToGroup, normalizeName, DISPLAY_GROUPS, primaryMoverGroup } from "./muscleVolume";
 
 const byMuscle = (r) => Object.fromEntries(r.contributions.map((c) => [c.muscle, c.factor]));
+
+describe("primaryMoverGroup — tonnage routes to the same group as set credit", () => {
+  test("resolves lifts absent from the legacy coarse map to their real group", () => {
+    expect(primaryMoverGroup("Wide-Grip Lat Pulldown")).toBe("Back"); // Lats → Back
+    expect(primaryMoverGroup("Shrugs")).toBe("Back"); // Traps → Back
+    expect(primaryMoverGroup("Dumbbell Lateral Raise")).toBe("Shoulders"); // Side Delts → Shoulders
+  });
+  test("coarse fallback still routes a mapped-but-unlisted lift to its tagged group", () => {
+    expect(primaryMoverGroup("Totally Made Up Lift", "Legs")).toBe("Legs");
+  });
+  test("genuinely unresolvable (no mapping, no fallback) → Other", () => {
+    expect(primaryMoverGroup("Extensions")).toBe("Other");
+    expect(primaryMoverGroup("Totally Made Up Lift")).toBe("Other");
+  });
+
+  // The audit's before/after on a BDP-like row: a Back lift absent from the legacy coarse map.
+  // BEFORE (legacy coarse map) orphans its tonnage to "Other" → Back bar = 0 and "Other" (hidden)
+  // inflates the scaling max. AFTER (primaryMoverGroup) the tonnage lands on Back and the max
+  // scales to displayed groups only.
+  test("fails-before / passes-after: tonnage grouping + scaling", () => {
+    const sets = [
+      { exName: "Wide-Grip Lat Pulldown", weight: 100, reps: 10 }, // → Back (absent from legacy map)
+      { exName: "Bench Press", weight: 185, reps: 5 }, // → Chest (in both)
+    ];
+    const order = ["Chest", "Back", "Shoulders", "Biceps", "Triceps", "Legs", "Abs"];
+    const legacyMap = { "Bench Press": "Chest" }; // the hardcoded map lacks Wide-Grip Lat Pulldown
+    // BEFORE
+    const oldVol = {};
+    sets.forEach((x) => { const g = legacyMap[x.exName] || "Other"; oldVol[g] = (oldVol[g] || 0) + x.weight * x.reps; });
+    expect(oldVol.Back).toBeUndefined(); // bug: Back tonnage orphaned
+    expect(oldVol.Other).toBe(1000); // …into the hidden "Other" bucket
+    expect(Math.max(...Object.values(oldVol), 1)).toBe(1000); // max includes Other → understates bars
+    // AFTER
+    const newVol = {};
+    sets.forEach((x) => { const g = primaryMoverGroup(x.exName, legacyMap[x.exName]); newVol[g] = (newVol[g] || 0) + (parseFloat(x.weight) || 0) * (parseInt(x.reps) || 0); });
+    expect(newVol.Back).toBe(1000); // resolves
+    expect(newVol.Other).toBeUndefined();
+    expect(Math.max(...order.map((m) => newVol[m] || 0), 1)).toBe(1000); // scales to displayed groups
+  });
+
+  test("0-weight nit: a missing weight contributes 0 tonnage, not reps×1", () => {
+    const x = { weight: "", reps: "12" };
+    expect((parseFloat(x.weight) || 0) * (parseInt(x.reps) || 0)).toBe(0); // new
+    expect((parseFloat(x.weight) || 1) * (parseInt(x.reps) || 1)).toBe(12); // old (inflated)
+  });
+});
 
 describe("muscleContributions", () => {
   test("Barbell Bench Press → Chest 1.0, Triceps 0.5, Front Delts 0.5", () => {

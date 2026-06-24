@@ -12,7 +12,7 @@ import { historyWindow } from "./lib/historyWindow";
 import { flagPRs } from "./lib/prFlags";
 import { lifetimePRs } from "./lib/lifetimePRs";
 import { renameSetsData, setsToArr, enrichIsPR, otherOccurrence } from "./lib/renameExercise";
-import { muscleContributions, rollupToGroup, DISPLAY_GROUPS } from "./lib/muscleVolume";
+import { muscleContributions, rollupToGroup, DISPLAY_GROUPS, primaryMoverGroup } from "./lib/muscleVolume";
 import { analyzePlan } from "./lib/planAnalysis";
 import { analyzeRealized } from "./lib/realizedVolume";
 import { classifyDriverTrend, dominantPrimaryLift, progressCopy } from "./lib/volumeProgress";
@@ -3952,10 +3952,12 @@ function StatsTab({sessions,programStart,prs,settings,C,activePlan,toggleTheme,t
       // sets carry weight — same flag History uses). Count sets + sum minutes; no
       // tonnage, and keep them out of the muscle-group bars.
       if(x.minutes){cardioSets++;cardioMinutes+=parseFloat(x.minutes)||0;return;}
-      // Tonnage stays primary-mover (existing coarse muscleMap, unchanged).
-      const m=muscleMap[x.exName]||"Other";
+      // Tonnage = primary mover, resolved by the SAME resolver as set credit (muscleContributions
+      // → rollupToGroup) so the bar and the set count in a row never come from different maps; the
+      // coarse muscleMap is the fallback. Missing weight contributes 0 tonnage (not reps×1).
+      const m=primaryMoverGroup(x.exName,muscleMap[x.exName]);
       if(!muscleVolMapped[m])muscleVolMapped[m]=0;
-      muscleVolMapped[m]+=(parseFloat(x.weight)||1)*(parseInt(x.reps)||1);
+      muscleVolMapped[m]+=(parseFloat(x.weight)||0)*(parseInt(x.reps)||0);
       // Sets are fractionalized via the resolver: 1.0 each primary muscle, 0.5 each
       // secondary. Cardio-by-name and unmapped-without-coarse-tag don't count.
       const res=muscleContributions(x.exName,muscleMap[x.exName]);
@@ -3966,7 +3968,9 @@ function StatsTab({sessions,programStart,prs,settings,C,activePlan,toggleTheme,t
   const groupSets={};
   for(const fine in fineSets){const g=rollupToGroup(fine);groupSets[g]=(groupSets[g]||0)+fineSets[fine];}
   const muscleOrder=["Chest","Back","Shoulders","Biceps","Triceps","Legs","Abs"];
-  const maxMuscleVol=Math.max(...Object.values(muscleVolMapped),1);
+  // Scale bars to the displayed groups only — "Other" (unresolved lifts) isn't rendered, so it
+  // must not be the scaling denominator (it would understate every visible bar).
+  const maxMuscleVol=Math.max(...muscleOrder.map(m=>muscleVolMapped[m]||0),1);
 
 
   async function loadTrainerInsight(){
