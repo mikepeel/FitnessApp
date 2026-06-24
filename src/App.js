@@ -4106,7 +4106,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
             const rvP=analyzeRealized(sessions,{goal:(settings.aiGoal||"").toLowerCase(),windowDays:28});
             const perMuscleStatus=rvP.sufficient?Object.fromEntries(rvP.perMuscle.map(m=>[m.muscle,m.status])):{};
             return <>
-              {plateaus.length>0&&<div style={{...cardSt,padding:"12px 14px"}}>
+              {settings.showPlateaus&&settings.showCoaching&&plateaus.length>0&&<div style={{...cardSt,padding:"12px 14px"}}>
                 <div onClick={()=>setPlateausExpanded(v=>!v)} style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
                   <span style={{color:C.faint,display:"inline-flex",flexShrink:0}}>{plateausExpanded?<ChevronDown size={ICON.sm} strokeWidth={1.75}/>:<ChevronRight size={ICON.sm} strokeWidth={1.75}/>}</span>
                   <SectionLabel C={C}>Plateaus ({plateaus.length})</SectionLabel>
@@ -4176,7 +4176,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
-                  {(()=>{
+                  {settings.showPlateaus&&settings.showCoaching&&(()=>{
                     const proj=projectExercise(chartData);
                     let text;
                     if(proj.status==="gaining"){

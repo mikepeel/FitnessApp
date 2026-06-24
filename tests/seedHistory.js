@@ -252,5 +252,14 @@ async function resetCoaching() {
   const all = Object.fromEntries(COACHING_COLS.map((c) => [c, true]));
   await sb.from("user_settings").update(all).eq("user_id", uid);
 }
+// Set specific coaching columns (e.g. {show_plateaus:false}) for the gating tests, so a surface's
+// visibility can be driven from the DB + a reload without round-tripping the Settings UI each time.
+async function setCoaching(partial) {
+  if (!hasKey()) return;
+  const sb = admin();
+  const uid = await getUid(sb);
+  if (!uid) return;
+  await sb.from("user_settings").update(partial).eq("user_id", uid);
+}
 
-module.exports = { seed, seedRename, seedMuscles, seedRecentPR, seedDrill, seedThisWeek, readCoaching, resetCoaching, cleanup, cleanupPRs, hasKey };
+module.exports = { seed, seedRename, seedMuscles, seedRecentPR, seedDrill, seedThisWeek, readCoaching, resetCoaching, setCoaching, cleanup, cleanupPRs, hasKey };
