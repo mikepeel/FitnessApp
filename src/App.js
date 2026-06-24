@@ -7,6 +7,7 @@ import { projectExercise } from "./lib/projections";
 import { rollingVolume } from "./lib/volume";
 import { detectPlateaus, priorBests } from "./lib/plateaus";
 import { liftSeriesFromSets } from "./lib/liftSeries";
+import { liftSessionsFromSets } from "./lib/liftSessions";
 import { mapSessionRow } from "./lib/sessionMap";
 import { historyWindow } from "./lib/historyWindow";
 import { flagPRs } from "./lib/prFlags";
@@ -3837,7 +3838,7 @@ function RealizedVolumeInsight({sessions,settings,C}){
 
 function StatsTab({sessions,programStart,prs,settings,C,activePlan,toggleTheme,themeMode,bodyStatsInit=[],onBodyStatsChange}){
   const [selEx,setSelEx]=useState(null); // null = "All exercises"
-  const [progressView,setProgressView]=useState("chart"); // chart | table
+  const [progressView,setProgressView]=useState(null); // null = per-mode default (drill→table, all-lifts→chart); else explicit "chart"|"table"
   const [plateausExpanded,setPlateausExpanded]=useState(false);
   const [statsView,setStatsView]=useState("overview"); // overview | progress | muscles | body | trainer
   const [bodyStats,setBodyStats]=useState(bodyStatsInit||[]);
@@ -3885,12 +3886,15 @@ function StatsTab({sessions,programStart,prs,settings,C,activePlan,toggleTheme,t
         const {data:{user:u}}=await supabase.auth.getUser();
         if(!u)return;
         const {data:rows,error}=await supabase.from("logged_sets")
-          .select("weight,reps,workout_sessions!inner(completed_at)")
+          .select("weight,reps,session_id,set_number,workout_sessions!inner(completed_at)")
           .eq("user_id",u.id).eq("exercise_name",selEx).neq("set_type","warmup")
           .not("workout_sessions.completed_at","is",null);
-        if(error||!rows)return; // fail-safe: leave null → capped seriesFor(selEx) fallback
-        const sets=rows.map(r=>({weight:r.weight,reps:r.reps,date:r.workout_sessions?.completed_at?new Date(r.workout_sessions.completed_at).toLocaleDateString("en-CA"):null}));
-        if(!cancelled)setDrill({name:selEx,series:liftSeriesFromSets(sets)});
+        if(error||!rows)return; // fail-safe: leave null → capped fallback below
+        // One rich mapping feeds both shapers: liftSeriesFromSets (per-day max, for the charts)
+        // and liftSessionsFromSets (per-session compressed work log, for the table). session_id +
+        // set_number give true per-session grouping and performed order.
+        const rich=rows.map(r=>{const ca=r.workout_sessions?.completed_at||null;return {weight:r.weight,reps:r.reps,sessionId:r.session_id,setNumber:r.set_number,completedAt:ca,date:ca?new Date(ca).toLocaleDateString("en-CA"):null};});
+        if(!cancelled)setDrill({name:selEx,series:liftSeriesFromSets(rich),sessions:liftSessionsFromSets(rich)});
       }catch(e){console.error("drill series fetch:",e);}
     })();
     return ()=>{cancelled=true;};
@@ -3919,6 +3923,9 @@ function StatsTab({sessions,programStart,prs,settings,C,activePlan,toggleTheme,t
   // Drill-down charts use the lift's FULL history once fetched; fall back to the capped
   // seriesFor(selEx) until it loads or if the fetch failed.
   const chartData=selEx?((drill&&drill.name===selEx)?drill.series:seriesFor(selEx)):[];
+  // Per-session compressed work log for the drill-down table. Full history once the drill fetch
+  // lands; until then / on fetch error, fall back to the capped prop (same fail-safe as chartData).
+  const sessionRows=selEx?((drill&&drill.name===selEx)?drill.sessions:liftSessionsFromSets((sessions||[]).flatMap(s=>(s&&s.completedAt)?(s.setsArr||[]).filter(x=>x.exName===selEx&&x.type!=="warmup").map(x=>({sessionId:s.id,setNumber:x.setNum,weight:x.weight,reps:x.reps,completedAt:s.completedAt,date:new Date(s.completedAt).toLocaleDateString("en-CA")})):[]))):[];
   const prList=Object.entries(prs).sort((a,b)=>b[1].weight-a[1].weight);
   const totalVol=sessions.reduce((a,s)=>(a+(s.setsArr||[]).filter(x=>x.type!=="warmup").reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
 
@@ -4064,6 +4071,9 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
         const tdSt={padding:"5px 6px",borderBottom:`1px solid ${C.border}`,fontFamily:mono,fontSize:11};
         const tableSt={width:"100%",borderCollapse:"collapse",marginTop:6};
         const emptySt={textAlign:"center",padding:"24px",color:C.muted,fontFamily:mono,fontSize:12};
+        // Effective view: drill-down defaults to the work-log Table, the all-lifts overview to
+        // Chart; once the user taps the toggle their explicit choice (progressView) wins everywhere.
+        const view=progressView||(selEx?"table":"chart");
         return <div>
           <SectionLabel C={C}>{selEx?"Exercise Progress":"Progress — All Lifts"}</SectionLabel>
           {/* Controls: exercise selector + chart/table toggle */}
@@ -4075,7 +4085,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
             </select>
             <div style={{display:"flex",background:C.card,border:`1px solid ${C.border}`,borderRadius:8,overflow:"hidden",flexShrink:0}}>
               {[["chart","◊ Chart"],["table","▦ Table"]].map(([k,lbl])=>(
-                <button key={k} onClick={()=>setProgressView(k)} style={{padding:"9px 12px",background:progressView===k?C.accentBtn:"transparent",color:progressView===k?"#fff":C.muted,border:"none",fontFamily:mono,fontSize:11,fontWeight:progressView===k?700:400,cursor:"pointer",letterSpacing:"0.04em"}}>{lbl}</button>
+                <button key={k} onClick={()=>setProgressView(k)} style={{padding:"9px 12px",background:view===k?C.accentBtn:"transparent",color:view===k?"#fff":C.muted,border:"none",fontFamily:mono,fontSize:11,fontWeight:view===k?700:400,cursor:"pointer",letterSpacing:"0.04em"}}>{lbl}</button>
               ))}
             </div>
           </div>
@@ -4117,7 +4127,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
                     <PRMark value={pr} C={C}/>
                   </span>
                 </div>
-                {progressView==="chart"
+                {view==="chart"
                   ? (series.length>=2?<Sparkline data={series} color={C.accent}/>:<Mono style={{fontSize:11,color:C.muted,padding:"4px 2px",display:"block"}}>One session — need 2+ for a trend</Mono>)
                   : <table style={tableSt}><tbody>
                       <tr><th style={{...thSt,textAlign:"left"}}>DATE</th><th style={{...thSt,textAlign:"right"}}>MAX</th><th style={{...thSt,textAlign:"right"}}>EST 1RM</th></tr>
@@ -4135,7 +4145,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
             <div style={{position:"sticky",top:0,zIndex:10,background:C.bg,paddingBottom:12}}>
               <button onClick={()=>setSelEx(null)} aria-label="Back to all exercises" style={{display:"flex",alignItems:"center",gap:8,width:"100%",minHeight:44,background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.accentInk,fontFamily:mono,fontSize:13,fontWeight:600,letterSpacing:"0.04em",cursor:"pointer",padding:"0 14px"}}>← All exercises</button>
             </div>
-            {progressView==="chart"
+            {view==="chart"
               ? (chartData.length>1?<div>
                   <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"14px 8px",marginBottom:12}}>
                     <div style={{fontSize:13,fontWeight:600,marginBottom:4,paddingLeft:8}}>{selEx} — Max Weight</div>
@@ -4188,14 +4198,16 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
                     <Mono style={{fontSize:12,color:C.accentInk,display:"block",marginTop:8,textAlign:"center",fontWeight:700}}>{STRENGTH_LEVELS[getStrengthScore(selEx,prs[selEx]?.weight)]} — {prs[selEx]?.weight} lbs</Mono>
                   </div>}
                 </div>:<div style={emptySt}>Log 2+ weighted sessions of {selEx} to see your trend.</div>)
-              : (chartData.length>=1?<div style={cardSt}>
+              : (sessionRows.length>=1?<div style={cardSt}>
                   <div style={{fontSize:13,fontWeight:600,marginBottom:2}}>{selEx} — Session History</div>
+                  {/* One row per session, sets compressed: uniform → "N×reps @ weight", a change
+                      starts a new group in performed order → "2×8 @ 185, 1×6 @ 185". Newest first;
+                      top row (most recent) highlighted so week-over-week overload reads at a glance. */}
                   <table style={tableSt}><tbody>
-                    <tr><th style={{...thSt,textAlign:"left"}}>DATE</th><th style={{...thSt,textAlign:"right"}}>MAX</th><th style={{...thSt,textAlign:"right"}}>EST 1RM</th></tr>
-                    {[...chartData].reverse().map((d,i)=>{const hi=i===0;return <tr key={d.date}>
-                      <td style={tdSt}>{d.label}</td>
-                      <td style={{...tdSt,textAlign:"right",color:hi?C.neonInk:C.text,fontWeight:hi?700:400}}>{d.weight}</td>
-                      <td style={{...tdSt,textAlign:"right",color:hi?C.neonInk:C.muted}}>{d.orm}</td>
+                    <tr><th style={{...thSt,textAlign:"left"}}>DATE</th><th style={{...thSt,textAlign:"left"}}>SETS</th></tr>
+                    {sessionRows.map((s,i)=>{const hi=i===0;return <tr key={s.sessionId}>
+                      <td style={{...tdSt,whiteSpace:"nowrap",verticalAlign:"top",color:hi?C.neonInk:C.text,fontWeight:hi?700:400}}>{s.date?s.date.slice(5):"—"}</td>
+                      <td style={{...tdSt,color:hi?C.neonInk:C.text,fontWeight:hi?700:400}}>{s.groups.map(g=>`${g.count}×${g.reps} @ ${g.weight}`).join(", ")}</td>
                     </tr>;})}
                   </tbody></table>
                 </div>:<div style={emptySt}>Log weighted sessions of {selEx} to see data.</div>)}

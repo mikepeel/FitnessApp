@@ -21,7 +21,7 @@ loadEnv(".env.test.local");
 const SUPABASE_URL = "https://ldbrabnvpiidrdkmjpbo.supabase.co";
 const KEY = process.env.SUPABASE_SERVICE_KEY;
 const MARKER = "[AUTOMATED TEST — SAFE TO DELETE]";
-const LABELS = ["AutoTest-Bulk", "AutoTest-Partial", "AutoTest-BeyondCap-Del", "AutoTest-BeyondCap-Edit", "AutoTest-InCap-Rollback", "AutoTest-BeyondCap-Rollback", "AutoTest-RenameBulk", "AutoTest-RenameEdit", "AutoTest-RenameInCap", "AutoTest-RenameBeyond", "AutoTest-Muscle"];
+const LABELS = ["AutoTest-Bulk", "AutoTest-Partial", "AutoTest-BeyondCap-Del", "AutoTest-BeyondCap-Edit", "AutoTest-InCap-Rollback", "AutoTest-BeyondCap-Rollback", "AutoTest-RenameBulk", "AutoTest-RenameEdit", "AutoTest-RenameInCap", "AutoTest-RenameBeyond", "AutoTest-Muscle", "AutoTest-Drill"];
 const DAY = 86400000;
 
 const hasKey = () => !!KEY && !KEY.includes("anon");
@@ -159,4 +159,30 @@ async function cleanupPRs() {
   await sb.from("personal_records").delete().eq("user_id", uid).in("exercise_name", ["AutoTest-PRLift", "OldLift"]);
 }
 
-module.exports = { seed, seedRename, seedMuscles, seedRecentPR, cleanup, cleanupPRs, hasKey };
+// Seeds two completed sessions of one lift "AutoTest-Drill" for the Progress drill-down work-log
+// table: an OLDER uniform session (4×7 @ 175) and a NEWER mixed session (8,8,6 @ 185). Lets the
+// table assert compression ("4×7 @ 175") AND within-session split in performed order
+// ("2×8 @ 185, 1×6 @ 185"), newest first. Working sets only (set_type "working").
+async function seedDrill() {
+  if (!hasKey()) return { skipped: true };
+  const sb = admin();
+  const uid = await getUid(sb);
+  if (!uid) return { skipped: true };
+  await cleanup();
+  const now = Date.now();
+  const mkSession = async (daysAgo, sets_data) => {
+    const completed = new Date(now - daysAgo * DAY);
+    const { data, error } = await sb.from("workout_sessions").insert({ user_id: uid, day_label: "AutoTest-Drill", started_at: new Date(completed.getTime() - 3600000).toISOString(), completed_at: completed.toISOString(), notes: MARKER, sets_data, partial: false }).select("id");
+    if (error) throw new Error("seedDrill session: " + error.message);
+    return data[0].id;
+  };
+  const sidOld = await mkSession(10, { "AutoTest-Drill": { "1": { weight: "175", reps: "7" }, "2": { weight: "175", reps: "7" }, "3": { weight: "175", reps: "7" }, "4": { weight: "175", reps: "7" } } });
+  const oldRows = [1, 2, 3, 4].map((n) => ({ session_id: sidOld, user_id: uid, exercise_name: "AutoTest-Drill", set_number: n, weight: 175, reps: 7, set_type: "working", is_pr: false }));
+  const sidNew = await mkSession(2, { "AutoTest-Drill": { "1": { weight: "185", reps: "8" }, "2": { weight: "185", reps: "8" }, "3": { weight: "185", reps: "6" } } });
+  const newRows = [{ n: 1, r: 8 }, { n: 2, r: 8 }, { n: 3, r: 6 }].map((x) => ({ session_id: sidNew, user_id: uid, exercise_name: "AutoTest-Drill", set_number: x.n, weight: 185, reps: x.r, set_type: "working", is_pr: false }));
+  const { error: le } = await sb.from("logged_sets").insert([...oldRows, ...newRows]);
+  if (le) throw new Error("seedDrill logged_sets: " + le.message);
+  return { skipped: false, sidOld, sidNew };
+}
+
+module.exports = { seed, seedRename, seedMuscles, seedRecentPR, seedDrill, cleanup, cleanupPRs, hasKey };
