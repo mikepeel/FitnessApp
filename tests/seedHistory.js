@@ -232,4 +232,25 @@ async function seedThisWeek() {
   return { skipped: false, pws: pws.toLocaleDateString("en-CA"), leak: leak.toLocaleDateString("en-CA") };
 }
 
-module.exports = { seed, seedRename, seedMuscles, seedRecentPR, seedDrill, seedThisWeek, cleanup, cleanupPRs, hasKey };
+// Coaching/insight visibility toggles on user_settings — read + reset to the all-ON baseline so
+// the toggle tests start/finish from a known state (and never leave the test user's settings
+// flipped). resetCoaching writes the all-true backfill state.
+const COACHING_COLS = ["show_coaching", "show_plateaus", "show_volume_targets", "show_coach", "show_plan_analysis"];
+async function readCoaching() {
+  if (!hasKey()) return null;
+  const sb = admin();
+  const uid = await getUid(sb);
+  if (!uid) return null;
+  const { data } = await sb.from("user_settings").select(COACHING_COLS.join(",")).eq("user_id", uid).maybeSingle();
+  return data || null;
+}
+async function resetCoaching() {
+  if (!hasKey()) return;
+  const sb = admin();
+  const uid = await getUid(sb);
+  if (!uid) return;
+  const all = Object.fromEntries(COACHING_COLS.map((c) => [c, true]));
+  await sb.from("user_settings").update(all).eq("user_id", uid);
+}
+
+module.exports = { seed, seedRename, seedMuscles, seedRecentPR, seedDrill, seedThisWeek, readCoaching, resetCoaching, cleanup, cleanupPRs, hasKey };

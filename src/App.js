@@ -8,6 +8,7 @@ import { rollingVolume } from "./lib/volume";
 import { detectPlateaus, priorBests } from "./lib/plateaus";
 import { liftSeriesFromSets } from "./lib/liftSeries";
 import { liftSessionsFromSets } from "./lib/liftSessions";
+import { coachingFromRow, coachingToRow, COACHING_DEFAULTS } from "./lib/coachingSettings";
 import { mapSessionRow } from "./lib/sessionMap";
 import { historyWindow } from "./lib/historyWindow";
 import { flagPRs } from "./lib/prFlags";
@@ -590,6 +591,7 @@ const DEFAULT_SETTINGS = {
   deloadReminder:true, streakTracking:true, plateCalc:true,
   workoutNotes:true, aiRecs:true, appleHealth:false,
   aiAgeRange:"", aiExperience:"", aiJointNotes:"", aiGoal:"",
+  ...COACHING_DEFAULTS, // showCoaching + 4 sub-toggles, all default ON
 };
 
 // Builds a trainer profile string injected into all AI prompts
@@ -918,7 +920,8 @@ export default function ForgeApp(){
       ai_recs:s.aiRecs, theme_mode:themeMode,
       apple_health:s.appleHealth||false,
       ai_age_range:s.aiAgeRange||"", ai_experience:s.aiExperience||"",
-      ai_joint_notes:s.aiJointNotes||"", ai_goal:s.aiGoal||""
+      ai_joint_notes:s.aiJointNotes||"", ai_goal:s.aiGoal||"",
+      ...coachingToRow(s) // show_coaching + 4 sub-toggles
     },{onConflict:"user_id"});
     }catch(e){ console.error("saveSettings:",e); }
   };
@@ -1038,7 +1041,8 @@ export default function ForgeApp(){
           aiRecs:sett.ai_recs,
           appleHealth:sett.apple_health||false,
           aiAgeRange:sett.ai_age_range||"", aiExperience:sett.ai_experience||"",
-          aiJointNotes:sett.ai_joint_notes||"", aiGoal:sett.ai_goal||""
+          aiJointNotes:sett.ai_joint_notes||"", aiGoal:sett.ai_goal||"",
+          ...coachingFromRow(sett) // show_* → camelCase, ?? true so pre-column rows stay visible
         });
         if(sett.theme_mode)setThemeMode(sett.theme_mode);
       }
@@ -4403,6 +4407,15 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
     {key:"aiRecs",label:"AI Recommendations",desc:"Exercise swaps and plan analysis"},
   ];
 
+  // Coaching & insights visibility — master + 4 sub-toggles. COMMIT 1 only wires persistence +
+  // these rows; the surfaces are gated in later commits. Sub-rows are disabled when the master is off.
+  const coachingToggles=[
+    {key:"showPlateaus",label:"Plateau & trend callouts",desc:"Stall flags and projected trends"},
+    {key:"showVolumeTargets",label:"Volume vs targets",desc:"Weekly sets vs evidence ranges + muscle balance"},
+    {key:"showCoach",label:"Coach tab",desc:"AI insight tab in Stats"},
+    {key:"showPlanAnalysis",label:"Plan analysis",desc:"The “Analyze plan” breakdown"},
+  ];
+
   return <div>
     <div style={{background:C.bg,borderBottom:`2px solid ${C.accent}`,padding:"16px 18px"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -4449,6 +4462,26 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
             <div style={{fontSize:11,color:C.muted,marginTop:2}}>{f.desc}</div>
           </div>
           <Toggle on={!!local[f.key]} onToggle={()=>setLocal(p=>({...p,[f.key]:!p[f.key]}))} C={C}/>
+        </div>
+      ))}
+
+      <div style={{marginTop:18}}><SectionLabel C={C}>Coaching & Insights</SectionLabel></div>
+      {/* Master switch for all interpretive surfaces (plateau flags, volume vs targets, Coach tab,
+          plan analysis). When off, the sub-toggles are dimmed and inert. */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"13px 0",borderBottom:`1px solid ${C.border}`}}>
+        <div style={{flex:1,paddingRight:16}}>
+          <div style={{fontSize:14}}>Coaching &amp; insights</div>
+          <div style={{fontSize:11,color:C.muted,marginTop:2}}>Show the app’s interpretive guidance</div>
+        </div>
+        <Toggle on={!!local.showCoaching} onToggle={()=>setLocal(p=>({...p,showCoaching:!p.showCoaching}))} C={C}/>
+      </div>
+      {coachingToggles.map(f=>(
+        <div key={f.key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"13px 0 13px 18px",borderBottom:`1px solid ${C.border}`,opacity:local.showCoaching?1:0.4}}>
+          <div style={{flex:1,paddingRight:16}}>
+            <div style={{fontSize:14}}>{f.label}</div>
+            <div style={{fontSize:11,color:C.muted,marginTop:2}}>{f.desc}</div>
+          </div>
+          <Toggle on={!!local[f.key]} onToggle={()=>{if(!local.showCoaching)return;setLocal(p=>({...p,[f.key]:!p[f.key]}));}} C={C}/>
         </div>
       ))}
 
