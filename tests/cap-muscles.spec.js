@@ -28,5 +28,8 @@ test.describe("cap-cleanup muscles tonnage resolver", () => {
     // Dumbbell Lateral Raise → Shoulders. The Shoulders row shows NON-ZERO tonnage (so its bar
     // fills). Before the fix the tonnage orphaned to "Other" → "Shoulders … · 0k lbs" / no bar.
     await expect(page.getByText(/Shoulders[\d.]+ sets? · [1-9][\d.]*k lbs/)).toBeVisible({ timeout: 10000 });
+
+    // The "{sets} sets" figures credit secondary movers at 0.5; that basis is disclosed here.
+    await expect(page.getByText(/credit secondary-mover muscles at 0\.5/i)).toBeVisible({ timeout: 10000 });
   });
 });

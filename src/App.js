@@ -4229,6 +4229,9 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
           <Mono style={{fontSize:12,color:C.text,fontWeight:600}}>Cardio</Mono>
           <Mono style={{fontSize:11,color:C.muted}}>{cardioSets} set{cardioSets!==1?"s":""} · {Math.round(cardioMinutes)} min</Mono>
         </div>}
+        {/* Disclose the fractional-set basis so "{sets} sets" above isn't read as raw hard sets.
+            Same 0.5 convention RealizedVolumeInsight discloses; shown only when there are sets. */}
+        {muscleOrder.some(m=>(groupSets[m]||0)>0)&&<Mono style={{fontSize:10,color:C.faint,display:"block",marginTop:6,lineHeight:1.6}}>Set counts credit secondary-mover muscles at 0.5 — a modeling convention, not a measured value.</Mono>}
         {/* Personal records — per LIFT (from personal_records), most-recently-achieved first. No
             strength level: getStrengthScore uses absolute-lbs benchmarks with no bodyweight/sex
             normalization, so a Beginner..Elite label was never decision-grade. */}
