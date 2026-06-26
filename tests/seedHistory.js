@@ -21,7 +21,7 @@ loadEnv(".env.test.local");
 const SUPABASE_URL = "https://ldbrabnvpiidrdkmjpbo.supabase.co";
 const KEY = process.env.SUPABASE_SERVICE_KEY;
 const MARKER = "[AUTOMATED TEST — SAFE TO DELETE]";
-const LABELS = ["AutoTest-Bulk", "AutoTest-Partial", "AutoTest-BeyondCap-Del", "AutoTest-BeyondCap-Edit", "AutoTest-InCap-Rollback", "AutoTest-BeyondCap-Rollback", "AutoTest-RenameBulk", "AutoTest-RenameEdit", "AutoTest-RenameInCap", "AutoTest-RenameBeyond", "AutoTest-Muscle", "AutoTest-Drill", "AutoTest-Week", "AutoTest-Deload"];
+const LABELS = ["AutoTest-Bulk", "AutoTest-Partial", "AutoTest-BeyondCap-Del", "AutoTest-BeyondCap-Edit", "AutoTest-InCap-Rollback", "AutoTest-BeyondCap-Rollback", "AutoTest-RenameBulk", "AutoTest-RenameEdit", "AutoTest-RenameInCap", "AutoTest-RenameBeyond", "AutoTest-Muscle", "AutoTest-Drill", "AutoTest-Week", "AutoTest-Deload", "AutoTest-Longest"];
 const DAY = 86400000;
 
 const hasKey = () => !!KEY && !KEY.includes("anon");
@@ -303,4 +303,42 @@ async function setDeloadDismissedAt(value) {
   await sb.auth.admin.updateUserById(uid, { user_metadata: meta });
 }
 
-module.exports = { seed, seedRename, seedMuscles, seedRecentPR, seedDrill, seedThisWeek, seedDeload, getUserMeta, setDeloadDismissedAt, readCoaching, resetCoaching, setCoaching, cleanup, cleanupPRs, hasKey };
+// The Monday (local noon) of `n` Monday-weeks ago — used to place one session per week.
+function mondayWeeksAgo(n) {
+  const d = new Date(); d.setHours(12, 0, 0, 0);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); // back to THIS week's Monday
+  d.setDate(d.getDate() - 7 * n);
+  return d;
+}
+
+// Seeds a beyond-cap longest-weekly-streak scenario: the LONGEST run (12 consecutive weeks) sits
+// far in the past, OLDER than the most-recent-100 sessions (so the capped `sessions` prop misses
+// it), while the recent history has only short runs. Plus one PARTIAL session adjacent to the old
+// run that would bridge it to 13 if partials weren't excluded. So full-history non-partial longest
+// = 12 exactly: a capped source would read ~4, counting the partial would read 13.
+async function seedLongest() {
+  if (!hasKey()) return { skipped: true };
+  const sb = admin();
+  const uid = await getUid(sb);
+  if (!uid) return { skipped: true };
+  await cleanup();
+  const mk = (n, partial = false) => { const dt = mondayWeeksAgo(n).toISOString(); return { user_id: uid, day_label: "AutoTest-Longest", started_at: dt, completed_at: dt, notes: MARKER, sets_data: {}, partial }; };
+  const rows = [];
+  for (let i = 0; i < 90; i++) rows.push(mk(6 + i * 2));        // recent filler: every-other-week (run 1), weeks 6..184 — 90 sessions push the old run past the 100 cap
+  for (let w = 190; w <= 201; w++) rows.push(mk(w));            // OLD run: 12 consecutive weeks, beyond the cap
+  rows.push(mk(189, true));                                     // PARTIAL adjacent to the old run → would extend to 13 if wrongly counted
+  const { error } = await sb.from("workout_sessions").insert(rows);
+  if (error) throw new Error("seedLongest: " + error.message);
+  await sb.from("user_settings").update({ streak_tracking: true }).eq("user_id", uid);
+  return { skipped: false, count: rows.length };
+}
+
+async function setStreakTracking(on) {
+  if (!hasKey()) return;
+  const sb = admin();
+  const uid = await getUid(sb);
+  if (!uid) return;
+  await sb.from("user_settings").update({ streak_tracking: !!on }).eq("user_id", uid);
+}
+
+module.exports = { seed, seedRename, seedMuscles, seedRecentPR, seedDrill, seedThisWeek, seedDeload, seedLongest, getUserMeta, setDeloadDismissedAt, setStreakTracking, readCoaching, resetCoaching, setCoaching, cleanup, cleanupPRs, hasKey };

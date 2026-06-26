@@ -10,6 +10,7 @@ import { liftSeriesFromSets } from "./lib/liftSeries";
 import { liftSessionsFromSets } from "./lib/liftSessions";
 import { coachingFromRow, coachingToRow, COACHING_DEFAULTS } from "./lib/coachingSettings";
 import { deloadVisible } from "./lib/deloadVisible";
+import { longestWeeklyStreak } from "./lib/longestWeeklyStreak";
 import { mapSessionRow } from "./lib/sessionMap";
 import { historyWindow } from "./lib/historyWindow";
 import { flagPRs } from "./lib/prFlags";
@@ -867,6 +868,7 @@ export default function ForgeApp(){
   const [bannerElapsed,setBannerElapsed]=useState(0);
   const minimizeTimeRef=useRef(null);
   const [deloadDismissedAt,setDeloadDismissedAt]=useState(null); // local override (ISO) for immediate hide; persisted to user_metadata.deload_dismissed_at
+  const [longestStreak,setLongestStreak]=useState(0); // longest consecutive-weeks-with-a-workout, over FULL uncapped history
   const [workoutSummary,setWorkoutSummary]=useState(null);
   const C=useTheme(themeMode);
 
@@ -1187,6 +1189,25 @@ export default function ForgeApp(){
     return()=>subscription.unsubscribe();
   },[]);// eslint-disable-line react-hooks/exhaustive-deps
 
+  // Longest weekly consistency streak — computed over FULL UNCAPPED history (the capped `sessions`
+  // prop would miss a run older than the most-recent 100). Completed non-partial only (same basis as
+  // current streak). Best-effort: on error keep the prior value. Refetches when a workout is
+  // logged/removed (sessions.length) so it stays live without persisting a "best".
+  useEffect(()=>{
+    if(!authUser){setLongestStreak(0);return;}
+    let cancelled=false;
+    (async()=>{
+      try{
+        const {data,error}=await supabase.from("workout_sessions")
+          .select("completed_at,partial").eq("user_id",authUser.id).not("completed_at","is",null);
+        if(error||!data)return; // fail-safe: leave the prior value
+        const dates=data.filter(r=>!r.partial).map(r=>new Date(r.completed_at).toLocaleDateString("en-CA"));
+        if(!cancelled)setLongestStreak(longestWeeklyStreak(dates));
+      }catch(e){console.error("longestStreak fetch:",e);}
+    })();
+    return()=>{cancelled=true;};
+  },[authUser, sessions.length]);// eslint-disable-line react-hooks/exhaustive-deps
+
   // Online/offline detection
   useEffect(()=>{
     const goOnline=()=>{
@@ -1323,7 +1344,7 @@ export default function ForgeApp(){
       setActivePlanKey={persistActivePlanKey}
       settings={settings} sessions={sessions} programStart={programStart} streak={streak} complianceStreak={complianceStreak} deloadDue={deloadVisible(deloadDue, deloadDismissedAt ?? authUser?.user_metadata?.deload_dismissed_at ?? null, new Date())}
       onDeloadDismiss={()=>{const iso=new Date().toISOString();setDeloadDismissedAt(iso);supabase.auth.updateUser({data:{deload_dismissed_at:iso}}).catch(e=>console.error("deload dismiss:",e));}}
-      onStart={day=>{setWorkoutDraft(null);setActiveWorkout(day);}} C={C} toggleTheme={toggleTheme} themeMode={themeMode}
+      onStart={day=>{setWorkoutDraft(null);setActiveWorkout(day);}} C={C} toggleTheme={toggleTheme} themeMode={themeMode} longestStreak={longestStreak}
       authUser={authUser} todayDay={(()=>{const days=activePlan?.days||[];if(!activePlan?.startDate||!days.length)return undefined;const elapsed=elapsedDaysSince(activePlan.startDate);if(elapsed<0)return undefined;const slot=days[elapsed%days.length];return slot?.isRest?undefined:slot;})()}
       onGoToPlan={()=>setTab("plan")}/>}
     {tab==="plan"&&<PlanErrorBoundary C={C}><PlanTab plans={plans} activePlanKey={activePlanKey}
@@ -1362,7 +1383,7 @@ function getDayColor(day){
 }
 
 // -- TODAY ---------------------------------------------------------------------
-function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,programStart,streak,complianceStreak,deloadDue,onDeloadDismiss,onStart,C,toggleTheme,themeMode,authUser,todayDay,onGoToPlan}){
+function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,programStart,streak,complianceStreak,deloadDue,onDeloadDismiss,onStart,C,toggleTheme,themeMode,authUser,todayDay,onGoToPlan,longestStreak=0}){
   const rawDays=plan?.days||[];
   const numDays=rawDays.length;
   const toLocalDateStr=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
@@ -1423,6 +1444,13 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,p
         )}
         {settings.streakTracking&&complianceStreak===0&&(
           <span style={{fontSize:10,color:C.muted,marginLeft:"auto"}}>Start your streak today</span>
+        )}
+        {/* Longest weekly CONSISTENCY run (weeks with >=1 workout, full history) — a distinct,
+            plan-agnostic metric from the current "session streak" (plan-compliance, in sessions). */}
+        {settings.streakTracking&&longestStreak>0&&(
+          <div title="Longest run of consecutive weeks with a workout" style={{display:"flex",alignItems:"center",gap:5,background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:"4px 10px",marginLeft:complianceStreak>0?8:"auto",flexShrink:0,whiteSpace:"nowrap"}}>
+            <span style={{fontSize:11,color:C.muted,fontWeight:600}}>Best: {longestStreak} wk</span>
+          </div>
         )}
       </div>
     </div>
