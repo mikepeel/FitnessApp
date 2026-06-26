@@ -21,7 +21,7 @@ loadEnv(".env.test.local");
 const SUPABASE_URL = "https://ldbrabnvpiidrdkmjpbo.supabase.co";
 const KEY = process.env.SUPABASE_SERVICE_KEY;
 const MARKER = "[AUTOMATED TEST — SAFE TO DELETE]";
-const LABELS = ["AutoTest-Bulk", "AutoTest-Partial", "AutoTest-BeyondCap-Del", "AutoTest-BeyondCap-Edit", "AutoTest-InCap-Rollback", "AutoTest-BeyondCap-Rollback", "AutoTest-RenameBulk", "AutoTest-RenameEdit", "AutoTest-RenameInCap", "AutoTest-RenameBeyond", "AutoTest-Muscle", "AutoTest-Drill", "AutoTest-Week"];
+const LABELS = ["AutoTest-Bulk", "AutoTest-Partial", "AutoTest-BeyondCap-Del", "AutoTest-BeyondCap-Edit", "AutoTest-InCap-Rollback", "AutoTest-BeyondCap-Rollback", "AutoTest-RenameBulk", "AutoTest-RenameEdit", "AutoTest-RenameInCap", "AutoTest-RenameBeyond", "AutoTest-Muscle", "AutoTest-Drill", "AutoTest-Week", "AutoTest-Deload"];
 const DAY = 86400000;
 
 const hasKey = () => !!KEY && !KEY.includes("anon");
@@ -262,4 +262,45 @@ async function setCoaching(partial) {
   await sb.from("user_settings").update(partial).eq("user_id", uid);
 }
 
-module.exports = { seed, seedRename, seedMuscles, seedRecentPR, seedDrill, seedThisWeek, readCoaching, resetCoaching, setCoaching, cleanup, cleanupPRs, hasKey };
+// Seeds a deload-triggering history so deloadDue is true (>=12 completed sessions, span >=42 days,
+// >=10 in the last 42 days): one old session (~55d) to stretch the span + a recent cluster. Also
+// forces deload_reminder on and clears the dismissal marker so the prompt starts visible.
+async function seedDeload() {
+  if (!hasKey()) return { skipped: true };
+  const sb = admin();
+  const uid = await getUid(sb);
+  if (!uid) return { skipped: true };
+  await cleanup();
+  const now = Date.now();
+  const ago = [55, 40, 37, 34, 31, 28, 25, 22, 19, 16, 10, 6, 2]; // 13 sessions
+  const rows = ago.map((d) => { const dt = new Date(now - d * DAY).toISOString(); return { user_id: uid, day_label: "AutoTest-Deload", started_at: dt, completed_at: dt, notes: MARKER, sets_data: {}, partial: false }; });
+  const { error } = await sb.from("workout_sessions").insert(rows);
+  if (error) throw new Error("seedDeload: " + error.message);
+  await sb.from("user_settings").update({ deload_reminder: true }).eq("user_id", uid);
+  await setDeloadDismissedAt(null); // start un-dismissed
+  return { skipped: false, count: rows.length };
+}
+
+// Read the test user's auth user_metadata (to poll the app's dismissal write).
+async function getUserMeta() {
+  if (!hasKey()) return null;
+  const sb = admin();
+  const uid = await getUid(sb);
+  if (!uid) return null;
+  const { data } = await sb.auth.admin.getUserById(uid);
+  return data?.user?.user_metadata || null;
+}
+
+// Merge-set user_metadata.deload_dismissed_at (ISO string or null) WITHOUT clobbering other keys
+// (active_plan_key etc.) — reads current metadata, spreads, writes the whole object.
+async function setDeloadDismissedAt(value) {
+  if (!hasKey()) return;
+  const sb = admin();
+  const uid = await getUid(sb);
+  if (!uid) return;
+  const { data } = await sb.auth.admin.getUserById(uid);
+  const meta = { ...(data?.user?.user_metadata || {}), deload_dismissed_at: value };
+  await sb.auth.admin.updateUserById(uid, { user_metadata: meta });
+}
+
+module.exports = { seed, seedRename, seedMuscles, seedRecentPR, seedDrill, seedThisWeek, seedDeload, getUserMeta, setDeloadDismissedAt, readCoaching, resetCoaching, setCoaching, cleanup, cleanupPRs, hasKey };

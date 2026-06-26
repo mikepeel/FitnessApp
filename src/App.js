@@ -9,6 +9,7 @@ import { detectPlateaus, priorBests } from "./lib/plateaus";
 import { liftSeriesFromSets } from "./lib/liftSeries";
 import { liftSessionsFromSets } from "./lib/liftSessions";
 import { coachingFromRow, coachingToRow, COACHING_DEFAULTS } from "./lib/coachingSettings";
+import { deloadVisible } from "./lib/deloadVisible";
 import { mapSessionRow } from "./lib/sessionMap";
 import { historyWindow } from "./lib/historyWindow";
 import { flagPRs } from "./lib/prFlags";
@@ -865,7 +866,7 @@ export default function ForgeApp(){
   const [minimizedWorkout,setMinimizedWorkout]=useState(null);
   const [bannerElapsed,setBannerElapsed]=useState(0);
   const minimizeTimeRef=useRef(null);
-  const [deloadDismissed,setDeloadDismissed]=useState(null);
+  const [deloadDismissedAt,setDeloadDismissedAt]=useState(null); // local override (ISO) for immediate hide; persisted to user_metadata.deload_dismissed_at
   const [workoutSummary,setWorkoutSummary]=useState(null);
   const C=useTheme(themeMode);
 
@@ -1320,8 +1321,8 @@ export default function ForgeApp(){
     {minimizedWorkout&&<div style={{height:44}}/>}
     {tab==="today"&&<TodayTab plan={activePlan} plans={plans} activePlanKey={activePlanKey}
       setActivePlanKey={persistActivePlanKey}
-      settings={settings} sessions={sessions} programStart={programStart} streak={streak} complianceStreak={complianceStreak} deloadDue={deloadDue&&deloadDismissed!==new Date().toLocaleDateString("en-CA").slice(0,7)}
-      onDeloadDismiss={()=>{setDeloadDismissed(new Date().toLocaleDateString("en-CA").slice(0,7));}}
+      settings={settings} sessions={sessions} programStart={programStart} streak={streak} complianceStreak={complianceStreak} deloadDue={deloadVisible(deloadDue, deloadDismissedAt ?? authUser?.user_metadata?.deload_dismissed_at ?? null, new Date())}
+      onDeloadDismiss={()=>{const iso=new Date().toISOString();setDeloadDismissedAt(iso);supabase.auth.updateUser({data:{deload_dismissed_at:iso}}).catch(e=>console.error("deload dismiss:",e));}}
       onStart={day=>{setWorkoutDraft(null);setActiveWorkout(day);}} C={C} toggleTheme={toggleTheme} themeMode={themeMode}
       authUser={authUser} todayDay={(()=>{const days=activePlan?.days||[];if(!activePlan?.startDate||!days.length)return undefined;const elapsed=elapsedDaysSince(activePlan.startDate);if(elapsed<0)return undefined;const slot=days[elapsed%days.length];return slot?.isRest?undefined:slot;})()}
       onGoToPlan={()=>setTab("plan")}/>}
