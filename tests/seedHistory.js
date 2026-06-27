@@ -341,4 +341,39 @@ async function setStreakTracking(on) {
   await sb.from("user_settings").update({ streak_tracking: !!on }).eq("user_id", uid);
 }
 
-module.exports = { seed, seedRename, seedMuscles, seedRecentPR, seedDrill, seedThisWeek, seedDeload, seedLongest, getUserMeta, setDeloadDismissedAt, setStreakTracking, readCoaching, resetCoaching, setCoaching, cleanup, cleanupPRs, hasKey };
+// Active-plan resolution fixture: two real plans (X, Y) + profiles.active_plan_key pointed at a
+// VALID-BUT-STALE plan (X) — the worst case. The test switches to Y in-app (writing metadata), so a
+// reload must resolve Y from metadata, not X from profiles. Days carry unique names (AutoXDay /
+// AutoYDay) so the editor reveals which plan is active. restorePlanResolution puts iron-test back to
+// its baseline (single plan preset_test_ppl, profiles + metadata restored).
+const PLANRES_KEYS = ["AutoTest-PlanX", "AutoTest-PlanY"];
+const IRONTEST_PLAN = "preset_test_ppl";
+const IRONTEST_META_PLAN = "preset_1779844030358"; // original user_metadata.active_plan_key
+async function seedPlanResolution() {
+  if (!hasKey()) return { skipped: true };
+  const sb = admin();
+  const uid = await getUid(sb);
+  if (!uid) return { skipped: true };
+  await sb.from("plans").delete().eq("user_id", uid).in("plan_key", PLANRES_KEYS); // idempotent
+  const mkDay = (m) => [{ id: "id_" + m, tag: m, name: m, color: "#4f8ef7", label: m, isRest: false, exercises: [] }];
+  const { error } = await sb.from("plans").insert([
+    { user_id: uid, plan_key: "AutoTest-PlanX", name: "AutoTest Plan X", subtitle: "", description: "", days_json: mkDay("AutoXDay"), start_date: null, duration_weeks: 10 },
+    { user_id: uid, plan_key: "AutoTest-PlanY", name: "AutoTest Plan Y", subtitle: "", description: "", days_json: mkDay("AutoYDay"), start_date: null, duration_weeks: 10 },
+  ]);
+  if (error) throw new Error("seedPlanResolution insert: " + error.message);
+  const { error: pe } = await sb.from("profiles").update({ active_plan_key: "AutoTest-PlanX" }).eq("id", uid); // stale-but-VALID pointer
+  if (pe) throw new Error("seedPlanResolution profiles: " + pe.message);
+  return { skipped: false };
+}
+async function restorePlanResolution() {
+  if (!hasKey()) return;
+  const sb = admin();
+  const uid = await getUid(sb);
+  if (!uid) return;
+  await sb.from("plans").delete().eq("user_id", uid).in("plan_key", PLANRES_KEYS);
+  await sb.from("profiles").update({ active_plan_key: IRONTEST_PLAN }).eq("id", uid);
+  const { data } = await sb.auth.admin.getUserById(uid);
+  await sb.auth.admin.updateUserById(uid, { user_metadata: { ...(data?.user?.user_metadata || {}), active_plan_key: IRONTEST_META_PLAN } });
+}
+
+module.exports = { seed, seedRename, seedMuscles, seedRecentPR, seedDrill, seedThisWeek, seedDeload, seedLongest, seedPlanResolution, restorePlanResolution, getUserMeta, setDeloadDismissedAt, setStreakTracking, readCoaching, resetCoaching, setCoaching, cleanup, cleanupPRs, hasKey };

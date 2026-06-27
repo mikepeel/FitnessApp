@@ -11,6 +11,7 @@ import { liftSessionsFromSets } from "./lib/liftSessions";
 import { coachingFromRow, coachingToRow, COACHING_DEFAULTS } from "./lib/coachingSettings";
 import { deloadVisible } from "./lib/deloadVisible";
 import { longestWeeklyStreak } from "./lib/longestWeeklyStreak";
+import { resolveActivePlanKey } from "./lib/activePlan";
 import { mapSessionRow } from "./lib/sessionMap";
 import { historyWindow } from "./lib/historyWindow";
 import { flagPRs } from "./lib/prFlags";
@@ -1102,9 +1103,13 @@ export default function ForgeApp(){
       if(prof?.raw_user_meta_data?.body_stats){
         try{ setBodyStatsGlobal(JSON.parse(prof.raw_user_meta_data.body_stats||"[]")); }catch{}
       }
-      const savedPlanKey=prof?.active_plan_key||u.user_metadata?.active_plan_key;
+      // Single-source the active plan on user_metadata — the store EVERY write targets
+      // (persistActivePlanKey, switch/create/clone/preset, the self-correct below). profiles.active_plan_key
+      // is a frozen, never-client-written pointer to the retired A/B-era "B" plan; trusting it let a
+      // stale key override the real choice once it became valid again (multi-plan re-arm). See lib/activePlan.
+      const savedPlanKey=u.user_metadata?.active_plan_key;
       const planKeys=Object.keys(mergedPlans);
-      const resolvedKey=(savedPlanKey&&mergedPlans[savedPlanKey])?savedPlanKey:(planKeys.length>0?planKeys[0]:null);
+      const resolvedKey=resolveActivePlanKey(savedPlanKey,planKeys);
       if(resolvedKey){
         setActivePlanKey(resolvedKey);
         if(resolvedKey!==savedPlanKey)supabase.auth.updateUser({data:{active_plan_key:resolvedKey}}).catch(e=>console.error("persistKey:",e));
