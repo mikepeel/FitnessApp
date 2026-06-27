@@ -13,7 +13,6 @@ import { scoreVolume, rollupGroups, summarize, resolveGoal } from "./planAnalysi
 export const MIN_HISTORY_DAYS = 21;
 export const MIN_SESSIONS = 6;
 
-const round05 = (n) => Math.round(n * 2) / 2;
 // Every fine muscle, so a muscle with zero sets still scores 'under' (a real finding,
 // not gated away) once the window is sufficient.
 const FINE_MUSCLES = Object.keys(guidelines.hypertrophy);

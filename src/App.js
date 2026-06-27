@@ -31,11 +31,6 @@ import { Dumbbell, CalendarDays, History as HistoryIcon, TrendingUp, Settings as
 // token-styled parent; icons are never filled. Stroke 1.75 everywhere.
 const ICON = { sm: 16, md: 20, lg: 24 };
 
-// Shared chip — mono, uppercase, hairline pill. Token color drives text + border.
-function Badge({ children, color, C }) {
-  return <span style={{fontFamily:"'SF Mono','Courier New',monospace",fontSize:10,textTransform:"uppercase",letterSpacing:"0.08em",border:`1px solid ${color||C.border}`,borderRadius:999,padding:"2px 7px",color:color||C.muted,lineHeight:1.4,display:"inline-flex",alignItems:"center",whiteSpace:"nowrap"}}>{children}</span>;
-}
-
 // Shared PR marker — the StatsTab Progress-tab treatment verbatim: literal "PR"
 // (plus optional weight via `value`) in gold, mono, bold. Used on workout rows,
 // the WorkoutSummary, and History markers so every PR reads identically.
@@ -1403,7 +1398,6 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,p
     if(todaySlot===null)return rawDays;
     return[...rawDays.slice(todaySlot),...rawDays.slice(0,todaySlot)];
   })();
-  const todaySessions=sessions.filter(s=>s.completedAt&&toLocalDateStr(new Date(s.completedAt))===toLocalDateStr(new Date()));
 
   const userName = authUser?.user_metadata?.display_name || authUser?.email?.split("@")[0] || "there";
   const wkNum = planWeekOf(plan);
@@ -3965,7 +3959,6 @@ function StatsTab({sessions,programStart,prs,settings,C,activePlan,toggleTheme,t
   // lands; until then / on fetch error, fall back to the capped prop (same fail-safe as chartData).
   const sessionRows=selEx?((drill&&drill.name===selEx)?drill.sessions:liftSessionsFromSets((sessions||[]).flatMap(s=>(s&&s.completedAt)?(s.setsArr||[]).filter(x=>x.exName===selEx&&x.type!=="warmup").map(x=>({sessionId:s.id,setNumber:x.setNum,weight:x.weight,reps:x.reps,completedAt:s.completedAt,date:new Date(s.completedAt).toLocaleDateString("en-CA")})):[]))):[];
   const prList=Object.entries(prs).sort((a,b)=>b[1].weight-a[1].weight);
-  const totalVol=sessions.reduce((a,s)=>(a+(s.setsArr||[]).filter(x=>x.type!=="warmup").reduce((b,x)=>(b+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0)),0)),0);
 
   // Rolling 28-day volume vs the prior 28 days (stable through a partial month)
   const {current:vol28,previous:volPrev28}=rollingVolume(sessions);
