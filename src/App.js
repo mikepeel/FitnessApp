@@ -12,6 +12,7 @@ import { coachingFromRow, coachingToRow, COACHING_DEFAULTS } from "./lib/coachin
 import { deloadVisible } from "./lib/deloadVisible";
 import { longestWeeklyStreak } from "./lib/longestWeeklyStreak";
 import { resolveActivePlanKey } from "./lib/activePlan";
+import { serializeTrainingExport } from "./lib/exportTraining";
 import { mapSessionRow } from "./lib/sessionMap";
 import { historyWindow } from "./lib/historyWindow";
 import { flagPRs } from "./lib/prFlags";
@@ -4380,6 +4381,7 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
   const [displayName,setDisplayName]=useState(authUser?.user_metadata?.display_name||authUser?.email?.split("@")[0]||"");
   const [nameMsg,setNameMsg]=useState("");
   const [pwMsg,setPwMsg]=useState("");
+  const [exportMsg,setExportMsg]=useState("");
   const isIOSSafari=typeof navigator!=="undefined"&&/iPhone|iPad|iPod/.test(navigator.userAgent)&&/Safari/.test(navigator.userAgent)&&!/Chrome|CriOS|FxiOS/.test(navigator.userAgent);
 
   function save(){saveSettings(local);setSaved(true);setTimeout(()=>setSaved(false),2000);}
@@ -4399,6 +4401,26 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
       if(error)throw error;
       setPwMsg("Reset link sent to "+authUser?.email);setTimeout(()=>setPwMsg(""),4000);
     }catch(e){console.error("pwReset:",e);setPwMsg("Error — try again");}
+  }
+
+  // Anonymized training-data export. The fetch selects ONLY allowlisted columns (never id/user_id/
+  // notes/etc.); `partial` is FILTERED but never selected. The pure serializer enforces the allowlist
+  // again and converts dates to relative offsets + genericizes custom exercise names.
+  async function copyTrainingExport(){
+    try{
+      const {data:{user:u}}=await supabase.auth.getUser();
+      if(!u){setExportMsg("Sign in to export.");return;}
+      const {data,error}=await supabase.from("logged_sets")
+        .select("exercise_name,set_number,weight,reps,set_type,session_id,workout_sessions!inner(completed_at)")
+        .eq("user_id",u.id)
+        .not("workout_sessions.completed_at","is",null)
+        .eq("workout_sessions.partial",false);
+      if(error||!data){setExportMsg("Export failed — try again.");return;}
+      const rows=data.map(r=>({exerciseName:r.exercise_name,setNumber:r.set_number,weight:r.weight,reps:r.reps,setType:r.set_type,sessionId:r.session_id,completedAt:r.workout_sessions?.completed_at}));
+      const json=JSON.stringify(serializeTrainingExport(rows),null,2);
+      await navigator.clipboard.writeText(json);
+      setExportMsg("Copied — paste into your AI assistant.");setTimeout(()=>setExportMsg(""),4000);
+    }catch(e){console.error("copyTrainingExport:",e);setExportMsg("Export failed — try again.");}
   }
 
   async function handleHealthToggle(){
@@ -4480,6 +4502,17 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
           <Btn onClick={sendPasswordReset} C={C} size="sm" variant="ghost">Reset</Btn>
         </div>
         {pwMsg&&<Mono style={{fontSize:11,color:C.neonInk,display:"block",marginTop:6}}>{pwMsg}</Mono>}
+      </div>
+      <div style={{marginTop:18}}><SectionLabel C={C}>Data</SectionLabel></div>
+      <div style={{padding:"13px 0",borderBottom:`1px solid ${C.border}`}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={{flex:1,paddingRight:16}}>
+            <div style={{fontSize:14}}>Copy training data for AI</div>
+            <div style={{fontSize:11,color:C.muted,marginTop:2}}>Anonymized — exercises, sets, reps, weights, relative dates only. Paste into any AI assistant.</div>
+          </div>
+          <Btn onClick={copyTrainingExport} C={C} size="sm" variant="ghost">Copy</Btn>
+        </div>
+        {exportMsg&&<Mono style={{fontSize:11,color:C.neonInk,display:"block",marginTop:6}}>{exportMsg}</Mono>}
       </div>
       <div style={{marginTop:18}}><SectionLabel C={C}>Features</SectionLabel></div>
       {features.map(f=>(
