@@ -1425,8 +1425,9 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,p
           {themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}
         </button>
       </div>
-      {/* Row 2: plan + week badge — streak pill */}
-      <div style={{display:"flex",alignItems:"center",gap:8,position:"relative"}}>
+      {/* Row 2: plan + week badge — streak pill. flexWrap so the Best chip drops to a second line
+          (gap:8 supplies the row gap) instead of bleeding off the right edge on narrow phones. */}
+      <div style={{display:"flex",flexWrap:"wrap",alignItems:"center",gap:8,position:"relative"}}>
         {plan&&(
           <div style={{display:"flex",alignItems:"center",gap:6,background:C.accent+"15",border:`1px solid ${C.accent}33`,borderRadius:6,padding:"4px 10px",whiteSpace:"nowrap",flexShrink:0}}>
             <span style={{fontSize:11,color:C.accentInk,fontWeight:600,letterSpacing:"0.02em"}}>{plan.name}</span>
@@ -1448,7 +1449,7 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,p
         {/* Longest weekly CONSISTENCY run (weeks with >=1 workout, full history) — a distinct,
             plan-agnostic metric from the current "session streak" (plan-compliance, in sessions). */}
         {settings.streakTracking&&longestStreak>0&&(
-          <div title="Longest run of consecutive weeks with a workout" style={{display:"flex",alignItems:"center",gap:5,background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:"4px 10px",marginLeft:complianceStreak>0?8:"auto",flexShrink:0,whiteSpace:"nowrap"}}>
+          <div title="Longest run of consecutive weeks with a workout" style={{display:"flex",alignItems:"center",gap:5,background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:"4px 10px",marginLeft:"auto",flexShrink:0,whiteSpace:"nowrap"}}>
             <span style={{fontSize:11,color:C.muted,fontWeight:600}}>Best: {longestStreak} wk</span>
           </div>
         )}

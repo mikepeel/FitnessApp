@@ -21,7 +21,7 @@ loadEnv(".env.test.local");
 const SUPABASE_URL = "https://ldbrabnvpiidrdkmjpbo.supabase.co";
 const KEY = process.env.SUPABASE_SERVICE_KEY;
 const MARKER = "[AUTOMATED TEST — SAFE TO DELETE]";
-const LABELS = ["AutoTest-Bulk", "AutoTest-Partial", "AutoTest-BeyondCap-Del", "AutoTest-BeyondCap-Edit", "AutoTest-InCap-Rollback", "AutoTest-BeyondCap-Rollback", "AutoTest-RenameBulk", "AutoTest-RenameEdit", "AutoTest-RenameInCap", "AutoTest-RenameBeyond", "AutoTest-Muscle", "AutoTest-Drill", "AutoTest-Week", "AutoTest-Deload", "AutoTest-Longest"];
+const LABELS = ["AutoTest-Bulk", "AutoTest-Partial", "AutoTest-BeyondCap-Del", "AutoTest-BeyondCap-Edit", "AutoTest-InCap-Rollback", "AutoTest-BeyondCap-Rollback", "AutoTest-RenameBulk", "AutoTest-RenameEdit", "AutoTest-RenameInCap", "AutoTest-RenameBeyond", "AutoTest-Muscle", "AutoTest-Drill", "AutoTest-Week", "AutoTest-Deload", "AutoTest-Longest", "AutoTest-Banner"];
 const DAY = 86400000;
 
 const hasKey = () => !!KEY && !KEY.includes("anon");
@@ -333,6 +333,27 @@ async function seedLongest() {
   return { skipped: false, count: rows.length };
 }
 
+// Seeds the worst-case streak banner: a completed session every day for the last 12 days, so all
+// THREE chips render together — plan badge + "{n} session streak" (complianceStreak>0, the wide
+// chip) + "Best: {n} wk" (longestStreak>0). That's the layout that overflows a phone-width row.
+async function seedStreakBanner() {
+  if (!hasKey()) return { skipped: true };
+  const sb = admin();
+  const uid = await getUid(sb);
+  if (!uid) return { skipped: true };
+  await cleanup();
+  const now = Date.now();
+  const rows = [];
+  for (let d = 0; d < 12; d++) {
+    const dt = new Date(now - d * DAY); dt.setHours(12, 0, 0, 0);
+    rows.push({ user_id: uid, day_label: "AutoTest-Banner", started_at: dt.toISOString(), completed_at: dt.toISOString(), notes: MARKER, sets_data: {}, partial: false });
+  }
+  const { error } = await sb.from("workout_sessions").insert(rows);
+  if (error) throw new Error("seedStreakBanner: " + error.message);
+  await sb.from("user_settings").update({ streak_tracking: true }).eq("user_id", uid);
+  return { skipped: false };
+}
+
 async function setStreakTracking(on) {
   if (!hasKey()) return;
   const sb = admin();
@@ -376,4 +397,4 @@ async function restorePlanResolution() {
   await sb.auth.admin.updateUserById(uid, { user_metadata: { ...(data?.user?.user_metadata || {}), active_plan_key: IRONTEST_META_PLAN } });
 }
 
-module.exports = { seed, seedRename, seedMuscles, seedRecentPR, seedDrill, seedThisWeek, seedDeload, seedLongest, seedPlanResolution, restorePlanResolution, getUserMeta, setDeloadDismissedAt, setStreakTracking, readCoaching, resetCoaching, setCoaching, cleanup, cleanupPRs, hasKey };
+module.exports = { seed, seedRename, seedMuscles, seedRecentPR, seedDrill, seedThisWeek, seedDeload, seedLongest, seedStreakBanner, seedPlanResolution, restorePlanResolution, getUserMeta, setDeloadDismissedAt, setStreakTracking, readCoaching, resetCoaching, setCoaching, cleanup, cleanupPRs, hasKey };
