@@ -13,6 +13,8 @@ import { deloadVisible } from "./lib/deloadVisible";
 import { longestWeeklyStreak } from "./lib/longestWeeklyStreak";
 import { resolveActivePlanKey } from "./lib/activePlan";
 import { serializeTrainingExport } from "./lib/exportTraining";
+import { weeklyAdherence } from "./lib/weeklyAdherence";
+import { assembleDigest } from "./lib/overviewDigest";
 import { mapSessionRow } from "./lib/sessionMap";
 import { historyWindow } from "./lib/historyWindow";
 import { flagPRs } from "./lib/prFlags";
@@ -1356,7 +1358,7 @@ export default function ForgeApp(){
       setActiveWorkout({...day,_rerunSets:sess.sets});
       setTab("today");
     }}/>}
-    {tab==="stats"&&<StatsTab sessions={sessions} programStart={programStart} prs={prs} settings={settings} C={C} activePlan={activePlan} toggleTheme={toggleTheme} themeMode={themeMode} bodyStatsInit={bodyStatsGlobal} onBodyStatsChange={async(stats)=>{
+    {tab==="stats"&&<StatsTab sessions={sessions} programStart={programStart} prs={prs} settings={settings} C={C} activePlan={activePlan} toggleTheme={toggleTheme} themeMode={themeMode} complianceStreak={complianceStreak} deloadDue={deloadVisible(deloadDue, deloadDismissedAt ?? authUser?.user_metadata?.deload_dismissed_at ?? null, new Date())} bodyStatsInit={bodyStatsGlobal} onBodyStatsChange={async(stats)=>{
       setBodyStatsGlobal(stats);
       const {data:{user:u}}=await supabase.auth.getUser().catch(()=>({data:{user:null}}));
       if(u)await supabase.auth.updateUser({data:{body_stats:JSON.stringify(stats)}}).catch(()=>{});
@@ -3870,7 +3872,7 @@ function RealizedVolumeInsight({sessions,settings,C}){
   </div>;
 }
 
-function StatsTab({sessions,programStart,prs,settings,C,activePlan,toggleTheme,themeMode,bodyStatsInit=[],onBodyStatsChange}){
+function StatsTab({sessions,programStart,prs,settings,C,activePlan,toggleTheme,themeMode,complianceStreak=0,deloadDue=false,bodyStatsInit=[],onBodyStatsChange}){
   const [selEx,setSelEx]=useState(null); // null = "All exercises"
   const [progressView,setProgressView]=useState(null); // null = per-mode default (drill→table, all-lifts→chart); else explicit "chart"|"table"
   const [plateausExpanded,setPlateausExpanded]=useState(false);
@@ -4058,37 +4060,34 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
 
       {/* OVERVIEW */}
       {statsView==="overview"&&<div>
-        {/* Weekly summary */}
-        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px",marginBottom:14}}>
-          <SectionLabel C={C}>This Week</SectionLabel>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-            <div style={{textAlign:"center"}}><div style={{fontSize:22,fontWeight:800,color:C.neonInk,fontFamily:"'SF Mono','Courier New',monospace"}}>{weekSessions.length}</div><Mono style={{fontSize:10,color:C.muted}}>sessions</Mono></div>
-            <div style={{textAlign:"center"}}><div style={{fontSize:22,fontWeight:800,color:C.accentInk,fontFamily:"'SF Mono','Courier New',monospace"}}>{weekVol>0?`${Math.round(weekVol/1000)}k`:"0"}</div><Mono style={{fontSize:10,color:C.muted}}>lbs</Mono></div>
-          </div>
-        </div>
-
-        {/* Rolling 28-day volume vs prior 28 */}
-        {(vol28>0||volPrev28>0)&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div>
-            <SectionLabel C={C}>Last 28 days vs prior 28</SectionLabel>
-            <div style={{fontSize:13,color:C.muted}}>Volume comparison</div>
-          </div>
-          {vol28Delta===null
-            ? <div style={{fontSize:13,color:C.muted,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"right",maxWidth:140}}>— building baseline</div>
-            : <div style={{fontSize:28,fontWeight:800,fontFamily:"'SF Mono','Courier New',monospace",color:vol28Delta>=0?C.neonInk:C.redInk}}>
-                {vol28Delta>0?"+":""}{vol28Delta}%
-              </div>}
-        </div>}
+        {/* Judgment digest — always-on adherence line + situational judgment lines (positive-first,
+            capped, deduped per lift). Inputs are pre-GATED here (off → the line is hidden; the engine
+            still powers its own surfaces); the pure assembleDigest orders/dedups/caps. */}
+        {(()=>{
+          const anchor=activePlan?.startDate||programStart||getProgramStart(sessions);
+          const adherence=weeklyAdherence(activePlan,sessions,anchor,new Date());
+          let recentPR=null; // prDetection-gated; only when achieved within ~2 weeks
+          if(settings.prDetection){const rp=recentPRs(prs,1)[0];if(rp&&rp[1]&&rp[1].date){const da=Math.round((Date.now()-new Date(rp[1].date).getTime())/86400000);if(da>=0&&da<=14)recentPR={lift:rp[0],weight:rp[1].weight,when:da===0?"today":`${da}d ago`};}}
+          let plateaus=[]; // showPlateaus && showCoaching (same gate as the Plateaus card)
+          if(settings.showPlateaus&&settings.showCoaching){const lm=Object.fromEntries(allExNames.map(n=>[n,seriesFor(n)]).filter(([,s])=>s.length>0));plateaus=detectPlateaus(lm,{tonnage:Object.fromEntries(allExNames.map(n=>[n,tonnageSeriesFor(n)])),priorBest:plateauPB?.map,now:plateauPB?.now});}
+          let volumeFlag=null; // showVolumeTargets && showCoaching (same gate as RealizedVolumeInsight)
+          if(settings.showVolumeTargets&&settings.showCoaching){const rv=analyzeRealized(sessions,{goal:(settings.aiGoal||"").toLowerCase(),windowDays:28});if(rv.sufficient){const f=(rv.perGroup||[]).find(g=>g.status!=="in_range");if(f)volumeFlag={group:f.group,status:f.status};}}
+          const digest=assembleDigest({adherence,currentStreak:settings.streakTracking?complianceStreak:0,recentPR,plateaus,volumeFlag,deloadNewlyDue:!!deloadDue});
+          const toneColor={positive:C.neonInk,caution:C.goldInk,info:C.accentInk,neutral:C.text};
+          return <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px",marginBottom:14}}>
+            <SectionLabel C={C}>This Week</SectionLabel>
+            {digest.lines.map((ln,i)=>(
+              <div key={i} style={{fontSize:i===0?14:12,fontWeight:i===0?700:500,color:toneColor[ln.tone]||C.text,marginTop:i===0?2:8,lineHeight:1.5}}>{ln.text}</div>
+            ))}
+          </div>;
+        })()}
 
         {/* PR Board */}
         {prList.length>0&&<div style={{marginBottom:14}}>
           <SectionLabel C={C}>Personal Records</SectionLabel>
           {prList.slice(0,5).map(([name,pr])=>(
             <div key={name} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-              <div>
-                <div style={{fontSize:13}}>{name}</div>
-                <Mono style={{fontSize:10,color:C.muted}}>{STRENGTH_LEVELS[getStrengthScore(name,pr.weight)]}</Mono>
-              </div>
+              <div style={{fontSize:13}}>{name}</div>
               <Mono style={{fontSize:14,color:C.goldInk,fontWeight:700}}>{pr.weight} lbs</Mono>
             </div>
           ))}
