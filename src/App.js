@@ -1358,7 +1358,7 @@ export default function ForgeApp(){
       setActiveWorkout({...day,_rerunSets:sess.sets});
       setTab("today");
     }}/>}
-    {tab==="stats"&&<StatsTab sessions={sessions} programStart={programStart} prs={prs} settings={settings} C={C} activePlan={activePlan} toggleTheme={toggleTheme} themeMode={themeMode} complianceStreak={complianceStreak} deloadDue={deloadVisible(deloadDue, deloadDismissedAt ?? authUser?.user_metadata?.deload_dismissed_at ?? null, new Date())} bodyStatsInit={bodyStatsGlobal} onBodyStatsChange={async(stats)=>{
+    {tab==="stats"&&<StatsTab sessions={sessions} programStart={programStart} prs={prs} settings={settings} C={C} activePlan={activePlan} toggleTheme={toggleTheme} themeMode={themeMode} complianceStreak={complianceStreak} longestStreak={longestStreak} deloadDue={deloadVisible(deloadDue, deloadDismissedAt ?? authUser?.user_metadata?.deload_dismissed_at ?? null, new Date())} bodyStatsInit={bodyStatsGlobal} onBodyStatsChange={async(stats)=>{
       setBodyStatsGlobal(stats);
       const {data:{user:u}}=await supabase.auth.getUser().catch(()=>({data:{user:null}}));
       if(u)await supabase.auth.updateUser({data:{body_stats:JSON.stringify(stats)}}).catch(()=>{});
@@ -3837,7 +3837,7 @@ function RealizedVolumeInsight({sessions,settings,C}){
   </div>;
 }
 
-function StatsTab({sessions,programStart,prs,settings,C,activePlan,toggleTheme,themeMode,complianceStreak=0,deloadDue=false,bodyStatsInit=[],onBodyStatsChange}){
+function StatsTab({sessions,programStart,prs,settings,C,activePlan,toggleTheme,themeMode,complianceStreak=0,longestStreak=0,deloadDue=false,bodyStatsInit=[],onBodyStatsChange}){
   const [selEx,setSelEx]=useState(null); // null = "All exercises"
   const [progressView,setProgressView]=useState(null); // null = per-mode default (drill→table, all-lifts→chart); else explicit "chart"|"table"
   const [plateausExpanded,setPlateausExpanded]=useState(false);
@@ -4046,6 +4046,21 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
             ))}
           </div>;
         })()}
+
+        {/* Streak RECORD strip — the longest weekly-consistency run (full history via longestStreak,
+            uncapped fetch; NOT the capped `sessions`). This is a record, not a judgment line; the
+            CURRENT streak lives in the adherence line above and is intentionally NOT repeated here.
+            Gated by streakTracking (same as the removed header chips). Full-width card so it can't
+            bleed off a phone-width row — the header-chip overflow lesson, designed out. */}
+        {settings.streakTracking&&longestStreak>0&&(
+          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"12px 14px",marginBottom:14,display:"flex",alignItems:"center",gap:10}}>
+            <span style={{color:C.gold,display:"inline-flex",flexShrink:0}}><Trophy size={ICON.md} strokeWidth={1.75}/></span>
+            <div style={{minWidth:0}}>
+              <div style={{fontSize:14,fontWeight:700,color:C.goldInk}}>Best: {longestStreak}-week run</div>
+              <Mono style={{fontSize:10,color:C.muted}}>Longest streak of consecutive weeks trained</Mono>
+            </div>
+          </div>
+        )}
 
         {/* PR Board */}
         {prList.length>0&&<div style={{marginBottom:14}}>
