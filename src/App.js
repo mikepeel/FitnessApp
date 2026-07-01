@@ -1407,12 +1407,6 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,p
   const wkTotal = plan?.durationWeeks || 10;
   const isProgramComplete = !!wkNum && wkNum > wkTotal;
   const [dismissedComplete,setDismissedComplete]=useState(false);
-  // Fallback when the plan has no start_date: anchor on the user's TRUE earliest completed
-  // session (full history) if known, else the capped earliest-loaded session (best-effort).
-  const fallbackWeek = programStart ? programWeekFromDate(programStart) : (sessions.length > 0 ? programWeek(sessions) : null);
-  const weekLabel = wkNum
-    ? (isProgramComplete ? `COMPLETE · WEEK ${wkTotal} OF ${wkTotal}` : `WEEK ${wkNum} OF ${wkTotal}`)
-    : (fallbackWeek ? `WEEK ${fallbackWeek}` : "");
 
   return <div>
     <div style={{background:C.bg,borderBottom:`1px solid ${C.border}`,padding:"16px 14px 14px"}}>
@@ -1426,35 +1420,6 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,p
         <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",marginTop:2,display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
           {themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}
         </button>
-      </div>
-      {/* Row 2: plan + week badge — streak pill. flexWrap so the Best chip drops to a second line
-          (gap:8 supplies the row gap) instead of bleeding off the right edge on narrow phones. */}
-      <div style={{display:"flex",flexWrap:"wrap",alignItems:"center",gap:8,position:"relative"}}>
-        {plan&&(
-          <div style={{display:"flex",alignItems:"center",gap:6,background:C.accent+"15",border:`1px solid ${C.accent}33`,borderRadius:6,padding:"4px 10px",whiteSpace:"nowrap",flexShrink:0}}>
-            <span style={{fontSize:11,color:C.accentInk,fontWeight:600,letterSpacing:"0.02em"}}>{plan.name}</span>
-            {weekLabel&&<>
-              <span style={{width:3,height:3,background:C.accent+"99",borderRadius:"50%",display:"inline-block"}}/>
-              <span style={{fontSize:11,color:isProgramComplete?C.goldInk:C.accentInk,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.04em"}}>{weekLabel}</span>
-            </>}
-          </div>
-        )}
-        {settings.streakTracking&&complianceStreak>0&&(
-          <div style={{display:"flex",alignItems:"center",gap:5,background:C.gold+"12",border:`1px solid ${C.gold}30`,borderRadius:6,padding:"4px 10px",marginLeft:"auto",flexShrink:0,whiteSpace:"nowrap"}}>
-            <span style={{color:C.muted,display:"inline-flex",alignItems:"center"}}><Trophy size={ICON.sm} strokeWidth={1.75}/></span>
-            <span style={{fontSize:11,color:C.goldInk,fontWeight:600}}>{complianceStreak} session streak!</span>
-          </div>
-        )}
-        {settings.streakTracking&&complianceStreak===0&&(
-          <span style={{fontSize:10,color:C.muted,marginLeft:"auto"}}>Start your streak today</span>
-        )}
-        {/* Longest weekly CONSISTENCY run (weeks with >=1 workout, full history) — a distinct,
-            plan-agnostic metric from the current "session streak" (plan-compliance, in sessions). */}
-        {settings.streakTracking&&longestStreak>0&&(
-          <div title="Longest run of consecutive weeks with a workout" style={{display:"flex",alignItems:"center",gap:5,background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:"4px 10px",marginLeft:"auto",flexShrink:0,whiteSpace:"nowrap"}}>
-            <span style={{fontSize:11,color:C.muted,fontWeight:600}}>Best: {longestStreak} wk</span>
-          </div>
-        )}
       </div>
     </div>
     <div style={{padding:"14px 18px"}}>
