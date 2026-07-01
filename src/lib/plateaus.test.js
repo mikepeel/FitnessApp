@@ -177,6 +177,51 @@ describe("detectPlateaus — multi-axis 'no recent PR' definition", () => {
   });
 });
 
+describe("detectPlateaus — last-trained recency gate (21d)", () => {
+  const NOW21 = new Date("2026-06-25T12:00:00");
+  const gOpts = (tonByName) => ({ now: NOW21, tonnage: tonByName });
+
+  // Box Step-Ups shape: flat 25×10 forever (no PR), an in-window session, but LAST TRAINED 27 days
+  // ago (dropped from the plan). "stalled" would be true-but-meaningless → must be GATED.
+  const abandoned = build([
+    { date: "2026-04-20", weight: 25, reps: 10 }, // pre-window prior best
+    { date: "2026-05-05", weight: 25, reps: 10 },
+    { date: "2026-05-29", weight: 25, reps: 10 }, // in-window, LAST = 27d before NOW, no new best
+  ]);
+
+  test("abandoned lift (last trained 27d ago, no PR) → GATED, not flagged", () => {
+    // Without the gate this WOULD flag (in-window session + prior best + no new best). Load-bearing.
+    expect(detectPlateaus({ Abandoned: abandoned.series }, gOpts({ Abandoned: abandoned.tonnage }))).toEqual([]);
+  });
+
+  // Goblet Squat shape: genuinely stalled but still on a ~2-3-week rotation (last trained 20d ago).
+  const activeStall = build([
+    { date: "2026-04-20", weight: 100, reps: 10 }, // pre-window prior best
+    { date: "2026-05-05", weight: 100, reps: 10 },
+    { date: "2026-05-29", weight: 95, reps: 10 },  // in-window, lower on every axis
+    { date: "2026-06-05", weight: 95, reps: 10 },  // LAST = 20d before NOW
+  ]);
+
+  test("active stalled lift (last trained 20d ago, no PR) → STILL flagged (gate suppresses dormancy, not real stalls)", () => {
+    const r = detectPlateaus({ ActiveStall: activeStall.series }, gOpts({ ActiveStall: activeStall.tonnage }));
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject({ exercise: "ActiveStall", status: "stalled" });
+  });
+
+  // Boundary — trained EXACTLY 21 days ago. Choice: inclusive-keep (still flags; only > 21 gates).
+  const boundary = build([
+    { date: "2026-04-20", weight: 100, reps: 10 },
+    { date: "2026-05-05", weight: 100, reps: 10 },
+    { date: "2026-06-04", weight: 95, reps: 10 }, // LAST = 21d before NOW
+  ]);
+
+  test("boundary: last trained EXACTLY 21 days ago → still flagged (inclusive-keep; >21 gates)", () => {
+    const r = detectPlateaus({ Boundary: boundary.series }, gOpts({ Boundary: boundary.tonnage }));
+    expect(r).toHaveLength(1);
+    expect(r[0].exercise).toBe("Boundary");
+  });
+});
+
 describe("priorBests", () => {
   const WS = new Date("2026-05-06T12:00:00").getTime(); // windowStart
 

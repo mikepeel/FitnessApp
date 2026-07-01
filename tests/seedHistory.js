@@ -21,7 +21,7 @@ loadEnv(".env.test.local");
 const SUPABASE_URL = "https://ldbrabnvpiidrdkmjpbo.supabase.co";
 const KEY = process.env.SUPABASE_SERVICE_KEY;
 const MARKER = "[AUTOMATED TEST — SAFE TO DELETE]";
-const LABELS = ["AutoTest-Bulk", "AutoTest-Partial", "AutoTest-BeyondCap-Del", "AutoTest-BeyondCap-Edit", "AutoTest-InCap-Rollback", "AutoTest-BeyondCap-Rollback", "AutoTest-RenameBulk", "AutoTest-RenameEdit", "AutoTest-RenameInCap", "AutoTest-RenameBeyond", "AutoTest-Muscle", "AutoTest-Drill", "AutoTest-Week", "AutoTest-Deload", "AutoTest-Longest", "AutoTest-Banner", "AutoTest-Maint"];
+const LABELS = ["AutoTest-Bulk", "AutoTest-Partial", "AutoTest-BeyondCap-Del", "AutoTest-BeyondCap-Edit", "AutoTest-InCap-Rollback", "AutoTest-BeyondCap-Rollback", "AutoTest-RenameBulk", "AutoTest-RenameEdit", "AutoTest-RenameInCap", "AutoTest-RenameBeyond", "AutoTest-Muscle", "AutoTest-Drill", "AutoTest-Week", "AutoTest-Deload", "AutoTest-Longest", "AutoTest-Banner", "AutoTest-Maint", "AutoTest-Dormant"];
 const DAY = 86400000;
 
 const hasKey = () => !!KEY && !KEY.includes("anon");
@@ -333,6 +333,33 @@ async function seedLongest() {
   return { skipped: false, count: rows.length };
 }
 
+// Seeds a DORMANT abandoned lift (the Box Step-Ups shape) for the plateau recency gate: exercise
+// "AutoTest-Dormant" logged flat 25×10 (never progresses → no PR) at 55d and 50d ago (pre-window,
+// establishing a prior best) and once 25d ago (in-window: within the 42d plateau window, but LAST
+// trained 25 days ago → >21d dormant). WITHOUT the recency gate this flags "stalled"; WITH it, gated.
+async function seedDormantPlateau() {
+  if (!hasKey()) return { skipped: true };
+  const sb = admin();
+  const uid = await getUid(sb);
+  if (!uid) return { skipped: true };
+  await cleanup();
+  // logged_sets rows are REQUIRED: detectPlateaus' prior-best (plateauPB) is fetched from logged_sets,
+  // not sets_data — without them the lift has no prior and is never flagged (so the gate would be moot).
+  for (const d of [55, 50, 25]) {
+    const dt = new Date(); dt.setHours(12, 0, 0, 0); dt.setDate(dt.getDate() - d);
+    const iso = dt.toISOString();
+    const sets_data = { "AutoTest-Dormant": { "1": { weight: "25", reps: "10" }, "2": { weight: "25", reps: "10" }, "3": { weight: "25", reps: "10" } } };
+    const { data: ins, error: se } = await sb.from("workout_sessions").insert({ user_id: uid, day_label: "AutoTest-Dormant", started_at: iso, completed_at: iso, notes: MARKER, sets_data, partial: false }).select("id");
+    if (se) throw new Error("seedDormantPlateau session: " + se.message);
+    const sid = ins[0].id;
+    const ls = [1, 2, 3].map((n) => ({ session_id: sid, user_id: uid, exercise_name: "AutoTest-Dormant", set_number: n, weight: 25, reps: 10, set_type: "working", is_pr: false }));
+    const { error: le } = await sb.from("logged_sets").insert(ls);
+    if (le) throw new Error("seedDormantPlateau logged_sets: " + le.message);
+  }
+  await sb.from("user_settings").update({ show_coaching: true, show_plateaus: true }).eq("user_id", uid);
+  return { skipped: false };
+}
+
 // Seeds a MAINTENANCE-level chest scenario for the volume insight: 7 completed sessions spanning ~26
 // days (so span >= 21 and >= 6 training days → the sufficiency gate passes from the seed alone,
 // independent of baseline), each 4 working Bench Press sets. Bench primary = Chest, so chest ≈ 28
@@ -422,4 +449,4 @@ async function restorePlanResolution() {
   await sb.auth.admin.updateUserById(uid, { user_metadata: { ...(data?.user?.user_metadata || {}), active_plan_key: IRONTEST_META_PLAN } });
 }
 
-module.exports = { seed, seedRename, seedMuscles, seedRecentPR, seedDrill, seedThisWeek, seedDeload, seedLongest, seedMaintenanceVolume, seedStreakBanner, seedPlanResolution, restorePlanResolution, getUserMeta, setDeloadDismissedAt, setStreakTracking, readCoaching, resetCoaching, setCoaching, cleanup, cleanupPRs, hasKey };
+module.exports = { seed, seedRename, seedMuscles, seedRecentPR, seedDrill, seedThisWeek, seedDeload, seedLongest, seedMaintenanceVolume, seedDormantPlateau, seedStreakBanner, seedPlanResolution, restorePlanResolution, getUserMeta, setDeloadDismissedAt, setStreakTracking, readCoaching, resetCoaching, setCoaching, cleanup, cleanupPRs, hasKey };

@@ -19,6 +19,11 @@ import { estimate1RM } from "./oneRepMax";
 
 const DAY = 86400000;
 const WINDOW_DAYS = 42; // trailing 6 weeks
+// Last-trained recency gate. A lift not trained within this many days is DORMANT (abandoned), and
+// "stalled" would be true-but-meaningless for it — suppress the flag even with no PR. 21d gates a
+// dropped lift while preserving a lift still on a ~2-3-week rotation. Separate from the win.length>=1
+// / prior-window logic: an ACTIVE stalled lift (trained within RECENCY_DAYS, no PR) is unaffected.
+const RECENCY_DAYS = 21;
 const toDay = (d) => new Date(d + "T12:00:00").getTime(); // local noon → DST-safe day diff
 const maxOf = (arr, key) => arr.reduce((m, p) => Math.max(m, Number(p[key]) || 0), -Infinity);
 // e1RM per formula for one set — must mirror seriesFor's enrichment (App.js): Epley via
@@ -39,6 +44,11 @@ export const detectPlateaus = (exerciseSeriesMap, opts = {}) => {
 
     const win = series.filter((p) => toDay(p.date) >= windowStart);
     if (!win.length) continue; // not training it in-window → not a plateau
+
+    // Recency gate: skip a DORMANT lift (most recent session > RECENCY_DAYS ago). Boundary is
+    // inclusive-keep: trained EXACTLY RECENCY_DAYS ago still flags; only > RECENCY_DAYS is gated.
+    const latestDate = series[series.length - 1].date;
+    if (Math.round((now.getTime() - toDay(latestDate)) / DAY) > RECENCY_DAYS) continue;
 
     // Prior bests strictly before the window. Prefer a full-history priorBest map (uncapped,
     // built by priorBests with the same windowStart); fall back to the capped pre-window slice
@@ -79,7 +89,6 @@ export const detectPlateaus = (exerciseSeriesMap, opts = {}) => {
       if (v > mV) { mV = v; isPR = true; }
       if (isPR) lastPR = p.date;
     }
-    const latestDate = series[series.length - 1].date;
     const stalledWeeks = Math.max(0, Math.floor((toDay(latestDate) - toDay(lastPR)) / (7 * DAY)));
 
     // Display metadata only (the flag above is authoritative): keep projectExercise's
