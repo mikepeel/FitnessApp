@@ -2296,6 +2296,7 @@ function PlanAnalysisView({plan,goalRaw,C,onBack}){
   // actionable / evidence-tier copy lives at the fine level on expand.
   const groupLines=(row)=>{const out=[];
     if(row.status==="under")out.push("Below the productive range on a key muscle — expand for which and how much.");
+    else if(row.status==="maintenance")out.push("At maintenance volume — holding a key muscle, not building. Expand for detail.");
     else if(row.status==="high")out.push("Over the productive range on a key muscle — added volume gives diminishing returns; watch recovery.");
     else if(row.status==="mixed"){
       const lo=row.fineMuscles.filter(m=>m.evidenceTier!=="low"&&(m.status==="under"||m.status==="maintenance")).map(m=>m.muscle);
@@ -3776,6 +3777,7 @@ function RealizedVolumeInsight({sessions,settings,C}){
   // copy lives at the fine level on expand.
   const groupLines=(row)=>{const out=[];
     if(row.status==="under")out.push("Below the productive range on a key muscle — open for which and how much.");
+    else if(row.status==="maintenance")out.push("At maintenance volume — holding a key muscle, not building. Open for detail.");
     else if(row.status==="high")out.push("Over the productive range on a key muscle — more isn't better here; watch recovery.");
     else if(row.status==="mixed"){
       const lo=row.fineMuscles.filter(m=>m.evidenceTier!=="low"&&(m.status==="under"||m.status==="maintenance")).map(m=>m.muscle);

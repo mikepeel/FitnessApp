@@ -62,6 +62,13 @@ describe("assembleDigest", () => {
     expect(d.lines[1].text).toBe("Shoulders above the productive range (by logged-set count)");
   });
 
+  test("a MAINTENANCE volume flag reads as HOLDING, not 'below the productive range'", () => {
+    const d = assembleDigest({ adherence: { done: 3, target: 4, status: "on_pace" }, volumeFlag: { group: "Chest", status: "maintenance" } });
+    const vol = d.lines.find((l) => l.kind === "volume");
+    expect(vol.text).toBe("Chest at maintenance volume — holding, not building (by logged-set count)");
+    expect(vol.text).not.toMatch(/below the productive range/);
+  });
+
   test("behind status is honest but not harsh; tone flags it", () => {
     const d = assembleDigest({ adherence: { done: 1, target: 4, status: "behind" } });
     expect(d.lines[0].text).toBe("1 of 4 this week — behind");

@@ -33,7 +33,9 @@ function adherenceLine(a, streak) {
 }
 
 function volumeLine(v) {
-  const dir = v.status === "high" ? "above" : v.status === "mixed" ? "outside" : "below"; // under/maintenance → below
+  // Maintenance = holding (above the floor, below the productive low) — not a deficit; honest copy.
+  if (v.status === "maintenance") return { kind: "volume", text: `${v.group} at maintenance volume — holding, not building (by logged-set count)`, tone: "info" };
+  const dir = v.status === "high" ? "above" : v.status === "mixed" ? "outside" : "below"; // under → below
   return { kind: "volume", text: `${v.group} ${dir} the productive range (by logged-set count)`, tone: "info" };
 }
 

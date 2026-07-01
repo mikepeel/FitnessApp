@@ -89,9 +89,16 @@ export function rollupGroups(perMuscle, groupMetrics, goal) {
     if (!members.length) return null;
     const gm = (groupMetrics && groupMetrics[group]) || { weeklySets: 0, freq: 0, maxDaySets: 0 };
     const gated = members.filter(isGated);
-    const anyUnder = gated.some(belowBand);
+    const anyUnder = gated.some(belowBand);                          // below band = under OR maintenance
+    const anyGenuineUnder = gated.some((m) => m.status === "under"); // below the maintenance FLOOR (a real deficit)
     const anyOver = gated.some(overBand);
-    const status = anyUnder && anyOver ? "mixed" : anyUnder ? "under" : anyOver ? "high" : "in_range";
+    // Distinguish HOLDING from a deficit: a pure below-band group reads "maintenance" (holding) unless
+    // a gated member is genuinely under (below the floor), in which case it stays "under". Mixed
+    // (below-band + over) and high/in_range precedence are unchanged — maintenance never upgrades a
+    // genuinely-under or mixed group, nor downgrades an in-range one.
+    const status = anyUnder && anyOver ? "mixed"
+      : anyUnder ? (anyGenuineUnder ? "under" : "maintenance")
+      : anyOver ? "high" : "in_range";
     const inOrAbove = status === "in_range" || status === "high" || status === "mixed";
     // Evidence tier from the gated members (so a flagged group never carries low-evidence
     // soft copy at the headline); fall back to all members if a group has no gated ones.

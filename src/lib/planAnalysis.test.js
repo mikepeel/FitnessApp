@@ -141,6 +141,37 @@ describe("group status — evidence-gated (not summed bands)", () => {
     expect(legs.status).toBe("mixed");
   });
 
+  test("high-evidence muscle at MAINTENANCE (>=floor, <productive low) → group 'maintenance', NOT 'under'", () => {
+    // The BDP-shaped case: Chest 9.25 → statusFor gives 'maintenance' (>=6 floor, <10 low). No gated
+    // member is genuinely under, so the group is HOLDING — not a deficit. Before the fix this collapsed
+    // to 'under' (belowBand folded maintenance into under). Load-bearing.
+    const metrics = { Chest: { weeklySets: 9.25, freq: 2, maxDaySets: 5 } };
+    const perMuscle = scoreVolume(metrics, "hypertrophy");
+    expect(perMuscle.find((m) => m.muscle === "Chest").status).toBe("maintenance"); // fine level already correct
+    const chest = rollupGroups(perMuscle, { Chest: { weeklySets: 9.25, freq: 2, maxDaySets: 5 } }, "hypertrophy").find((g) => g.group === "Chest");
+    expect(chest.status).toBe("maintenance"); // the fix — was "under"
+  });
+
+  test("high-evidence muscle BELOW the maintenance floor → STILL 'under' (fix doesn't soften real deficits)", () => {
+    const metrics = { Chest: { weeklySets: 4, freq: 1, maxDaySets: 4 } }; // 4 < floor 6 → genuine deficit
+    const perMuscle = scoreVolume(metrics, "hypertrophy");
+    expect(perMuscle.find((m) => m.muscle === "Chest").status).toBe("under");
+    const chest = rollupGroups(perMuscle, { Chest: { weeklySets: 4, freq: 1, maxDaySets: 4 } }, "hypertrophy").find((g) => g.group === "Chest");
+    expect(chest.status).toBe("under");
+  });
+
+  test("maintenance composition: genuine-under wins; maintenance+over → mixed; in_range+maintenance → maintenance", () => {
+    const back = (m) => rollupGroups(scoreVolume(m, "hypertrophy"), { Back: { weeklySets: 30, freq: 2, maxDaySets: 8 } }, "hypertrophy").find((g) => g.group === "Back");
+    // genuine-under (Lats 4) + maintenance (Upper Back 8) → 'under' (a real deficit is NOT upgraded to holding)
+    expect(back({ Lats: { weeklySets: 4, freq: 1, maxDaySets: 4 }, "Upper Back": { weeklySets: 8, freq: 2, maxDaySets: 4 } }).status).toBe("under");
+    // maintenance (Upper Back 8) + over (Lats 24) → 'mixed' (existing mixed precedence preserved)
+    expect(back({ Lats: { weeklySets: 24, freq: 2, maxDaySets: 12 }, "Upper Back": { weeklySets: 8, freq: 2, maxDaySets: 4 } }).status).toBe("mixed");
+    // in_range (Lats 12) + maintenance (Upper Back 8) → 'maintenance' (holding; a fully-in-range group has no maintenance member → in_range)
+    expect(back({ Lats: { weeklySets: 12, freq: 2, maxDaySets: 6 }, "Upper Back": { weeklySets: 8, freq: 2, maxDaySets: 4 } }).status).toBe("maintenance");
+    // sanity: all in_range → 'in_range' (not downgraded)
+    expect(back({ Lats: { weeklySets: 12, freq: 2, maxDaySets: 6 }, "Upper Back": { weeklySets: 14, freq: 2, maxDaySets: 7 } }).status).toBe("in_range");
+  });
+
   test("flagged group's evidence tier comes from gated members, never 'low'", () => {
     // Back: Lats (high) under flags the group; Lower Back (low) is ignored for status + tier.
     const metrics = {
