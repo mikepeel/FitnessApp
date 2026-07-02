@@ -1411,8 +1411,9 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,p
 
   return <div>
     <div style={{background:C.bg,borderBottom:`1px solid ${C.border}`,padding:"16px 14px 14px"}}>
-      {/* Row 1: greeting / day / date — theme toggle */}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8,position:"relative"}}>
+      {/* Row 1: greeting / day / date — theme toggle. (No marginBottom: it only spaced against the
+          removed Row 2; the banner's 14px bottom padding now balances the 16px top.) */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",position:"relative"}}>
         <div>
           <div style={{fontSize:12,color:C.muted,marginBottom:4}}>Hello, <span style={{fontWeight:600}}>{userName}</span></div>
           <div style={{fontSize:22,letterSpacing:"-0.03em",fontWeight:800}}>{new Date().toLocaleDateString("en",{weekday:"long"})}</div>
