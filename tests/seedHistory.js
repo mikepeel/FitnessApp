@@ -21,7 +21,7 @@ loadEnv(".env.test.local");
 const SUPABASE_URL = "https://ldbrabnvpiidrdkmjpbo.supabase.co";
 const KEY = process.env.SUPABASE_SERVICE_KEY;
 const MARKER = "[AUTOMATED TEST — SAFE TO DELETE]";
-const LABELS = ["AutoTest-Bulk", "AutoTest-Partial", "AutoTest-BeyondCap-Del", "AutoTest-BeyondCap-Edit", "AutoTest-InCap-Rollback", "AutoTest-BeyondCap-Rollback", "AutoTest-RenameBulk", "AutoTest-RenameEdit", "AutoTest-RenameInCap", "AutoTest-RenameBeyond", "AutoTest-Muscle", "AutoTest-Drill", "AutoTest-Week", "AutoTest-Deload", "AutoTest-Longest", "AutoTest-Banner", "AutoTest-Maint", "AutoTest-Dormant"];
+const LABELS = ["AutoTest-Bulk", "AutoTest-Partial", "AutoTest-BeyondCap-Del", "AutoTest-BeyondCap-Edit", "AutoTest-InCap-Rollback", "AutoTest-BeyondCap-Rollback", "AutoTest-RenameBulk", "AutoTest-RenameEdit", "AutoTest-RenameInCap", "AutoTest-RenameBeyond", "AutoTest-Muscle", "AutoTest-Drill", "AutoTest-Week", "AutoTest-Deload", "AutoTest-Longest", "AutoTest-Banner", "AutoTest-Maint", "AutoTest-Dormant", "AutoTest-Rank"];
 const DAY = 86400000;
 
 const hasKey = () => !!KEY && !KEY.includes("anon");
@@ -156,7 +156,7 @@ async function cleanupPRs() {
   const sb = admin();
   const uid = await getUid(sb);
   if (!uid) return;
-  await sb.from("personal_records").delete().eq("user_id", uid).in("exercise_name", ["AutoTest-PRLift", "OldLift"]);
+  await sb.from("personal_records").delete().eq("user_id", uid).or("exercise_name.like.AutoTest%,exercise_name.eq.OldLift");
 }
 
 // Seeds two completed sessions of one lift "AutoTest-Drill" for the Progress drill-down work-log
@@ -333,6 +333,38 @@ async function seedLongest() {
   return { skipped: false, count: rows.length };
 }
 
+// Seeds the recency-RANKING fixture: two lifts that produce a dormant-vs-recent distinction on BOTH
+// ranked surfaces. "AutoTest-Recent" trained 2 days ago (ACTIVE), moderate PR (100). "AutoTest-Dormant"
+// trained 27 days ago (DORMANT), a HEAVY PR (300). So: All-Lifts alphabetical would put Dormant first
+// (D < R) — recency must flip it; the PR board (weight DESC) would headline the 300 — the active-tier
+// rule must sink it below the recent 100. Writes personal_records (the board reads that table, not
+// logged_sets) AND sessions (last-trained comes from setsArr) so both conditions are actually armed.
+async function seedRecencyRank() {
+  if (!hasKey()) return { skipped: true };
+  const sb = admin();
+  const uid = await getUid(sb);
+  if (!uid) return { skipped: true };
+  await cleanup();
+  await cleanupPRs();
+  const mk = (name, d, w) => {
+    const dt = new Date(); dt.setHours(12, 0, 0, 0); dt.setDate(dt.getDate() - d);
+    const iso = dt.toISOString();
+    return { user_id: uid, day_label: "AutoTest-Rank", started_at: iso, completed_at: iso, notes: MARKER, sets_data: { [name]: { "1": { weight: String(w), reps: "5" }, "2": { weight: String(w), reps: "5" }, "3": { weight: String(w), reps: "5" } } }, partial: false };
+  };
+  const { error: se } = await sb.from("workout_sessions").insert([mk("AutoTest-Recent", 2, 100), mk("AutoTest-Dormant", 27, 300)]);
+  if (se) throw new Error("seedRecencyRank sessions: " + se.message);
+  // Only AutoTest-Dormant gets a PR row (300 = heaviest of all). The board renders the top 5 by the
+  // new active-then-dormant order; with 4 ACTIVE baseline PRs, adding a 5th active PR would push the
+  // dormant one off the top-5 (so we couldn't assert it's still present). AutoTest-Recent therefore
+  // has a session (drives the All-Lifts card + last-trained) but NO PR row, leaving the dormant heavy
+  // PR at slot 5 — visible but demoted BELOW the recent baseline actives (the load-bearing case).
+  const { error: pe } = await sb.from("personal_records").insert([
+    { user_id: uid, exercise_name: "AutoTest-Dormant", max_weight: 300, achieved_at: new Date(Date.now() - 27 * DAY).toISOString() },
+  ]);
+  if (pe) throw new Error("seedRecencyRank PRs: " + pe.message);
+  return { skipped: false };
+}
+
 // Seeds a DORMANT abandoned lift (the Box Step-Ups shape) for the plateau recency gate: exercise
 // "AutoTest-Dormant" logged flat 25×10 (never progresses → no PR) at 55d and 50d ago (pre-window,
 // establishing a prior best) and once 25d ago (in-window: within the 42d plateau window, but LAST
@@ -449,4 +481,4 @@ async function restorePlanResolution() {
   await sb.auth.admin.updateUserById(uid, { user_metadata: { ...(data?.user?.user_metadata || {}), active_plan_key: IRONTEST_META_PLAN } });
 }
 
-module.exports = { seed, seedRename, seedMuscles, seedRecentPR, seedDrill, seedThisWeek, seedDeload, seedLongest, seedMaintenanceVolume, seedDormantPlateau, seedStreakBanner, seedPlanResolution, restorePlanResolution, getUserMeta, setDeloadDismissedAt, setStreakTracking, readCoaching, resetCoaching, setCoaching, cleanup, cleanupPRs, hasKey };
+module.exports = { seed, seedRename, seedMuscles, seedRecentPR, seedDrill, seedThisWeek, seedDeload, seedLongest, seedMaintenanceVolume, seedDormantPlateau, seedRecencyRank, seedStreakBanner, seedPlanResolution, restorePlanResolution, getUserMeta, setDeloadDismissedAt, setStreakTracking, readCoaching, resetCoaching, setCoaching, cleanup, cleanupPRs, hasKey };

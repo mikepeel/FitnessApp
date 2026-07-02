@@ -21,6 +21,7 @@ import { flagPRs } from "./lib/prFlags";
 import { lifetimePRs } from "./lib/lifetimePRs";
 import { renameSetsData, setsToArr, enrichIsPR, otherOccurrence } from "./lib/renameExercise";
 import { recentPRs } from "./lib/recentPRs";
+import { lastTrainedMap, orderByRecency, orderPRsByRecency } from "./lib/recencyRank";
 import { muscleContributions, rollupToGroup, DISPLAY_GROUPS, primaryMoverGroup } from "./lib/muscleVolume";
 import { analyzePlan } from "./lib/planAnalysis";
 import { analyzeRealized } from "./lib/realizedVolume";
@@ -3904,6 +3905,9 @@ function StatsTab({sessions,programStart,prs,settings,C,activePlan,toggleTheme,t
   },[selEx]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const allExNames=[...new Set(sessions.flatMap(s=>(s.setsArr||[]).map(x=>x.exName)))].sort();
+  // Last-trained per lift (from the already-loaded sessions — no new fetch), for recency-aware RANKING
+  // on the All-Lifts list and the PR board: dormant lifts are demoted, never hidden. See lib/recencyRank.
+  const ltMap=lastTrainedMap(sessions);
   // Per-day best-weight series for one exercise (used by Progress charts + tables)
   const seriesFor=(name)=>{
     const grouped={};
@@ -3929,7 +3933,10 @@ function StatsTab({sessions,programStart,prs,settings,C,activePlan,toggleTheme,t
   // Per-session compressed work log for the drill-down table. Full history once the drill fetch
   // lands; until then / on fetch error, fall back to the capped prop (same fail-safe as chartData).
   const sessionRows=selEx?((drill&&drill.name===selEx)?drill.sessions:liftSessionsFromSets((sessions||[]).flatMap(s=>(s&&s.completedAt)?(s.setsArr||[]).filter(x=>x.exName===selEx&&x.type!=="warmup").map(x=>({sessionId:s.id,setNumber:x.setNum,weight:x.weight,reps:x.reps,completedAt:s.completedAt,date:new Date(s.completedAt).toLocaleDateString("en-CA")})):[]))):[];
-  const prList=Object.entries(prs).sort((a,b)=>b[1].weight-a[1].weight);
+  const prList=Object.entries(prs).sort((a,b)=>b[1].weight-a[1].weight); // weight DESC — the AI-prompt "top PRs"
+  // PR board ordering: active lifts before dormant, heaviest within each tier — so a stale heavy record
+  // doesn't headline over recent work. Every PR stays in the list (demote, not hide).
+  const prBoard=orderPRsByRecency(Object.entries(prs),ltMap);
 
   // Rolling 28-day volume vs the prior 28 days (stable through a partial month)
   const {current:vol28,previous:volPrev28}=rollingVolume(sessions);
@@ -4065,9 +4072,9 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
         )}
 
         {/* PR Board */}
-        {prList.length>0&&<div style={{marginBottom:14}}>
+        {prBoard.length>0&&<div style={{marginBottom:14}}>
           <SectionLabel C={C}>Personal Records</SectionLabel>
-          {prList.slice(0,5).map(([name,pr])=>(
+          {prBoard.slice(0,5).map(([name,pr])=>(
             <div key={name} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
               <div style={{fontSize:13}}>{name}</div>
               <Mono style={{fontSize:14,color:C.goldInk,fontWeight:700}}>{pr.weight} lbs</Mono>
@@ -4107,7 +4114,9 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
 
           {!selEx ? (()=>{
             // ===== ALL MODE — one compact card per lift (tap to drill in) =====
-            const lifts=allExNames.map(n=>({name:n,series:seriesFor(n)})).filter(x=>x.series.length>0);
+            // Recency-aware order: most-recently-trained lifts lead, dormant lifts sink (still listed).
+            // The drill-down <select> above stays alphabetical for findability; only this list reorders.
+            const lifts=orderByRecency(allExNames,ltMap).map(n=>({name:n,series:seriesFor(n)})).filter(x=>x.series.length>0);
             if(!lifts.length) return <div style={emptySt}>Log weighted sessions to see progress.</div>;
             const plateaus=detectPlateaus(Object.fromEntries(lifts.map(l=>[l.name,l.series])),{tonnage:Object.fromEntries(lifts.map(l=>[l.name,tonnageSeriesFor(l.name)])),priorBest:plateauPB?.map,now:plateauPB?.now});
             // Volume-aware plateau advice: cross each stall with the muscle's realized 28-day
