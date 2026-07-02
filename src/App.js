@@ -79,7 +79,7 @@ const THEMES = {
     accentInk:"#66a0ff", blueInk:"#66a0ff", neonInk:"#3ecf8e", greenInk:"#3ecf8e", goldInk:"#f7c948", redInk:"#ff8099", dangerInk:"#ff8099",
     // Solid-fill button/selector colors — deep enough for white text in BOTH modes
     accentBtn:"#2b6cb0", neonBtn:"#0a7a4f",
-    text:"#e8edf4", muted:"#b0bac8", faint:"#6a7585", cardText:"#f2f5fa",
+    text:"#e8edf4", muted:"#b0bac8", faint:"#9aa3b2", cardText:"#f2f5fa",
     mono:"'SF Mono','Courier New',monospace",
     serif:"'Georgia','Times New Roman',serif",
     navBg:"#1a2130", gradTop:"linear-gradient(135deg,#4f8ef715 0%,#3ecf8e08 100%)",
@@ -93,7 +93,7 @@ const THEMES = {
     accentInk:"#2b6cb0", blueInk:"#2b6cb0", neonInk:"#076b42", greenInk:"#076b42", goldInk:"#8a6d0a", redInk:"#c01f4d", dangerInk:"#c01f4d",
     // Solid-fill button/selector colors — same deep shades as light (white text passes)
     accentBtn:"#2b6cb0", neonBtn:"#076b42",
-    text:"#1a202c", muted:"#2d3748", faint:"#5a6a7e", cardText:"#0d1117",
+    text:"#1a202c", muted:"#2d3748", faint:"#54637a", cardText:"#0d1117",
     mono:"'SF Mono','Courier New',monospace",
     serif:"'Georgia','Times New Roman',serif",
     navBg:"#ffffff", gradTop:"linear-gradient(135deg,#4f8ef710 0%,#0ea66e08 100%)",
