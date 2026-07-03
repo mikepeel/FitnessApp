@@ -2053,9 +2053,9 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
           {/* STRENGTH: sets × weight × reps */}
           {!isCardio&&<div style={{display:"grid",gridTemplateColumns:"28px 24px 1fr 1fr 34px",gap:"4px 8px",alignItems:"center"}}>
             <div/>
-            <Mono style={{fontSize:9,color:C.muted}}>#</Mono>
-            <Mono style={{fontSize:9,color:C.muted}}>WEIGHT</Mono>
-            <Mono style={{fontSize:9,color:C.muted}}>REPS</Mono>
+            <Mono style={{fontSize:10,color:C.muted}}>#</Mono>
+            <Mono style={{fontSize:10,color:C.muted}}>WEIGHT</Mono>
+            <Mono style={{fontSize:10,color:C.muted}}>REPS</Mono>
             <div/>
             {Array.from({length:numSets},(_,i)=>i+1).map(n=>{
               const typ=(setTypes[ex.name]?.[n])||"working";
@@ -2339,7 +2339,7 @@ function PlanAnalysisView({plan,goalRaw,C,onBack}){
           <Mono style={{fontSize:12,color:g?C.text:C.faint}}>{group}</Mono>
           <Mono style={{fontSize:11,color:g?C.muted:C.faint}}>{g?`${g.weeklySets} sets`:"— not in plan"}</Mono>
         </div>;})}
-        <Mono style={{fontSize:10,color:C.faint,display:"block",marginTop:12,lineHeight:1.6}}>Working-set proxy: counts planned non-warmup sets, not RIR-verified hard sets.</Mono>
+        <Mono style={{fontSize:11,color:C.faint,display:"block",marginTop:12,lineHeight:1.6}}>Working-set proxy: counts planned non-warmup sets, not RIR-verified hard sets.</Mono>
       </div>
     </div>;
   }
@@ -2369,15 +2369,15 @@ function PlanAnalysisView({plan,goalRaw,C,onBack}){
             {g.fineMuscles.map(m=><div key={m.muscle} style={{padding:"6px 0",borderTop:`1px solid ${C.border}`}}>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
                 <Mono style={{fontSize:11,color:C.muted,flex:1}}>{m.muscle}{m.evidenceTier==="low"?" · limited evidence":""}</Mono>
-                <Mono style={{fontSize:10,color:C.faint}}>{m.weeklySets} · {band(m.band)}</Mono>
+                <Mono style={{fontSize:11,color:C.faint}}>{m.weeklySets} · {band(m.band)}</Mono>
                 <Chip status={m.status}/>
               </div>
-              {fineLines(m).map((ln,i)=><Mono key={i} style={{fontSize:10,color:C.faint,display:"block",marginTop:3,lineHeight:1.5}}>{ln}</Mono>)}
+              {fineLines(m).map((ln,i)=><Mono key={i} style={{fontSize:11,color:C.faint,display:"block",marginTop:3,lineHeight:1.5}}>{ln}</Mono>)}
             </div>)}
           </div>}
         </div>;
       })}
-      <Mono style={{fontSize:10,color:C.faint,display:"block",marginTop:14,lineHeight:1.6}}>Working-set proxy: counts planned non-warmup sets, not RIR-verified hard sets; ranges assume sets ~0–3 reps from failure. Ranges are per muscle (on expand); tap “sources” for citations.</Mono>
+      <Mono style={{fontSize:11,color:C.faint,display:"block",marginTop:14,lineHeight:1.6}}>Working-set proxy: counts planned non-warmup sets, not RIR-verified hard sets; ranges assume sets ~0–3 reps from failure. Ranges are per muscle (on expand); tap “sources” for citations.</Mono>
     </div>
     {showSources&&<Modal onClose={()=>setShowSources(false)} C={C}>
       <SectionLabel C={C}>Sources</SectionLabel>
@@ -3805,7 +3805,7 @@ function RealizedVolumeInsight({sessions,settings,C}){
   };
   return <div style={cardStyle}>
     {Label}
-    <Mono style={{fontSize:10,color:C.faint,display:"block",marginTop:-2,marginBottom:8,lineHeight:1.5}}>Logged working sets vs. evidence-based ranges.{rv.goalDefaulted?" Assuming a hypertrophy goal.":""}</Mono>
+    <Mono style={{fontSize:11,color:C.faint,display:"block",marginTop:-2,marginBottom:8,lineHeight:1.5}}>Logged working sets vs. evidence-based ranges.{rv.goalDefaulted?" Assuming a hypertrophy goal.":""}</Mono>
     {flagged.map(g=>{
       const expanded=!!openGroups[g.group];
       return <div key={g.group} style={{borderTop:`1px solid ${C.border}`,padding:"9px 0"}}>
@@ -3821,15 +3821,15 @@ function RealizedVolumeInsight({sessions,settings,C}){
           {g.fineMuscles.map(m=><div key={m.muscle} style={{padding:"6px 0",borderTop:`1px solid ${C.border}`}}>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
               <Mono style={{fontSize:11,color:C.muted,flex:1}}>{m.muscle}{m.evidenceTier==="low"?" · limited evidence":""}</Mono>
-              <Mono style={{fontSize:10,color:C.faint}}>{m.weeklySets} · {band(m.band)}</Mono>
+              <Mono style={{fontSize:11,color:C.faint}}>{m.weeklySets} · {band(m.band)}</Mono>
               <Chip status={m.status}/>
             </div>
-            {fineLines(m).map((ln,i)=><Mono key={i} style={{fontSize:10,color:C.faint,display:"block",marginTop:3,lineHeight:1.5}}>{ln}</Mono>)}
+            {fineLines(m).map((ln,i)=><Mono key={i} style={{fontSize:11,color:C.faint,display:"block",marginTop:3,lineHeight:1.5}}>{ln}</Mono>)}
           </div>)}
         </div>}
       </div>;
     })}
-    <Mono style={{fontSize:10,color:C.faint,display:"block",marginTop:12,lineHeight:1.6}}>Working-set proxy — logged non-warmup sets over 28 days ÷ 4, not RIR-verified. Ranges are per muscle (on expand); tap “sources” for citations.</Mono>
+    <Mono style={{fontSize:11,color:C.faint,display:"block",marginTop:12,lineHeight:1.6}}>Working-set proxy — logged non-warmup sets over 28 days ÷ 4, not RIR-verified. Ranges are per muscle (on expand); tap “sources” for citations.</Mono>
     {showSources&&<Modal onClose={()=>setShowSources(false)} C={C}>
       <SectionLabel C={C}>Sources</SectionLabel>
       {volumeGuidelines.citations.map(c=><div key={c.id} style={{marginBottom:10}}>
@@ -4268,7 +4268,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
         </div>}
         {/* Disclose the fractional-set basis so "{sets} sets" above isn't read as raw hard sets.
             Same 0.5 convention RealizedVolumeInsight discloses; shown only when there are sets. */}
-        {muscleOrder.some(m=>(groupSets[m]||0)>0)&&<Mono style={{fontSize:10,color:C.faint,display:"block",marginTop:6,lineHeight:1.6}}>Set counts credit secondary-mover muscles at 0.5 — a modeling convention, not a measured value.</Mono>}
+        {muscleOrder.some(m=>(groupSets[m]||0)>0)&&<Mono style={{fontSize:11,color:C.faint,display:"block",marginTop:6,lineHeight:1.6}}>Set counts credit secondary-mover muscles at 0.5 — a modeling convention, not a measured value.</Mono>}
         {/* Personal records — per LIFT (from personal_records), most-recently-achieved first. No
             strength level: getStrengthScore uses absolute-lbs benchmarks with no bodyweight/sex
             normalization, so a Beginner..Elite label was never decision-grade. */}
