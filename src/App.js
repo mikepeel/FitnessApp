@@ -862,6 +862,7 @@ export default function ForgeApp(){
   const [isOnline,setIsOnline]=useState(navigator.onLine);
   const [bodyStatsGlobal,setBodyStatsGlobal]=useState([]);
   const [tab,setTab]=useState("today");
+  const [pendingDrill,setPendingDrill]=useState(null); // History→Stats deep-link: exName to open the drill-down on; consumed once by StatsTab
   const [activeWorkout,setActiveWorkout]=useState(null);
   const [workoutDraft,setWorkoutDraft]=useState(null);
   const [minimizedWorkout,setMinimizedWorkout]=useState(null);
@@ -1354,12 +1355,12 @@ export default function ForgeApp(){
     {tab==="plan"&&<PlanErrorBoundary C={C}><PlanTab plans={plans} activePlanKey={activePlanKey}
       setActivePlanKey={persistActivePlanKey}
       savePlans={savePlans} settings={settings} C={C} toggleTheme={toggleTheme} themeMode={themeMode}/></PlanErrorBoundary>}
-    {tab==="log"&&<HistoryTab sessions={sessions} saveSessions={saveSessions} setSessions={setSessions} savePRs={savePRs} prs={prs} plans={plans} C={C} toggleTheme={toggleTheme} themeMode={themeMode} onRerun={sess=>{
+    {tab==="log"&&<HistoryTab sessions={sessions} saveSessions={saveSessions} setSessions={setSessions} savePRs={savePRs} prs={prs} plans={plans} C={C} toggleTheme={toggleTheme} themeMode={themeMode} onDrillTo={name=>{setPendingDrill(name);setTab("stats");}} onRerun={sess=>{
       const day=(activePlan?.days||[]).find(d=>d.id===sess.dayId)||{...sess,exercises:Object.keys(sess.sets||{}).map(name=>({id:name,name,sets:"3",reps:"",muscle:"",note:""})),label:sess.dayLabel||"Workout"};
       setActiveWorkout({...day,_rerunSets:sess.sets});
       setTab("today");
     }}/>}
-    {tab==="stats"&&<StatsTab sessions={sessions} programStart={programStart} prs={prs} settings={settings} C={C} activePlan={activePlan} toggleTheme={toggleTheme} themeMode={themeMode} complianceStreak={complianceStreak} longestStreak={longestStreak} deloadDue={deloadVisible(deloadDue, deloadDismissedAt ?? authUser?.user_metadata?.deload_dismissed_at ?? null, new Date())} bodyStatsInit={bodyStatsGlobal} onBodyStatsChange={async(stats)=>{
+    {tab==="stats"&&<StatsTab sessions={sessions} programStart={programStart} prs={prs} settings={settings} C={C} activePlan={activePlan} toggleTheme={toggleTheme} themeMode={themeMode} complianceStreak={complianceStreak} longestStreak={longestStreak} deloadDue={deloadVisible(deloadDue, deloadDismissedAt ?? authUser?.user_metadata?.deload_dismissed_at ?? null, new Date())} pendingDrill={pendingDrill} onDrillConsumed={()=>setPendingDrill(null)} bodyStatsInit={bodyStatsGlobal} onBodyStatsChange={async(stats)=>{
       setBodyStatsGlobal(stats);
       const {data:{user:u}}=await supabase.auth.getUser().catch(()=>({data:{user:null}}));
       if(u)await supabase.auth.updateUser({data:{body_stats:JSON.stringify(stats)}}).catch(()=>{});
@@ -2960,7 +2961,7 @@ function DayForm({onSave,onClose,C}){
 // ./lib/renameExercise so the across-history rename is unit-tested and operates uncapped.
 
 // -- HISTORY -------------------------------------------------------------------
-function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggleTheme,themeMode,onRerun}){
+function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggleTheme,themeMode,onRerun,onDrillTo}){
   const [expanded,setExpanded]=useState(null);
   const [historyFilter,setHistoryFilter]=useState("3m");
   const [editingSession,setEditingSession]=useState(null);
@@ -3366,7 +3367,13 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
                     }
                   }
                   return <div key={name} style={{marginBottom:8,paddingBottom:8,borderBottom:`1px solid ${C.border}`}}>
-                    <div style={{fontSize:13,fontWeight:600,marginBottom:4}}>{name}</div>
+                    {/* Tappable exercise name → Stats → Progress drill-down (Table view) for this lift.
+                        Name row ONLY (not the set lines below) so reading a set doesn't navigate; it's a
+                        sibling of the session-header expand handler, so no collapse collision. */}
+                    <div onClick={()=>onDrillTo&&onDrillTo(name)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,cursor:onDrillTo?"pointer":"default",minHeight:44,marginBottom:4}}>
+                      <span style={{fontSize:13,fontWeight:600}}>{name}</span>
+                      {onDrillTo&&<Mono style={{fontSize:10,color:C.accentInk,letterSpacing:"0.04em",flexShrink:0,display:"inline-flex",alignItems:"center",gap:3}}>Progress<span style={{fontSize:15,lineHeight:1}}>›</span></Mono>}
+                    </div>
                     <div style={{display:"grid",gap:6}}>
                       {groups.map((g,j)=>(
                         <Mono key={j} style={{fontSize:11,background:C.surface,padding:"8px 10px",borderRadius:8,color:g.isPR?C.redInk:g.cardio?C.greenInk:C.muted,opacity:g.type==="warmup"?0.6:1}}>
@@ -3841,11 +3848,17 @@ function RealizedVolumeInsight({sessions,settings,C}){
   </div>;
 }
 
-function StatsTab({sessions,programStart,prs,settings,C,activePlan,toggleTheme,themeMode,complianceStreak=0,longestStreak=0,deloadDue=false,bodyStatsInit=[],onBodyStatsChange}){
+function StatsTab({sessions,programStart,prs,settings,C,activePlan,toggleTheme,themeMode,complianceStreak=0,longestStreak=0,deloadDue=false,pendingDrill=null,onDrillConsumed,bodyStatsInit=[],onBodyStatsChange}){
   const [selEx,setSelEx]=useState(null); // null = "All exercises"
   const [progressView,setProgressView]=useState(null); // null = per-mode default (drill→table, all-lifts→chart); else explicit "chart"|"table"
   const [plateausExpanded,setPlateausExpanded]=useState(false);
   const [statsView,setStatsView]=useState("overview"); // overview | progress | muscles | body | trainer
+  // Deep-link from History: open Progress on the tapped lift's drill-down (Table view is automatic —
+  // progressView stays null → view falls to "table" once selEx is set). Consumed ONCE then cleared, so
+  // a later normal Stats entry starts at overview, not re-hijacked to the last drilled lift.
+  useEffect(()=>{
+    if(pendingDrill){setStatsView("progress");setSelEx(pendingDrill);onDrillConsumed&&onDrillConsumed();}
+  },[pendingDrill]); // eslint-disable-line react-hooks/exhaustive-deps
   const [bodyStats,setBodyStats]=useState(bodyStatsInit||[]);
   const [newBodyStat,setNewBodyStat]=useState({weight:"",chest:"",waist:"",hips:"",arms:"",date:new Date().toLocaleDateString("en-CA")});
   const [addingBody,setAddingBody]=useState(false);
