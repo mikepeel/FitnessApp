@@ -20,13 +20,13 @@ function adherenceLine(a, streak) {
   if (!a || a.status === "no_target" || !target) {
     text = `${done} session${plural(done)} this week`;
     tone = "neutral";
+  } else if (a.status === "complete") {
+    text = `${done} of ${target} this week — complete`;
+    tone = "positive";
   } else {
-    const tail =
-      a.status === "complete" ? " — week complete" :
-      a.status === "ahead" ? " — ahead of plan" :
-      a.status === "behind" ? " — behind" : " — on pace";
-    text = `${done} of ${target} this week${tail}`;
-    tone = a.status === "behind" ? "caution" : (a.status === "complete" || a.status === "ahead") ? "positive" : "neutral";
+    // Any shortfall — including a finished, short week — reads as a plain count. Never "behind", never a scold.
+    text = `${done} of ${target} this week`;
+    tone = "neutral";
   }
   if (streak > 0) text += ` · ${streak}-session streak`;
   return { kind: "adherence", text, tone };

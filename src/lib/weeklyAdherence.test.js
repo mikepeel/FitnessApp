@@ -32,15 +32,34 @@ describe("weeklyAdherence", () => {
     expect(weeklyAdherence(PLAN, sessions, ANCHOR, new Date(at("2026-06-24"))).done).toBe(2);
   });
 
-  test("ANTI-SHAME: early week (1 of 4, 3 training days still reachable) is on_pace, NOT behind", () => {
+  test("ANTI-SHAME: early week (1 of 4, mid-week shortfall) is on_track, NEVER behind", () => {
     const r = weeklyAdherence(PLAN, [sess("2026-06-22")], ANCHOR, new Date(at("2026-06-23")));
-    expect(r).toMatchObject({ done: 1, target: 4 });
-    expect(r.status).toBe("on_pace");   // load-bearing: not "behind" early
+    expect(r).toMatchObject({ done: 1, target: 4, status: "on_track" });
+    expect(r.status).not.toBe("behind"); // load-bearing: the line never scolds
   });
 
-  test("END OF WEEK: 1 of 4 with no remaining training days IS behind", () => {
+  test("END OF WEEK (BDP): a FINISHED short week is on_track (neutral), NEVER behind", () => {
+    // Sat 2026-06-28 is a REST day: the plan week is effectively over, 1 of 4 logged, no training days
+    // left. Before softening this read "behind" — a finished, done-for-the-week state framed as failure.
     const r = weeklyAdherence(PLAN, [sess("2026-06-22")], ANCHOR, new Date(at("2026-06-28")));
-    expect(r).toMatchObject({ done: 1, target: 4, status: "behind" });
+    expect(r).toMatchObject({ done: 1, target: 4, status: "on_track" });
+    expect(r.status).not.toBe("behind"); // was "behind" pre-fix — the exact regression this softening removes
+  });
+
+  test("BDP EXACT: 4 of 5 on the last (rest) day of the week is on_track, not behind", () => {
+    // 5 training days Mon–Fri, rest Sat/Sun. Now = Sun 2026-06-28 (last day, rest); Mon–Thu logged (4 of 5).
+    const PLAN5 = {
+      startDate: "2026-06-22",
+      days: [
+        { name: "Mon", isRest: false }, { name: "Tue", isRest: false }, { name: "Wed", isRest: false },
+        { name: "Thu", isRest: false }, { name: "Fri", isRest: false },
+        { name: "Sat", isRest: true }, { name: "Sun", isRest: true },
+      ],
+    };
+    const sessions = ["2026-06-22", "2026-06-23", "2026-06-24", "2026-06-25"].map(sess);
+    const r = weeklyAdherence(PLAN5, sessions, ANCHOR, new Date(at("2026-06-28")));
+    expect(r).toMatchObject({ done: 4, target: 5, status: "on_track" });
+    expect(r.status).not.toBe("behind");
   });
 
   test("complete: done >= target", () => {
@@ -48,11 +67,21 @@ describe("weeklyAdherence", () => {
     expect(weeklyAdherence(PLAN, sessions, ANCHOR, new Date(at("2026-06-26"))).status).toBe("complete");
   });
 
-  test("ahead: more sessions than the training days due so far", () => {
-    // By Tue, 2 training days due (Mon,Tue); 3 sessions done -> ahead (and 3<4, not complete).
+  test("OVER-PACE is not celebrated: more sessions than due so far is still on_track (only complete is positive)", () => {
+    // By Tue, 3 sessions done but target 4 not met -> on_track, NOT a special "ahead" status.
     const sessions = ["2026-06-22", "2026-06-22", "2026-06-23"].map(sess);
     const r = weeklyAdherence(PLAN, sessions, ANCHOR, new Date(at("2026-06-23")));
-    expect(r).toMatchObject({ done: 3, target: 4, status: "ahead" });
+    expect(r).toMatchObject({ done: 3, target: 4, status: "on_track" });
+  });
+
+  test("MUTATION GUARD: no status is ever 'behind'/'ahead'/'on_pace' across the week", () => {
+    const days = ["2026-06-22", "2026-06-23", "2026-06-24", "2026-06-25", "2026-06-26", "2026-06-27", "2026-06-28"];
+    for (const today of days) {
+      for (const logged of [[], [sess("2026-06-22")], ["2026-06-22", "2026-06-23", "2026-06-25", "2026-06-26"].map(sess)]) {
+        const s = weeklyAdherence(PLAN, logged, ANCHOR, new Date(at(today))).status;
+        expect(["complete", "on_track", "no_target"]).toContain(s);
+      }
+    }
   });
 
   test("no-startDate fallback computes a sensible target via the weekday-name map", () => {
