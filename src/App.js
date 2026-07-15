@@ -28,6 +28,7 @@ import { analyzeRealized } from "./lib/realizedVolume";
 import { classifyDriverTrend, dominantPrimaryLift, progressCopy } from "./lib/volumeProgress";
 import { volumeAwarePlateauAdvice, primaryGatedMuscles } from "./lib/plateauVolume";
 import { exerciseOrderForSession } from "./lib/historyOrder";
+import { workoutDisplayOrder } from "./lib/workoutOrder";
 import volumeGuidelines from "./data/volumeGuidelines.json";
 import { Dumbbell, CalendarDays, History as HistoryIcon, TrendingUp, Settings as SettingsIcon, Moon, Sun, Trophy, Check, GripVertical, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -1788,13 +1789,10 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
       next.add(exId);
       return next;
     });
-    // Reorder: move this exercise to end of list
-    setExercises(prev=>{
-      const idx=prev.findIndex(e=>e.id===exId);
-      if(idx===-1)return prev;
-      const reordered=[...prev.slice(0,idx),...prev.slice(idx+1),prev[idx]];
-      return reordered;
-    });
+    // Completed exercises drop to the bottom of the LIST ONLY — that grouping is derived at render
+    // time (workoutDisplayOrder) from completedExIds. The `exercises` array itself keeps the plan's
+    // AUTHORED order, because the mid-workout add/swap/delete/edit paths write it back to the plan
+    // via persistToPlan — reordering it here silently rewrote the user's plan day.
     if(isLastExercise){setAutoFinishCountdown(5);}
     // Smooth scroll so the rest timer + next active exercise are both in view
     setTimeout(()=>{
@@ -1941,18 +1939,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
       {showRest&&settings.restTimer&&<RestTimer key={restKey} seconds={settings.restSeconds||90} onDone={()=>setShowRest(false)} onSkip={()=>setShowRest(false)} C={C}/>}
 
       <div ref={topRef}/>
-      {[...exercises].sort((a,b)=>{
-        const s=ex=>{
-          if(completedExIds.has(ex.id))return 2;
-          const ml=loggedSets[ex.name]||{};
-          const isC=ex.muscle==="Cardio"||ex.muscle==="Recovery";
-          return(isC?(ml[1]?.minutes&&!ml[1]?.prepop):Object.values(ml).some(v=>(v.weight||v.reps)&&!v.prepop))?0:1;
-        };
-        const sa=s(a),sb=s(b);
-        if(sa!==sb)return sa-sb;
-        if(sa===0){if(a.name===lastActiveExRef.current)return -1;if(b.name===lastActiveExRef.current)return 1;}
-        return 0;
-      }).map((ex,exIdx)=>{
+      {workoutDisplayOrder(exercises,{completedIds:[...completedExIds],loggedSets,lastActive:lastActiveExRef.current}).map((ex,exIdx)=>{
         const isCardio=ex.muscle==="Cardio"||ex.muscle==="Recovery";
         const myLog=loggedSets[ex.name]||{};
         const last=settings.lastRef?lastSets[ex.name]:null;
