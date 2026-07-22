@@ -501,4 +501,36 @@ async function restorePlanResolution() {
   await sb.auth.admin.updateUserById(uid, { user_metadata: { ...(data?.user?.user_metadata || {}), active_plan_key: IRONTEST_META_PLAN } });
 }
 
-module.exports = { seed, seedRename, seedMuscles, seedRecentPR, seedDrill, seedThisWeek, seedDeload, seedLongest, seedMaintenanceVolume, seedDormantPlateau, seedRecencyRank, seedDrillLink, seedStreakBanner, seedPlanResolution, restorePlanResolution, getUserMeta, setDeloadDismissedAt, setStreakTracking, readCoaching, resetCoaching, setCoaching, cleanup, cleanupPRs, hasKey };
+// Picker multi-add fixture: a throwaway plan with ONE empty training day (AutoPickerDay). Set active
+// via user_metadata (the store the app resolves from) + profiles so it loads active without an in-app
+// switch; the test also clicks the plan chip to be certain. The empty day makes the 0→3 add assertions
+// deterministic. restorePicker deletes the plan and puts iron-test back to baseline (same constants as
+// the plan-resolution fixture).
+const PICKER_KEY = "AutoTest-Picker";
+async function seedPickerDay() {
+  if (!hasKey()) return { skipped: true };
+  const sb = admin();
+  const uid = await getUid(sb);
+  if (!uid) return { skipped: true };
+  await sb.from("plans").delete().eq("user_id", uid).eq("plan_key", PICKER_KEY); // idempotent
+  const today = new Date().toLocaleDateString("en-CA");
+  const days = [{ id: "id_autopicker", name: "AutoPickerDay", label: "AutoPickerDay", tag: "AutoTest", color: "#4f8ef7", isRest: false, exercises: [] }];
+  const { error } = await sb.from("plans").insert({ user_id: uid, plan_key: PICKER_KEY, name: "AutoTest Picker Plan", subtitle: "", description: "", days_json: days, start_date: today, duration_weeks: 10 });
+  if (error) throw new Error("seedPickerDay insert: " + error.message);
+  await sb.from("profiles").update({ active_plan_key: PICKER_KEY }).eq("id", uid);
+  const { data } = await sb.auth.admin.getUserById(uid);
+  await sb.auth.admin.updateUserById(uid, { user_metadata: { ...(data?.user?.user_metadata || {}), active_plan_key: PICKER_KEY } });
+  return { skipped: false };
+}
+async function restorePicker() {
+  if (!hasKey()) return;
+  const sb = admin();
+  const uid = await getUid(sb);
+  if (!uid) return;
+  await sb.from("plans").delete().eq("user_id", uid).eq("plan_key", PICKER_KEY);
+  await sb.from("profiles").update({ active_plan_key: IRONTEST_PLAN }).eq("id", uid);
+  const { data } = await sb.auth.admin.getUserById(uid);
+  await sb.auth.admin.updateUserById(uid, { user_metadata: { ...(data?.user?.user_metadata || {}), active_plan_key: IRONTEST_META_PLAN } });
+}
+
+module.exports = { seed, seedRename, seedMuscles, seedRecentPR, seedDrill, seedThisWeek, seedDeload, seedLongest, seedMaintenanceVolume, seedDormantPlateau, seedRecencyRank, seedDrillLink, seedStreakBanner, seedPlanResolution, restorePlanResolution, seedPickerDay, restorePicker, getUserMeta, setDeloadDismissedAt, setStreakTracking, readCoaching, resetCoaching, setCoaching, cleanup, cleanupPRs, hasKey };

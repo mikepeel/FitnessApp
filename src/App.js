@@ -1541,11 +1541,28 @@ async function writeToAppleHealth(startTime, endTime, totalVolume) {
 }
 
 // -- EXERCISE LIBRARY MODAL ---------------------------------------------------
-function ExerciseLibraryModal({onSelect,onClose,C}){
+function ExerciseLibraryModal({onSelect,onClose,C,multiAdd=false}){
   const [query,setQuery]=useState("");
   const [muscleFilter,setMuscleFilter]=useState(null);
   const [tab,setTab]=useState("library");
   const [custom,setCustom]=useState({name:"",sets:"3",reps:"10-12",note:"",muscle:""});
+  // multiAdd: keep the picker open across selections so a whole day is built in one session. `added`
+  // (names added THIS session) drives the per-row "Added" state and no-ops a second tap of the same
+  // row — guarding accidental dupes while feedback stays visible; a genuine repeat is still reachable
+  // via the day's exercise list. `addedCount` is the running total shown in the header + Done bar.
+  const [added,setAdded]=useState(()=>new Set());
+  const [addedCount,setAddedCount]=useState(0);
+  // Adds via onSelect (which persists per-add, unchanged). In single-add mode the caller closes the
+  // modal; in multiAdd we stay open and only mark + count. Never mutates persistence semantics.
+  const handleSelect=(payload)=>{
+    const nm=payload&&payload.name;
+    if(multiAdd&&nm&&added.has(nm))return; // already added this session — no-op, feedback already shown
+    onSelect(payload);
+    if(multiAdd){
+      if(nm)setAdded(s=>{const n=new Set(s);n.add(nm);return n;});
+      setAddedCount(c=>c+1);
+    }
+  };
   const muscles=["Chest","Back","Shoulders","Biceps","Triceps","Legs","Abs","Cardio"];
   const equipColor={"Barbell":C.accent,"Dumbbell":C.neon,"Cable":C.gold,"Machine":C.muted,"Bodyweight":C.green,"Kettlebell":C.red};
   const filtered=EXERCISE_LIBRARY.filter(e=>
@@ -1554,7 +1571,10 @@ function ExerciseLibraryModal({onSelect,onClose,C}){
   );
   return <Modal onClose={onClose} C={C} showClose={false}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-      <div style={{fontSize:16,fontWeight:700}}>Add Exercise</div>
+      <div>
+        <div style={{fontSize:16,fontWeight:700}}>{multiAdd?"Add Exercises":"Add Exercise"}</div>
+        {multiAdd&&addedCount>0&&<Mono style={{fontSize:11,color:C.neonInk,marginTop:2,display:"block"}}><span style={{display:"inline-flex",alignItems:"center",gap:4}}><Check size={ICON.sm} strokeWidth={2}/>{addedCount} added</span></Mono>}
+      </div>
       <Btn variant="ghost" size="sm" onClick={onClose} C={C}>✕</Btn>
     </div>
     <div style={{display:"flex",gap:4,background:C.card,padding:3,borderRadius:8,marginBottom:12}}>
@@ -1573,9 +1593,10 @@ function ExerciseLibraryModal({onSelect,onClose,C}){
         ))}
       </div>
       <Mono style={{fontSize:11,color:C.muted,display:"block",marginBottom:8,letterSpacing:"0.08em"}}>{filtered.length} EXERCISES</Mono>
-      {filtered.map((ex,i)=>(
-        <div key={i} onClick={()=>onSelect({name:ex.name,muscle:ex.muscle,sets:ex.muscle==="Cardio"?"--":"3",reps:ex.muscle==="Cardio"?"30 min":"10-12",note:ex.cue})}
-          style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",marginBottom:6,cursor:"pointer"}}>
+      {filtered.map((ex,i)=>{
+        const isAdded=multiAdd&&added.has(ex.name);
+        return <div key={i} onClick={()=>handleSelect({name:ex.name,muscle:ex.muscle,sets:ex.muscle==="Cardio"?"--":"3",reps:ex.muscle==="Cardio"?"30 min":"10-12",note:ex.cue})}
+          style={{background:isAdded?C.neon+"14":C.card,border:`1px solid ${isAdded?C.neon+"55":C.border}`,borderRadius:8,padding:"10px 12px",marginBottom:6,cursor:isAdded?"default":"pointer"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
             <div style={{flex:1,minWidth:0}}>
               <div style={{fontSize:13,fontWeight:600,marginBottom:3}}>{ex.name}</div>
@@ -1585,10 +1606,12 @@ function ExerciseLibraryModal({onSelect,onClose,C}){
                 <Pill color={equipColor[ex.equipment]||C.faint}>{ex.equipment}</Pill>
               </div>
             </div>
-            <div style={{color:C.neonInk,fontSize:20,fontWeight:300,flexShrink:0,paddingTop:2}}>+</div>
+            {isAdded
+              ?<Mono style={{color:C.neonInk,fontSize:11,fontWeight:700,flexShrink:0,paddingTop:2,whiteSpace:"nowrap"}}><span style={{display:"inline-flex",alignItems:"center",gap:3}}><Check size={ICON.sm} strokeWidth={2}/>Added</span></Mono>
+              :<div style={{color:C.neonInk,fontSize:20,fontWeight:300,flexShrink:0,paddingTop:2}}>+</div>}
           </div>
-        </div>
-      ))}
+        </div>;
+      })}
     </div>}
     {tab==="custom"&&<div>
       {[["Exercise Name","name"],["Sets","sets"],["Reps","reps"],["Muscle Group","muscle"],["Note / Cue","note"]].map(([label,key])=>(
@@ -1598,7 +1621,10 @@ function ExerciseLibraryModal({onSelect,onClose,C}){
             style={{width:"100%",padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
         </div>
       ))}
-      <Btn style={{width:"100%",marginTop:6}} C={C} onClick={()=>{if(custom.name.trim())onSelect(custom);}} disabled={!custom.name.trim()}>Add Exercise</Btn>
+      <Btn style={{width:"100%",marginTop:6}} C={C} onClick={()=>{if(custom.name.trim()){handleSelect(custom);if(multiAdd)setCustom(p=>({...p,name:"",note:""}));}}} disabled={!custom.name.trim()}>Add Exercise</Btn>
+    </div>}
+    {multiAdd&&<div style={{position:"sticky",bottom:0,marginTop:12,paddingTop:10,background:C.surface,borderTop:`1px solid ${C.border}`}}>
+      <Btn onClick={onClose} C={C} style={{width:"100%",background:C.neon,color:"#0b0c0e",fontWeight:800,letterSpacing:"0.08em",borderColor:C.neon}}>{addedCount>0?`Done — ${addedCount} added`:"Done"}</Btn>
     </div>}
   </Modal>;
 }
@@ -2715,7 +2741,7 @@ No explanation, no markdown, just the JSON array.`;
       </div>
     </div>}
     {editEx&&<Modal onClose={()=>setEditEx(null)} C={C}><ExerciseForm title="Edit Exercise" initial={editEx.ex} onSave={ex=>{saveExercise(editEx.dayId,ex);setEditEx(null);}} onClose={()=>setEditEx(null)} C={C}/></Modal>}
-    {addExDay&&<ExerciseLibraryModal onSelect={ex=>{addExercise(addExDay,ex);setAddExDay(null);}} onClose={()=>setAddExDay(null)} C={C}/>}
+    {addExDay&&<ExerciseLibraryModal multiAdd onSelect={ex=>addExercise(addExDay,ex)} onClose={()=>setAddExDay(null)} C={C}/>}
     {addDayModal&&<Modal onClose={()=>setAddDayModal(false)} C={C}><DayForm onSave={addDay} onClose={()=>setAddDayModal(false)} C={C}/></Modal>}
     {deletingDay&&<Modal onClose={()=>setDeletingDay(null)} C={C}>
       <div style={{textAlign:"center",padding:"10px 0"}}>
