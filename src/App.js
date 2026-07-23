@@ -2665,9 +2665,34 @@ No explanation, no markdown, just the JSON array.`;
                 </div>}
                 {/* Position badge in reorder mode */}
                 {reorderMode===day.id&&<Mono style={{fontSize:11,color:C.muted,width:18,flexShrink:0,textAlign:"center"}}>{exIdx+1}</Mono>}
-                <div style={{flex:1,marginLeft:reorderMode===day.id?8:0}}>
+                <div style={{flex:1,marginLeft:reorderMode===day.id?8:0,minWidth:0}}>
                   <div style={{fontSize:13}}>{ex.name}</div>
-                  <Mono style={{fontSize:11,color:C.muted}}>{ex.sets}×{ex.reps}{ex.muscle?` . ${ex.muscle}`:""}</Mono>
+                  {(()=>{
+                    // Inline sets/reps editing on the row (persists via saveExercise — id + order preserved,
+                    // same write path as the Edit modal). Only in normal mode and for non-cardio: cardio's
+                    // "--"/"30 min" don't fit steppers, so it keeps the static line and the Edit modal.
+                    const isCardio=ex.muscle==="Cardio"||ex.muscle==="Recovery";
+                    if(reorderMode===day.id||isCardio)
+                      return <Mono style={{fontSize:11,color:C.muted}}>{ex.sets}×{ex.reps}{ex.muscle?` . ${ex.muscle}`:""}</Mono>;
+                    const isNumSets=/^\d+$/.test(String(ex.sets).trim());
+                    const sn=parseInt(ex.sets,10)||0;
+                    const setSets=n=>saveExercise(day.id,{...ex,sets:String(Math.max(1,Math.min(20,n)))});
+                    return <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",marginTop:3}}>
+                      {isNumSets
+                        ?<div style={{display:"inline-flex",alignItems:"center",border:`1px solid ${C.border}`,borderRadius:6,overflow:"hidden"}}>
+                          <button aria-label="Decrease sets" disabled={sn<=1} onClick={()=>setSets(sn-1)} style={{padding:"3px 9px",background:"transparent",border:"none",color:sn<=1?C.faint:C.neonInk,cursor:sn<=1?"default":"pointer",fontSize:15,lineHeight:1}}>−</button>
+                          <span style={{minWidth:14,textAlign:"center",fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",color:C.text}}>{sn}</span>
+                          <button aria-label="Increase sets" disabled={sn>=20} onClick={()=>setSets(sn+1)} style={{padding:"3px 9px",background:"transparent",border:"none",color:sn>=20?C.faint:C.neonInk,cursor:sn>=20?"default":"pointer",fontSize:15,lineHeight:1}}>+</button>
+                        </div>
+                        :<Mono style={{fontSize:11,color:C.muted}}>{ex.sets}</Mono>}
+                      <Mono style={{fontSize:11,color:C.muted}}>×</Mono>
+                      <input key={ex.reps} defaultValue={ex.reps} aria-label="Reps"
+                        onKeyDown={e=>{if(e.key==="Enter")e.currentTarget.blur();}}
+                        onBlur={e=>{const v=e.target.value.trim();if(v&&v!==ex.reps)saveExercise(day.id,{...ex,reps:v});}}
+                        style={{width:52,padding:"3px 6px",background:C.card,border:`1px solid ${C.border}`,borderRadius:6,color:C.text,fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
+                      {ex.muscle&&<Mono style={{fontSize:11,color:C.muted}}> . {ex.muscle}</Mono>}
+                    </div>;
+                  })()}
                 </div>
                 {reorderMode!==day.id&&<div style={{display:"flex",gap:6,marginLeft:8}}>
                   <Btn size="sm" variant="ghost" onClick={()=>setEditEx({dayId:day.id,ex})} C={C}>Edit</Btn>

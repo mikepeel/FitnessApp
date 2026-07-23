@@ -20,18 +20,16 @@ setup("authenticate as test user", async ({ page }) => {
   // Wait for nav bar (auth succeeded) then wait for plan data to load
   await expect(page.getByRole("button", { name: /Workout/i })).toBeVisible({ timeout: 20000 });
 
-  // After login, a draft may be restored and the workout session may open automatically.
-  // Wait for either the home page START button or the workout session ⋯ button.
-  const startBtn = page.getByRole("button", { name: "START" }).first();
+  // A restored draft may auto-open a workout session; abandon it so tests start clean. Don't require a
+  // START button here — on a REST day (today's slot is rest) the home shows a rest quote and no START,
+  // which is a valid logged-in state. The nav check above already proves auth; per-test ensureCleanHome
+  // also re-handles drafts, so this cleanup is best-effort.
+  await page.waitForLoadState("networkidle", { timeout: 8000 }).catch(() => {});
   const moreBtn = page.locator("button", { hasText: "⋯" }).first();
-  await expect(startBtn.or(moreBtn)).toBeVisible({ timeout: 15000 });
-
-  // If a draft was restored, abandon it so the home page is clean for tests
-  if (await moreBtn.isVisible()) {
+  if (await moreBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
     await moreBtn.click();
     await page.getByRole("button", { name: "✕ Abandon" }).click();
     await page.getByRole("button", { name: "Abandon" }).click();
-    await expect(startBtn).toBeVisible({ timeout: 10000 });
   }
 
   await page.context().storageState({ path: AUTH_FILE });

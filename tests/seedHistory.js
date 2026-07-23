@@ -576,4 +576,14 @@ async function restoreCopyDay() {
   await sb.auth.admin.updateUserById(uid, { user_metadata: { ...(data?.user?.user_metadata || {}), active_plan_key: IRONTEST_META_PLAN } });
 }
 
-module.exports = { seed, seedRename, seedMuscles, seedRecentPR, seedDrill, seedThisWeek, seedDeload, seedLongest, seedMaintenanceVolume, seedDormantPlateau, seedRecencyRank, seedDrillLink, seedStreakBanner, seedPlanResolution, restorePlanResolution, seedPickerDay, restorePicker, seedCopyDay, restoreCopyDay, getUserMeta, setDeloadDismissedAt, setStreakTracking, readCoaching, resetCoaching, setCoaching, cleanup, cleanupPRs, hasKey };
+// Read back AutoTest-Copy's days_json (authoritative persistence check for the inline sets/reps test).
+async function getCopyPlanDays() {
+  if (!hasKey()) return null;
+  const sb = admin();
+  const uid = await getUid(sb);
+  if (!uid) return null;
+  const { data } = await sb.from("plans").select("days_json").eq("user_id", uid).eq("plan_key", COPY_KEY).maybeSingle();
+  return data ? data.days_json : null;
+}
+
+module.exports = { seed, seedRename, seedMuscles, seedRecentPR, seedDrill, seedThisWeek, seedDeload, seedLongest, seedMaintenanceVolume, seedDormantPlateau, seedRecencyRank, seedDrillLink, seedStreakBanner, seedPlanResolution, restorePlanResolution, seedPickerDay, restorePicker, seedCopyDay, restoreCopyDay, getCopyPlanDays, getUserMeta, setDeloadDismissedAt, setStreakTracking, readCoaching, resetCoaching, setCoaching, cleanup, cleanupPRs, hasKey };
