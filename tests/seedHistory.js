@@ -533,4 +533,47 @@ async function restorePicker() {
   await sb.auth.admin.updateUserById(uid, { user_metadata: { ...(data?.user?.user_metadata || {}), active_plan_key: IRONTEST_META_PLAN } });
 }
 
-module.exports = { seed, seedRename, seedMuscles, seedRecentPR, seedDrill, seedThisWeek, seedDeload, seedLongest, seedMaintenanceVolume, seedDormantPlateau, seedRecencyRank, seedDrillLink, seedStreakBanner, seedPlanResolution, restorePlanResolution, seedPickerDay, restorePicker, getUserMeta, setDeloadDismissedAt, setStreakTracking, readCoaching, resetCoaching, setCoaching, cleanup, cleanupPRs, hasKey };
+// Copy-day fixture: a 7-day plan (so weeklyAdherence's 7-day window samples each day once → target ==
+// non-rest count == 5). "Chest" is the copy SOURCE (3 ordered exercises); "EmptyDay" is an empty
+// training target (silent copy); "Filled" is a non-empty training target (Replace/Append sheet);
+// "RestDay" is a rest target (training-day consequence: 5 → 6). Set active via metadata + profiles; the
+// test also clicks the plan chip. restoreCopyDay deletes it and restores iron-test baseline.
+const COPY_KEY = "AutoTest-Copy";
+function copyDayPlanDays() {
+  const ex = (id, name, muscle) => ({ id, name, sets: "3", reps: "10", muscle, note: "" });
+  return [
+    { id: "cd_chest", name: "Mon", label: "Chest", tag: "Chest", color: "#4f8ef7", isRest: false, exercises: [ex("cd_a", "AutoCopy Alpha", "Chest"), ex("cd_b", "AutoCopy Bravo", "Chest"), ex("cd_c", "AutoCopy Charlie", "Chest")] },
+    { id: "cd_empty", name: "Tue", label: "EmptyDay", tag: "Open", color: "#3ecf8e", isRest: false, exercises: [] },
+    { id: "cd_filled", name: "Wed", label: "Filled", tag: "Misc", color: "#f7c948", isRest: false, exercises: [ex("cd_x", "AutoKeep Delta", "Back")] },
+    { id: "cd_rest", name: "Thu", label: "RestDay", tag: "Full Rest", color: "#aaff00", isRest: true, exercises: [] },
+    { id: "cd_legs", name: "Fri", label: "Legs", tag: "Legs", color: "#aa44ff", isRest: false, exercises: [ex("cd_l", "AutoLeg Echo", "Legs")] },
+    { id: "cd_restb", name: "Sat", label: "RestB", tag: "Full Rest", color: "#aaff00", isRest: true, exercises: [] },
+    { id: "cd_arms", name: "Sun", label: "Arms", tag: "Arms", color: "#f7c948", isRest: false, exercises: [ex("cd_ar", "AutoArm Foxtrot", "Biceps")] },
+  ];
+}
+async function seedCopyDay() {
+  if (!hasKey()) return { skipped: true };
+  const sb = admin();
+  const uid = await getUid(sb);
+  if (!uid) return { skipped: true };
+  await sb.from("plans").delete().eq("user_id", uid).eq("plan_key", COPY_KEY); // idempotent
+  const today = new Date().toLocaleDateString("en-CA");
+  const { error } = await sb.from("plans").insert({ user_id: uid, plan_key: COPY_KEY, name: "AutoTest Copy Plan", subtitle: "", description: "", days_json: copyDayPlanDays(), start_date: today, duration_weeks: 10 });
+  if (error) throw new Error("seedCopyDay insert: " + error.message);
+  await sb.from("profiles").update({ active_plan_key: COPY_KEY }).eq("id", uid);
+  const { data } = await sb.auth.admin.getUserById(uid);
+  await sb.auth.admin.updateUserById(uid, { user_metadata: { ...(data?.user?.user_metadata || {}), active_plan_key: COPY_KEY } });
+  return { skipped: false };
+}
+async function restoreCopyDay() {
+  if (!hasKey()) return;
+  const sb = admin();
+  const uid = await getUid(sb);
+  if (!uid) return;
+  await sb.from("plans").delete().eq("user_id", uid).eq("plan_key", COPY_KEY);
+  await sb.from("profiles").update({ active_plan_key: IRONTEST_PLAN }).eq("id", uid);
+  const { data } = await sb.auth.admin.getUserById(uid);
+  await sb.auth.admin.updateUserById(uid, { user_metadata: { ...(data?.user?.user_metadata || {}), active_plan_key: IRONTEST_META_PLAN } });
+}
+
+module.exports = { seed, seedRename, seedMuscles, seedRecentPR, seedDrill, seedThisWeek, seedDeload, seedLongest, seedMaintenanceVolume, seedDormantPlateau, seedRecencyRank, seedDrillLink, seedStreakBanner, seedPlanResolution, restorePlanResolution, seedPickerDay, restorePicker, seedCopyDay, restoreCopyDay, getUserMeta, setDeloadDismissedAt, setStreakTracking, readCoaching, resetCoaching, setCoaching, cleanup, cleanupPRs, hasKey };

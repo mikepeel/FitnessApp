@@ -14,6 +14,7 @@ import { longestWeeklyStreak } from "./lib/longestWeeklyStreak";
 import { resolveActivePlanKey } from "./lib/activePlan";
 import { serializeTrainingExport } from "./lib/exportTraining";
 import { weeklyAdherence } from "./lib/weeklyAdherence";
+import { copyDayInto } from "./lib/copyDay";
 import { assembleDigest } from "./lib/overviewDigest";
 import { mapSessionRow } from "./lib/sessionMap";
 import { historyWindow } from "./lib/historyWindow";
@@ -1355,6 +1356,7 @@ export default function ForgeApp(){
       onGoToPlan={()=>setTab("plan")}/>}
     {tab==="plan"&&<PlanErrorBoundary C={C}><PlanTab plans={plans} activePlanKey={activePlanKey}
       setActivePlanKey={persistActivePlanKey}
+      adherenceAnchor={activePlan?.startDate||programStart||getProgramStart(sessions)}
       savePlans={savePlans} settings={settings} C={C} toggleTheme={toggleTheme} themeMode={themeMode}/></PlanErrorBoundary>}
     {tab==="log"&&<HistoryTab sessions={sessions} saveSessions={saveSessions} setSessions={setSessions} savePRs={savePRs} prs={prs} plans={plans} C={C} toggleTheme={toggleTheme} themeMode={themeMode} onDrillTo={name=>{setPendingDrill(name);setTab("stats");}} onRerun={sess=>{
       const day=(activePlan?.days||[]).find(d=>d.id===sess.dayId)||{...sess,exercises:Object.keys(sess.sets||{}).map(name=>({id:name,name,sets:"3",reps:"",muscle:"",note:""})),label:sess.dayLabel||"Workout"};
@@ -2404,7 +2406,7 @@ function PlanAnalysisView({plan,goalRaw,C,onBack}){
   </div>;
 }
 
-function PlanTab({plans,activePlanKey,setActivePlanKey,savePlans,settings,C,toggleTheme,themeMode}){
+function PlanTab({plans,activePlanKey,setActivePlanKey,savePlans,settings,C,toggleTheme,themeMode,adherenceAnchor}){
   const [view,setView]=useState("mine"); // mine | presets | ai
   const [expandedDay,setExpandedDay]=useState(null);
   const [editEx,setEditEx]=useState(null);
@@ -2426,6 +2428,8 @@ function PlanTab({plans,activePlanKey,setActivePlanKey,savePlans,settings,C,togg
   const [modalStartDate,setModalStartDate]=useState("");
   const [modalDuration,setModalDuration]=useState(10);
   const [analysisOpen,setAnalysisOpen]=useState(false);
+  const [copyFromDay,setCopyFromDay]=useState(null); // TARGET dayId while the source-picker sheet is open
+  const [copyConfirm,setCopyConfirm]=useState(null); // {targetId,sourceId} while the replace/append confirm sheet is open
 
   const plan=plans[activePlanKey];
   const days=plan?.days||[];
@@ -2433,6 +2437,25 @@ function PlanTab({plans,activePlanKey,setActivePlanKey,savePlans,settings,C,togg
   const slotWeekday=i=>startDOW!==null?DOW[(startDOW+i)%7]:null;
 
   function updatePlan(updatedDays){savePlans({...plans,[activePlanKey]:{...plan,days:updatedDays}});}
+  // Copy-day: clone `sourceId`'s workout into `targetId` (fresh ids, source authored order) and persist
+  // via updatePlan -> savePlans like every other builder mutation. Keeps the target expanded so the
+  // result is visible.
+  function doCopy(targetId,sourceId,mode){
+    updatePlan(copyDayInto(days,targetId,sourceId,mode,mkId));
+    setCopyConfirm(null);
+    setCopyFromDay(null);
+    setSaveToast("Day copied");
+    setTimeout(()=>setSaveToast(""),2500);
+  }
+  // Source chosen from the picker. Empty non-rest target -> copy silently. Non-empty OR rest target ->
+  // confirm sheet (Replace/Append, plus the rest-day training-day consequence).
+  function pickCopySource(sourceId){
+    const target=days.find(d=>d.id===copyFromDay);
+    if(!target){setCopyFromDay(null);return;}
+    const needsConfirm=(target.exercises&&target.exercises.length>0)||!!target.isRest;
+    if(needsConfirm){setCopyConfirm({targetId:copyFromDay,sourceId});setCopyFromDay(null);}
+    else doCopy(copyFromDay,sourceId,"replace");
+  }
   function saveExercise(dayId,ex){updatePlan(days.map(d=>d.id!==dayId?d:{...d,exercises:d.exercises.map(e=>e.id===ex.id?ex:e)}));}
   function deleteExercise(dayId,exId,exName){
     updatePlan(days.map(d=>{
@@ -2654,6 +2677,7 @@ No explanation, no markdown, just the JSON array.`;
             ))}
             <div style={{display:"flex",gap:8,marginTop:12,flexWrap:"wrap"}}>
               <Btn size="sm" variant="subtle" onClick={()=>setAddExDay(day.id)} C={C}>+ Exercise</Btn>
+              {days.length>1&&<Btn size="sm" variant="ghost" onClick={()=>setCopyFromDay(day.id)} C={C}>Copy from…</Btn>}
               <Btn size="sm" variant="ghost" style={{color:reorderMode===day.id?C.neonInk:C.muted,borderColor:reorderMode===day.id?C.neon+"55":C.border}} onClick={()=>setReorderMode(reorderMode===day.id?null:day.id)} C={C}>
                 {reorderMode===day.id?<span style={{display:"inline-flex",alignItems:"center",gap:5}}><Check size={ICON.sm} strokeWidth={1.75}/>Done</span>:<span style={{display:"inline-flex",alignItems:"center",gap:5}}><GripVertical size={ICON.sm} strokeWidth={1.75}/>Reorder</span>}
               </Btn>
@@ -2740,6 +2764,56 @@ No explanation, no markdown, just the JSON array.`;
         </>}
       </div>
     </div>}
+    {/* Copy-day: pick a SOURCE day to copy into the target (copyFromDay) */}
+    {copyFromDay&&(()=>{
+      const target=days.find(d=>d.id===copyFromDay);
+      const others=days.filter(d=>d.id!==copyFromDay);
+      return <div onClick={()=>setCopyFromDay(null)} style={{position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,0.55)",display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
+        <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:"16px 16px 0 0",padding:"20px 18px calc(32px + env(safe-area-inset-bottom,0px)) 18px",display:"flex",flexDirection:"column",gap:8,maxHeight:"80vh",overflowY:"auto"}}>
+          <div style={{width:36,height:4,borderRadius:2,background:C.border,alignSelf:"center",marginTop:-8,marginBottom:4}}/>
+          <Mono style={{fontSize:11,color:C.muted,letterSpacing:"0.1em",marginBottom:4}}>COPY INTO {(target?.label||"DAY").toUpperCase()} FROM…</Mono>
+          {others.map(d=>(
+            <button key={d.id} onClick={()=>pickCopySource(d.id)} style={{width:"100%",padding:"13px 16px",background:C.card,border:`1px solid ${C.border}`,borderRadius:10,color:C.text,fontSize:14,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
+              <span style={{fontWeight:700}}>{d.label||d.name||"Day"}</span>
+              <Mono style={{fontSize:11,color:C.muted}}>{d.isRest?"Rest":`${(d.exercises||[]).length} exercises`}</Mono>
+            </button>
+          ))}
+          <button onClick={()=>setCopyFromDay(null)} style={{width:"100%",padding:"11px 16px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",letterSpacing:"0.04em",marginTop:2}}>Cancel</button>
+        </div>
+      </div>;
+    })()}
+    {/* Copy-day: confirm replace/append (and the rest-day training-day consequence) */}
+    {copyConfirm&&(()=>{
+      const target=days.find(d=>d.id===copyConfirm.targetId);
+      const source=days.find(d=>d.id===copyConfirm.sourceId);
+      if(!target||!source)return null;
+      const tCount=(target.exercises||[]).length;
+      const sCount=(source.exercises||[]).length;
+      const nonEmpty=tCount>0;
+      const isRest=!!target.isRest;
+      let restLine=null;
+      if(isRest){
+        const now=new Date();
+        const before=weeklyAdherence(plan,[],adherenceAnchor,now).target;
+        const afterDays=days.map(d=>d.id!==target.id?d:{...d,isRest:false});
+        const after=weeklyAdherence({...plan,days:afterDays},[],adherenceAnchor,now).target;
+        restLine=(after!==before)
+          ? `This makes ${target.label||"this day"} a training day — your weekly target goes ${before} → ${after}.`
+          : `This makes ${target.label||"this day"} a training day.`;
+      }
+      return <div onClick={()=>setCopyConfirm(null)} style={{position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,0.55)",display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
+        <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:"16px 16px 0 0",padding:"20px 18px calc(32px + env(safe-area-inset-bottom,0px)) 18px",display:"flex",flexDirection:"column",gap:10}}>
+          <div style={{width:36,height:4,borderRadius:2,background:C.border,alignSelf:"center",marginTop:-8,marginBottom:4}}/>
+          <Mono style={{fontSize:11,color:C.muted,letterSpacing:"0.1em",marginBottom:4}}>COPY {(source.label||"DAY").toUpperCase()} INTO {(target.label||"DAY").toUpperCase()}</Mono>
+          {isRest&&<div style={{fontSize:13,color:C.goldInk,lineHeight:1.5,background:C.gold+"14",border:`1px solid ${C.gold}44`,borderRadius:10,padding:"11px 12px"}}>{restLine}</div>}
+          {nonEmpty?<>
+            <button onClick={()=>doCopy(target.id,source.id,"replace")} style={{width:"100%",padding:"13px 16px",background:C.neon+"22",border:`1px solid ${C.neon}44`,borderRadius:10,color:C.neonInk,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}><span style={{display:"inline-flex",alignItems:"center",gap:8}}><Check size={ICON.md} strokeWidth={1.75}/>Replace — {tCount} → {sCount} exercises</span></button>
+            <button onClick={()=>doCopy(target.id,source.id,"append")} style={{width:"100%",padding:"13px 16px",background:C.accent+"22",border:`1px solid ${C.accent}44`,borderRadius:10,color:C.accentInk,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}>Append — {tCount} + {sCount} exercises</button>
+          </>:<button onClick={()=>doCopy(target.id,source.id,"replace")} style={{width:"100%",padding:"13px 16px",background:C.neon+"22",border:`1px solid ${C.neon}44`,borderRadius:10,color:C.neonInk,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}><span style={{display:"inline-flex",alignItems:"center",gap:8}}><Check size={ICON.md} strokeWidth={1.75}/>Copy {sCount} exercises</span></button>}
+          <button onClick={()=>setCopyConfirm(null)} style={{width:"100%",padding:"11px 16px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",letterSpacing:"0.04em",marginTop:2}}>Cancel</button>
+        </div>
+      </div>;
+    })()}
     {editEx&&<Modal onClose={()=>setEditEx(null)} C={C}><ExerciseForm title="Edit Exercise" initial={editEx.ex} onSave={ex=>{saveExercise(editEx.dayId,ex);setEditEx(null);}} onClose={()=>setEditEx(null)} C={C}/></Modal>}
     {addExDay&&<ExerciseLibraryModal multiAdd onSelect={ex=>addExercise(addExDay,ex)} onClose={()=>setAddExDay(null)} C={C}/>}
     {addDayModal&&<Modal onClose={()=>setAddDayModal(false)} C={C}><DayForm onSave={addDay} onClose={()=>setAddDayModal(false)} C={C}/></Modal>}
