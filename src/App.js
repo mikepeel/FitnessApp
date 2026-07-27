@@ -15,6 +15,7 @@ import { resolveActivePlanKey } from "./lib/activePlan";
 import { serializeTrainingExport } from "./lib/exportTraining";
 import { weeklyAdherence } from "./lib/weeklyAdherence";
 import { copyDayInto } from "./lib/copyDay";
+import { buildBlockSummary, scheduledEndStr } from "./lib/blockSummary";
 import { assembleDigest } from "./lib/overviewDigest";
 import { mapSessionRow } from "./lib/sessionMap";
 import { historyWindow } from "./lib/historyWindow";
@@ -1031,6 +1032,42 @@ export default function ForgeApp(){
     }catch(e){console.error("backfillPRFlagsV2:",e);}
   };
 
+  // One durable snapshot per COMPLETED plan, frozen at completion. isProgramComplete is a standing
+  // calendar boolean (not an event), so we compute-if-absent on load: when the ACTIVE plan is complete
+  // and has no snapshot yet, capture X/Y/adherence/PRs/most-improved over the block window
+  // [start, scheduledEnd] and store it in user_metadata (same durable pattern as deload/pr_flags).
+  // IDEMPOTENT — an existing snapshot is never recomputed/overwritten, so a later edit to the (still
+  // editable) plan can't change the frozen record. Snapshot-ALWAYS (every completed block, so the future
+  // Progress list can show sub-60% blocks); the >=60% pop-up gate lives in 2b, reading the frozen adherencePct.
+  const maybeWriteBlockSnapshot=async(u,mergedPlans,resolvedKey,prMap)=>{
+    try{
+      if(!u||!resolvedKey)return;
+      const plan=mergedPlans[resolvedKey];
+      if(!plan||!plan.startDate)return;
+      const wk=planWeekOf(plan);
+      if(!(wk&&wk>(plan.durationWeeks||10)))return;                 // not complete yet
+      if(u.user_metadata?.blockSummaries?.[resolvedKey])return;     // already snapshotted — frozen
+      const endStr=scheduledEndStr(plan);
+      if(!endStr)return;
+      // Generous UTC bounds (±1 day) around the local window; buildBlockSummary filters precisely by local date.
+      const lo=parsePlanDate(plan.startDate); lo.setDate(lo.getDate()-1);
+      const hi=parsePlanDate(endStr); hi.setDate(hi.getDate()+1);
+      const loISO=lo.toISOString(), hiISO=hi.toISOString();
+      const [{data:sessRows},{data:setJoin}]=await Promise.all([
+        supabase.from("workout_sessions").select("completed_at,partial").eq("user_id",u.id).not("completed_at","is",null).gte("completed_at",loISO).lte("completed_at",hiISO),
+        supabase.from("logged_sets").select("exercise_name,weight,reps,session_id,workout_sessions!inner(completed_at)").eq("user_id",u.id).neq("set_type","warmup").gte("workout_sessions.completed_at",loISO).lte("workout_sessions.completed_at",hiISO),
+      ]);
+      const sessions=(sessRows||[]).map(r=>({completedAt:r.completed_at,partial:!!r.partial}));
+      const setRows=(setJoin||[]).map(r=>{const c=r.workout_sessions?.completed_at;return {name:r.exercise_name,weight:r.weight,reps:r.reps,sessionId:r.session_id,date:c?new Date(c).toLocaleDateString("en-CA"):null};});
+      const summary=buildBlockSummary({key:resolvedKey,name:plan.name,startDate:plan.startDate,durationWeeks:plan.durationWeeks,days:plan.days},{sessions,prs:prMap,setRows});
+      if(!summary)return;
+      const existing=u.user_metadata?.blockSummaries||{};
+      const next={...existing,[resolvedKey]:{...summary,capturedAt:new Date().toISOString()}};
+      await supabase.auth.updateUser({data:{blockSummaries:next}});
+      setAuthUser(prev=>prev?{...prev,user_metadata:{...prev.user_metadata,blockSummaries:next}}:prev);
+    }catch(e){console.error("maybeWriteBlockSnapshot:",e);}
+  };
+
   // Load user data from Supabase on auth
   useEffect(()=>{
     const loadUserData=async(u)=>{
@@ -1077,8 +1114,8 @@ export default function ForgeApp(){
       }catch(e){console.error("loadUserData earliest session:",e);}
       // Load PRs
       const {data:prData}=await supabase.from("personal_records").select("*").eq("user_id",u.id);
+      const prMap={};
       if(prData){
-        const prMap={};
         prData.forEach(r=>{prMap[r.exercise_name]={weight:r.max_weight,date:r.achieved_at};});
         setPrs(prMap);
       }
@@ -1181,6 +1218,8 @@ export default function ForgeApp(){
       setLoading(false);
       // Fire-and-forget once-per-user correction of historical PR flags.
       backfillPRFlagsV2(u);
+      // Fire-and-forget: snapshot the active plan's block summary if it's complete and not yet captured.
+      maybeWriteBlockSnapshot(u,mergedPlans,resolvedKey,prMap);
     };
     supabase.auth.getSession().then(({data:{session}})=>{
       setAuthUser(session?.user||null);

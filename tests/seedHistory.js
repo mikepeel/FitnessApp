@@ -576,6 +576,49 @@ async function restoreCopyDay() {
   await sb.auth.admin.updateUserById(uid, { user_metadata: { ...(data?.user?.user_metadata || {}), active_plan_key: IRONTEST_META_PLAN } });
 }
 
+// Completed-block fixture for the block-summary snapshot test: a 7-day plan (5 training, 2 rest → Y=40)
+// whose start_date is 80 days ago with duration 8 weeks, so it is PAST its scheduled end (complete).
+// Sets it active AND clears user_metadata.blockSummaries so the "compute-if-absent" snapshot fires.
+const COMPLETED_KEY = "AutoTest-Completed";
+function completedPlanDays() {
+  const T = (id, label) => ({ id, name: label, label, tag: label, color: "#4f8ef7", isRest: false, exercises: [] });
+  const R = (id) => ({ id, name: "Rest", label: "Rest", tag: "Full Rest", color: "#aaff00", isRest: true, exercises: [] });
+  return [T("ac0", "AutoCompletedDay"), T("ac1", "Day B"), T("ac2", "Day C"), R("ac3"), T("ac4", "Day D"), T("ac5", "Day E"), R("ac6")];
+}
+async function seedCompletedBlock() {
+  if (!hasKey()) return { skipped: true };
+  const sb = admin();
+  const uid = await getUid(sb);
+  if (!uid) return { skipped: true };
+  await sb.from("plans").delete().eq("user_id", uid).eq("plan_key", COMPLETED_KEY);
+  const start = new Date(); start.setDate(start.getDate() - 80);
+  const startStr = start.toLocaleDateString("en-CA");
+  const { error } = await sb.from("plans").insert({ user_id: uid, plan_key: COMPLETED_KEY, name: "AutoTest Completed Plan", subtitle: "", description: "", days_json: completedPlanDays(), start_date: startStr, duration_weeks: 8 });
+  if (error) throw new Error("seedCompletedBlock insert: " + error.message);
+  await sb.from("profiles").update({ active_plan_key: COMPLETED_KEY }).eq("id", uid);
+  const { data } = await sb.auth.admin.getUserById(uid);
+  await sb.auth.admin.updateUserById(uid, { user_metadata: { ...(data?.user?.user_metadata || {}), active_plan_key: COMPLETED_KEY, blockSummaries: {} } });
+  return { skipped: false, startStr };
+}
+async function getBlockSummaries() {
+  if (!hasKey()) return null;
+  const sb = admin();
+  const uid = await getUid(sb);
+  if (!uid) return null;
+  const { data } = await sb.auth.admin.getUserById(uid);
+  return (data?.user?.user_metadata || {}).blockSummaries || {};
+}
+async function restoreCompletedBlock() {
+  if (!hasKey()) return;
+  const sb = admin();
+  const uid = await getUid(sb);
+  if (!uid) return;
+  await sb.from("plans").delete().eq("user_id", uid).eq("plan_key", COMPLETED_KEY);
+  await sb.from("profiles").update({ active_plan_key: IRONTEST_PLAN }).eq("id", uid);
+  const { data } = await sb.auth.admin.getUserById(uid);
+  await sb.auth.admin.updateUserById(uid, { user_metadata: { ...(data?.user?.user_metadata || {}), active_plan_key: IRONTEST_META_PLAN, blockSummaries: {} } });
+}
+
 // Read back AutoTest-Copy's days_json (authoritative persistence check for the inline sets/reps test).
 async function getCopyPlanDays() {
   if (!hasKey()) return null;
@@ -586,4 +629,4 @@ async function getCopyPlanDays() {
   return data ? data.days_json : null;
 }
 
-module.exports = { seed, seedRename, seedMuscles, seedRecentPR, seedDrill, seedThisWeek, seedDeload, seedLongest, seedMaintenanceVolume, seedDormantPlateau, seedRecencyRank, seedDrillLink, seedStreakBanner, seedPlanResolution, restorePlanResolution, seedPickerDay, restorePicker, seedCopyDay, restoreCopyDay, getCopyPlanDays, getUserMeta, setDeloadDismissedAt, setStreakTracking, readCoaching, resetCoaching, setCoaching, cleanup, cleanupPRs, hasKey };
+module.exports = { seed, seedRename, seedMuscles, seedRecentPR, seedDrill, seedThisWeek, seedDeload, seedLongest, seedMaintenanceVolume, seedDormantPlateau, seedRecencyRank, seedDrillLink, seedStreakBanner, seedPlanResolution, restorePlanResolution, seedPickerDay, restorePicker, seedCopyDay, restoreCopyDay, getCopyPlanDays, seedCompletedBlock, restoreCompletedBlock, getBlockSummaries, getUserMeta, setDeloadDismissedAt, setStreakTracking, readCoaching, resetCoaching, setCoaching, cleanup, cleanupPRs, hasKey };
