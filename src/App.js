@@ -2430,6 +2430,7 @@ function PlanTab({plans,activePlanKey,setActivePlanKey,savePlans,settings,C,togg
   const [analysisOpen,setAnalysisOpen]=useState(false);
   const [copyFromDay,setCopyFromDay]=useState(null); // TARGET dayId while the source-picker sheet is open
   const [copyConfirm,setCopyConfirm]=useState(null); // {targetId,sourceId} while the replace/append confirm sheet is open
+  const [restConfirm,setRestConfirm]=useState(null); // {dayId,count} while confirming a mark-as-rest that clears exercises
 
   const plan=plans[activePlanKey];
   const days=plan?.days||[];
@@ -2455,6 +2456,18 @@ function PlanTab({plans,activePlanKey,setActivePlanKey,savePlans,settings,C,togg
     const needsConfirm=(target.exercises&&target.exercises.length>0)||!!target.isRest;
     if(needsConfirm){setCopyConfirm({targetId:copyFromDay,sourceId});setCopyFromDay(null);}
     else doCopy(copyFromDay,sourceId,"replace");
+  }
+  // Rest/training invariant: a day is EITHER rest (isRest:true, no exercises) OR training (isRest:false).
+  // Marking a day rest clears its exercises (persisted via updatePlan -> savePlans, same path as every
+  // other day edit). Un-marking keeps the (now empty) exercises → an empty training day to fill.
+  function setDayRest(dayId,rest){updatePlan(days.map(d=>d.id!==dayId?d:{...d,isRest:rest,exercises:rest?[]:(d.exercises||[])}));}
+  // Toggle handler: rest -> training is immediate; training -> rest confirms first when it would discard
+  // authored exercises (never silently delete), else marks rest directly.
+  function toggleRest(day){
+    if(day.isRest){setDayRest(day.id,false);return;}
+    const n=(day.exercises||[]).length;
+    if(n>0)setRestConfirm({dayId:day.id,count:n});
+    else setDayRest(day.id,true);
   }
   function saveExercise(dayId,ex){updatePlan(days.map(d=>d.id!==dayId?d:{...d,exercises:d.exercises.map(e=>e.id===ex.id?ex:e)}));}
   function deleteExercise(dayId,exId,exName){
@@ -2633,7 +2646,7 @@ No explanation, no markdown, just the JSON array.`;
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div style={{flex:1}}>
                 <div style={{fontSize:14,fontWeight:600}}>{slotWeekday(i)||day.name||`Day ${i+1}`} — {day.label}</div>
-                <Mono style={{fontSize:11,color:C.muted}}>{day.tag} · {day.exercises.length} exercises</Mono>
+                <Mono style={{fontSize:11,color:C.muted}}>{day.tag}{day.isRest?" · Rest day":` · ${day.exercises.length} exercises`}</Mono>
               </div>
               {dayReorderMode
                 ?<div style={{display:"flex",flexDirection:"column",gap:3,flexShrink:0}}>
@@ -2647,6 +2660,17 @@ No explanation, no markdown, just the JSON array.`;
             </div>
           </div>
           {expandedDay===i&&<div style={{background:C.surface,border:`1px solid ${C.border}`,borderTop:"none",borderRadius:"0 0 10px 10px",padding:"8px 14px 14px"}}>
+            {/* Rest-day toggle — establishes the rest/training invariant */}
+            {reorderMode!==day.id&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"4px 0 10px",borderBottom:`1px solid ${C.border}`,marginBottom:8,gap:12}}>
+              <div style={{minWidth:0}}>
+                <Mono style={{fontSize:11,color:day.isRest?C.neonInk:C.muted,letterSpacing:"0.06em",fontWeight:700}}>REST DAY</Mono>
+                <div style={{fontSize:10,color:C.faint,marginTop:2,lineHeight:1.4}}>{day.isRest?"Recovery — not counted toward your weekly target":"Training day — counts toward your weekly target"}</div>
+              </div>
+              <button role="switch" aria-checked={!!day.isRest} aria-label="Rest day" onClick={()=>toggleRest(day)}
+                style={{width:44,height:26,borderRadius:13,border:"none",background:day.isRest?C.neon:C.border,position:"relative",cursor:"pointer",flexShrink:0,padding:0,transition:"background .15s"}}>
+                <span style={{position:"absolute",top:3,left:day.isRest?21:3,width:20,height:20,borderRadius:10,background:"#fff",boxShadow:"0 1px 2px rgba(0,0,0,0.3)",transition:"left .15s"}}/>
+              </button>
+            </div>}
             {/* Reorder mode header */}
             {reorderMode===day.id&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0 10px",borderBottom:`1px solid ${C.neon}44`,marginBottom:4}}>
               <Mono style={{fontSize:10,color:C.neonInk,letterSpacing:"0.12em"}}>DRAG MODE -- USE ARROWS TO REORDER</Mono>
@@ -2700,16 +2724,21 @@ No explanation, no markdown, just the JSON array.`;
                 </div>}
               </div>
             ))}
+            {/* Rest day with no exercises: a rest day holds no workout — the add controls are hidden */}
+            {day.isRest&&(day.exercises||[]).length===0&&<div style={{padding:"14px 0",textAlign:"center"}}><Mono style={{fontSize:11,color:C.faint}}>Rest day — no exercises</Mono></div>}
             <div style={{display:"flex",gap:8,marginTop:12,flexWrap:"wrap"}}>
-              <Btn size="sm" variant="subtle" onClick={()=>setAddExDay(day.id)} C={C}>+ Exercise</Btn>
+              {/* "+ Exercise" adds without flipping isRest, so it would break the invariant → hidden on a rest
+                  day (toggle to training first). "Copy from…" stays: copyDayInto flips isRest:false, so it
+                  CONVERTS a rest day to training rather than creating a rest-day-with-exercises. */}
+              {!day.isRest&&<Btn size="sm" variant="subtle" onClick={()=>setAddExDay(day.id)} C={C}>+ Exercise</Btn>}
               {days.length>1&&<Btn size="sm" variant="ghost" onClick={()=>setCopyFromDay(day.id)} C={C}>Copy from…</Btn>}
-              <Btn size="sm" variant="ghost" style={{color:reorderMode===day.id?C.neonInk:C.muted,borderColor:reorderMode===day.id?C.neon+"55":C.border}} onClick={()=>setReorderMode(reorderMode===day.id?null:day.id)} C={C}>
+              {!day.isRest&&<Btn size="sm" variant="ghost" style={{color:reorderMode===day.id?C.neonInk:C.muted,borderColor:reorderMode===day.id?C.neon+"55":C.border}} onClick={()=>setReorderMode(reorderMode===day.id?null:day.id)} C={C}>
                 {reorderMode===day.id?<span style={{display:"inline-flex",alignItems:"center",gap:5}}><Check size={ICON.sm} strokeWidth={1.75}/>Done</span>:<span style={{display:"inline-flex",alignItems:"center",gap:5}}><GripVertical size={ICON.sm} strokeWidth={1.75}/>Reorder</span>}
-              </Btn>
-              {settings.aiRecs&&<Btn size="sm" variant="ghost" style={{color:C.accentInk}} onClick={()=>{if(sequencingDay!==day.id)aiSequenceDay(day);}} C={C}>
+              </Btn>}
+              {!day.isRest&&settings.aiRecs&&<Btn size="sm" variant="ghost" style={{color:C.accentInk}} onClick={()=>{if(sequencingDay!==day.id)aiSequenceDay(day);}} C={C}>
                 {sequencingDay===day.id?"Sequencing...":"✦ AI Sequence"}
               </Btn>}
-              {settings.aiRecs&&<Btn size="sm" variant="ghost" style={{color:C.muted}} onClick={()=>setAiModal({type:"day",day})} C={C}>✦ Analyze</Btn>}
+              {!day.isRest&&settings.aiRecs&&<Btn size="sm" variant="ghost" style={{color:C.muted}} onClick={()=>setAiModal({type:"day",day})} C={C}>✦ Analyze</Btn>}
               <Btn size="sm" variant="danger" onClick={()=>setDeletingDay(day.id)} C={C}>Delete Day</Btn>
             </div>
             <Btn onClick={()=>setSaveSheet(day.id)} C={C} style={{width:"100%",marginTop:10,background:C.neon,color:"#0b0c0e",fontWeight:800,letterSpacing:"0.08em",fontSize:13,borderColor:C.neon}}>Save Day</Btn>
@@ -2836,6 +2865,19 @@ No explanation, no markdown, just the JSON array.`;
             <button onClick={()=>doCopy(target.id,source.id,"append")} style={{width:"100%",padding:"13px 16px",background:C.accent+"22",border:`1px solid ${C.accent}44`,borderRadius:10,color:C.accentInk,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}>Append — {tCount} + {sCount} exercises</button>
           </>:<button onClick={()=>doCopy(target.id,source.id,"replace")} style={{width:"100%",padding:"13px 16px",background:C.neon+"22",border:`1px solid ${C.neon}44`,borderRadius:10,color:C.neonInk,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}><span style={{display:"inline-flex",alignItems:"center",gap:8}}><Check size={ICON.md} strokeWidth={1.75}/>Copy {sCount} exercises</span></button>}
           <button onClick={()=>setCopyConfirm(null)} style={{width:"100%",padding:"11px 16px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",letterSpacing:"0.04em",marginTop:2}}>Cancel</button>
+        </div>
+      </div>;
+    })()}
+    {/* Confirm before a mark-as-rest that would discard authored exercises */}
+    {restConfirm&&(()=>{
+      const n=restConfirm.count;
+      return <div onClick={()=>setRestConfirm(null)} style={{position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,0.55)",display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
+        <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:"16px 16px 0 0",padding:"20px 18px calc(32px + env(safe-area-inset-bottom,0px)) 18px",display:"flex",flexDirection:"column",gap:10}}>
+          <div style={{width:36,height:4,borderRadius:2,background:C.border,alignSelf:"center",marginTop:-8,marginBottom:4}}/>
+          <Mono style={{fontSize:11,color:C.muted,letterSpacing:"0.1em",marginBottom:4}}>MAKE THIS A REST DAY</Mono>
+          <div style={{fontSize:13,color:C.text,lineHeight:1.5}}>This day has {n} exercise{n!==1?"s":""} — marking it a rest day will remove {n!==1?"them":"it"}.</div>
+          <button onClick={()=>{setDayRest(restConfirm.dayId,true);setRestConfirm(null);}} style={{width:"100%",padding:"13px 16px",background:C.red+"22",border:`1px solid ${C.red}44`,borderRadius:10,color:C.redInk,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}>Make Rest Day — removes {n} exercise{n!==1?"s":""}</button>
+          <button onClick={()=>setRestConfirm(null)} style={{width:"100%",padding:"11px 16px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",letterSpacing:"0.04em",marginTop:2}}>Cancel</button>
         </div>
       </div>;
     })()}
@@ -3061,6 +3103,17 @@ function DayForm({onSave,onClose,C}){
       <div style={{display:"flex",gap:10}}>
         {colors.map(c=><div key={c} onClick={()=>setD(p=>({...p,color:c}))} style={{width:32,height:32,borderRadius:16,background:c,cursor:"pointer",boxSizing:"border-box",border:d.color===c?"3px solid #fff":"3px solid transparent"}}/>)}
       </div>
+    </div>
+    {/* Rest day toggle — a rest day is authored isRest:true so it never counts toward the weekly target */}
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,gap:12}}>
+      <div style={{minWidth:0}}>
+        <SectionLabel C={C}>Rest day</SectionLabel>
+        <div style={{fontSize:10,color:C.faint,marginTop:-4,lineHeight:1.4}}>{d.isRest?"Recovery — not counted toward your weekly target":"A training day you'll add exercises to"}</div>
+      </div>
+      <button role="switch" aria-checked={!!d.isRest} aria-label="Rest day" onClick={()=>setD(p=>({...p,isRest:!p.isRest}))}
+        style={{width:44,height:26,borderRadius:13,border:"none",background:d.isRest?C.neon:C.border,position:"relative",cursor:"pointer",flexShrink:0,padding:0,transition:"background .15s"}}>
+        <span style={{position:"absolute",top:3,left:d.isRest?21:3,width:20,height:20,borderRadius:10,background:"#fff",boxShadow:"0 1px 2px rgba(0,0,0,0.3)",transition:"left .15s"}}/>
+      </button>
     </div>
     <div style={{display:"flex",gap:10}}>
       <Btn style={{flex:1}} onClick={()=>onSave(d)} C={C}>Add Day</Btn>
