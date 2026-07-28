@@ -1390,9 +1390,11 @@ export default function ForgeApp(){
   // "Repeat this block": clone the finished plan's STRUCTURE (fresh exercise ids per the cross-wire rule)
   // into a new active plan starting today — no auto-progression. The repeat gets its own key, so 2a will
   // snapshot ITS block later. Reuses the loadPreset/saveAsNewPlan clone pattern.
-  const repeatBlock=(planKey)=>{
+  // markSeen defaults true (the completion moment acknowledges the block); the Progress "past blocks"
+  // history detail passes markSeen:false so browsing/repeating from history never alters seen state.
+  const repeatBlock=(planKey,{markSeen=true}={})=>{
     const src=plans[planKey];
-    markBlockSummarySeen(planKey);
+    if(markSeen)markBlockSummarySeen(planKey);
     if(src){
       const newKey=`custom_${Date.now()}`;
       const today=new Date().toLocaleDateString("en-CA");
@@ -1449,7 +1451,7 @@ export default function ForgeApp(){
       setActiveWorkout({...day,_rerunSets:sess.sets});
       setTab("today");
     }}/>}
-    {tab==="stats"&&<StatsTab sessions={sessions} programStart={programStart} prs={prs} settings={settings} C={C} activePlan={activePlan} toggleTheme={toggleTheme} themeMode={themeMode} complianceStreak={complianceStreak} longestStreak={longestStreak} deloadDue={deloadVisible(deloadDue, deloadDismissedAt ?? authUser?.user_metadata?.deload_dismissed_at ?? null, new Date())} pendingDrill={pendingDrill} onDrillConsumed={()=>setPendingDrill(null)} bodyStatsInit={bodyStatsGlobal} onBodyStatsChange={async(stats)=>{
+    {tab==="stats"&&<StatsTab sessions={sessions} programStart={programStart} prs={prs} settings={settings} C={C} activePlan={activePlan} toggleTheme={toggleTheme} themeMode={themeMode} complianceStreak={complianceStreak} longestStreak={longestStreak} deloadDue={deloadVisible(deloadDue, deloadDismissedAt ?? authUser?.user_metadata?.deload_dismissed_at ?? null, new Date())} pendingDrill={pendingDrill} onDrillConsumed={()=>setPendingDrill(null)} blockSummaries={authUser?.user_metadata?.blockSummaries||{}} onRepeatBlock={planKey=>repeatBlock(planKey,{markSeen:false})} bodyStatsInit={bodyStatsGlobal} onBodyStatsChange={async(stats)=>{
       setBodyStatsGlobal(stats);
       const {data:{user:u}}=await supabase.auth.getUser().catch(()=>({data:{user:null}}));
       if(u)await supabase.auth.updateUser({data:{body_stats:JSON.stringify(stats)}}).catch(()=>{});
@@ -4088,7 +4090,11 @@ function RealizedVolumeInsight({sessions,settings,C}){
   </div>;
 }
 
-function StatsTab({sessions,programStart,prs,settings,C,activePlan,toggleTheme,themeMode,complianceStreak=0,longestStreak=0,deloadDue=false,pendingDrill=null,onDrillConsumed,bodyStatsInit=[],onBodyStatsChange}){
+function StatsTab({sessions,programStart,prs,settings,C,activePlan,toggleTheme,themeMode,complianceStreak=0,longestStreak=0,deloadDue=false,pendingDrill=null,onDrillConsumed,blockSummaries={},onRepeatBlock,bodyStatsInit=[],onBodyStatsChange}){
+  // Past-blocks history detail — rendered HERE (not a ForgeApp early return) so StatsTab stays mounted and
+  // Back returns to Progress with statsView intact. Inert of the one-shot: no seen/gate; Repeat clones
+  // without marking seen (onRepeatBlock passes markSeen:false).
+  const [detailSnapshot,setDetailSnapshot]=useState(null);
   const [selEx,setSelEx]=useState(null); // null = "All exercises"
   const [progressView,setProgressView]=useState(null); // null = per-mode default (drill→table, all-lifts→chart); else explicit "chart"|"table"
   const [plateausExpanded,setPlateausExpanded]=useState(false);
@@ -4269,6 +4275,10 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
   }
 
   const tabStyle=(active)=>({flex:1,padding:"7px 4px",borderRadius:7,border:"none",background:active?C.accentBtn:"transparent",color:active?"#fff":C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:10,cursor:"pointer",letterSpacing:"0.04em"});
+
+  if(detailSnapshot){
+    return <BlockSummary snapshot={detailSnapshot} C={C} onBack={()=>setDetailSnapshot(null)} onRepeat={()=>onRepeatBlock&&onRepeatBlock(detailSnapshot.planKey)}/>;
+  }
 
   return <div>
     <div style={{background:C.bg,borderBottom:`1px solid ${C.border}`,padding:"16px 18px 14px"}}>
@@ -4490,6 +4500,8 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
                   </tbody></table>
                 </div>:<div style={emptySt}>Log weighted sessions of {selEx} to see data.</div>)}
           </div>}
+          {/* Past blocks — the historical record of ALL completed plans (every adherence level) */}
+          {!selEx&&<PastBlocksSection blockSummaries={blockSummaries} onOpenBlock={setDetailSnapshot} C={C}/>}
         </div>;
       })()}
 
@@ -4928,7 +4940,36 @@ Plain text, no markdown, be concise.`;
 // Full-screen plan-completion moment — reuses the WorkoutSummary shell/styling. Renders the FROZEN
 // snapshot (never recomputes). Header is a constant neutral "BLOCK COMPLETE" — the three items carry the
 // truth; empty/low states read factual, never scolding or celebratory (bad-block copy).
-function BlockSummary({snapshot,onRepeat,onTemplate,onBuild,onDismiss,C}){
+// Progress "past blocks" list — reads the frozen blockSummaries (no recompute), most-recent first, ALL
+// adherence levels (the 60% gate was only for the one-shot pop). Tapping a row opens the BlockSummary as
+// an inert history detail (onOpenBlock → ForgeApp sets blockDetailView). Calm empty state when none.
+function PastBlocksSection({blockSummaries,onOpenBlock,C}){
+  const blocks=Object.values(blockSummaries||{}).filter(Boolean).sort((a,b)=>{
+    const sa=a.startDate||"",sb=b.startDate||"";
+    if(sa!==sb)return sa<sb?1:-1;                       // later start date first
+    return (b.capturedAt||"").localeCompare(a.capturedAt||"");
+  });
+  const fmt=(str)=>{if(!str)return "";const[y,m,d]=String(str).split("-");return new Date(+y,+m-1,+d).toLocaleDateString("en",{month:"short",day:"numeric"});};
+  return <div style={{marginTop:18}}>
+    <SectionLabel C={C}>Past Blocks</SectionLabel>
+    {blocks.length===0
+      ? <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"20px",textAlign:"center"}}><Mono style={{fontSize:12,color:C.muted}}>Your completed plans will appear here.</Mono></div>
+      : blocks.map((s,i)=>{
+          const X=s.sessionsCompleted||0,Y=s.sessionsScheduled||0,mi=s.mostImproved,pr=s.prsHit||0;
+          return <button key={s.planKey||i} onClick={()=>onOpenBlock&&onOpenBlock(s)}
+            style={{width:"100%",textAlign:"left",background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"12px 14px",marginBottom:8,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
+            <div style={{minWidth:0,flex:1}}>
+              <div style={{fontSize:13,fontWeight:700,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.planName||"Plan"}</div>
+              <Mono style={{fontSize:10,color:C.muted}}>{fmt(s.startDate)} – {fmt(s.scheduledEnd)}</Mono>
+              <Mono style={{fontSize:11,color:C.muted,display:"block",marginTop:3}}>{X} of {Y} · {pr} PR{pr!==1?"s":""} · {mi?`${mi.name} +${Math.round((mi.pctGain||0)*100)}%`:"—"}</Mono>
+            </div>
+            <span style={{color:C.faint,fontSize:16,flexShrink:0}}>›</span>
+          </button>;
+        })}
+  </div>;
+}
+
+function BlockSummary({snapshot,onRepeat,onTemplate,onBuild,onDismiss,onBack,C}){
   const s=snapshot||{};
   const X=s.sessionsCompleted||0, Y=s.sessionsScheduled||0;
   const prsList=Array.isArray(s.prs)?s.prs:[];
@@ -4973,10 +5014,16 @@ function BlockSummary({snapshot,onRepeat,onTemplate,onBuild,onDismiss,C}){
           <div style={{fontSize:15,fontWeight:800,color:C.text}}>{miText}</div>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          {btn("Repeat this block",onRepeat,true)}
-          {btn("Start from a template",onTemplate,false)}
-          {btn("Build from scratch",onBuild,false)}
-          {btn("Not now",onDismiss,false)}
+          {/* History detail (onBack set): Repeat + Back only. Completion moment: the four-way next-step. */}
+          {onBack?<>
+            {onRepeat&&btn("Repeat this block",onRepeat,true)}
+            {btn("Back",onBack,false)}
+          </>:<>
+            {btn("Repeat this block",onRepeat,true)}
+            {btn("Start from a template",onTemplate,false)}
+            {btn("Build from scratch",onBuild,false)}
+            {btn("Not now",onDismiss,false)}
+          </>}
         </div>
       </div>
     </div>
