@@ -581,9 +581,11 @@ async function restoreCopyDay() {
 // Sets it active AND clears user_metadata.blockSummaries so the "compute-if-absent" snapshot fires.
 const COMPLETED_KEY = "AutoTest-Completed";
 function completedPlanDays() {
-  const T = (id, label) => ({ id, name: label, label, tag: label, color: "#4f8ef7", isRest: false, exercises: [] });
+  // Training days carry one exercise with a KNOWN id (ace*) so the "Repeat" clone can be asserted to
+  // have FRESH exercise ids (cross-wire rule). Y (non-rest count) is 5 regardless of exercises.
+  const T = (id, label, exId) => ({ id, name: label, label, tag: label, color: "#4f8ef7", isRest: false, exercises: [{ id: exId, name: label + " Lift", sets: "3", reps: "8", muscle: "Chest", note: "" }] });
   const R = (id) => ({ id, name: "Rest", label: "Rest", tag: "Full Rest", color: "#aaff00", isRest: true, exercises: [] });
-  return [T("ac0", "AutoCompletedDay"), T("ac1", "Day B"), T("ac2", "Day C"), R("ac3"), T("ac4", "Day D"), T("ac5", "Day E"), R("ac6")];
+  return [T("ac0", "AutoCompletedDay", "ace0"), T("ac1", "Day B", "ace1"), T("ac2", "Day C", "ace2"), R("ac3"), T("ac4", "Day D", "ace4"), T("ac5", "Day E", "ace5"), R("ac6")];
 }
 async function seedCompletedBlock() {
   if (!hasKey()) return { skipped: true };
@@ -600,6 +602,36 @@ async function seedCompletedBlock() {
   await sb.auth.admin.updateUserById(uid, { user_metadata: { ...(data?.user?.user_metadata || {}), active_plan_key: COMPLETED_KEY, blockSummaries: {} } });
   return { skipped: false, startStr };
 }
+// Seed the completed plan AND a crafted frozen snapshot (controllable adherence/PRs/most-improved/seen)
+// so the 2b one-shot summary UI can be driven directly, without waiting for 2a to compute one.
+async function seedBlockSummary(opts = {}) {
+  if (!hasKey()) return { skipped: true };
+  const sb = admin();
+  const uid = await getUid(sb);
+  if (!uid) return { skipped: true };
+  await sb.from("plans").delete().eq("user_id", uid).eq("plan_key", COMPLETED_KEY);
+  const start = new Date(); start.setDate(start.getDate() - 80);
+  const startStr = start.toLocaleDateString("en-CA");
+  const end = new Date(start); end.setDate(end.getDate() + 56);
+  const endStr = end.toLocaleDateString("en-CA");
+  const { error } = await sb.from("plans").insert({ user_id: uid, plan_key: COMPLETED_KEY, name: "AutoTest Completed Plan", subtitle: "", description: "", days_json: completedPlanDays(), start_date: startStr, duration_weeks: 8 });
+  if (error) throw new Error("seedBlockSummary insert: " + error.message);
+  const { adherencePct = 0.7, sessionsCompleted = 28, sessionsScheduled = 40, prs = [{ name: "AutoBench", weight: 225 }], mostImproved = { name: "AutoPress", pctGain: 0.2, from: 120, to: 144 }, seen = false } = opts;
+  const snapshot = { planKey: COMPLETED_KEY, planName: "AutoTest Completed Plan", startDate: startStr, durationWeeks: 8, scheduledEnd: endStr, sessionsCompleted, sessionsScheduled, adherencePct, prsHit: (prs || []).length, prs: prs || [], mostImproved: mostImproved || null, capturedAt: new Date().toISOString(), seen };
+  await sb.from("profiles").update({ active_plan_key: COMPLETED_KEY }).eq("id", uid);
+  const { data } = await sb.auth.admin.getUserById(uid);
+  await sb.auth.admin.updateUserById(uid, { user_metadata: { ...(data?.user?.user_metadata || {}), active_plan_key: COMPLETED_KEY, blockSummaries: { [COMPLETED_KEY]: snapshot } } });
+  return { skipped: false, startStr, endStr };
+}
+// List the user's plan rows (key + start_date + days_json) — for the "Repeat" clone assertions.
+async function getPlans() {
+  if (!hasKey()) return [];
+  const sb = admin();
+  const uid = await getUid(sb);
+  if (!uid) return [];
+  const { data } = await sb.from("plans").select("plan_key,start_date,days_json").eq("user_id", uid);
+  return data || [];
+}
 async function getBlockSummaries() {
   if (!hasKey()) return null;
   const sb = admin();
@@ -614,6 +646,7 @@ async function restoreCompletedBlock() {
   const uid = await getUid(sb);
   if (!uid) return;
   await sb.from("plans").delete().eq("user_id", uid).eq("plan_key", COMPLETED_KEY);
+  await sb.from("plans").delete().eq("user_id", uid).like("plan_key", "custom_%"); // "Repeat this block" clones
   await sb.from("profiles").update({ active_plan_key: IRONTEST_PLAN }).eq("id", uid);
   const { data } = await sb.auth.admin.getUserById(uid);
   await sb.auth.admin.updateUserById(uid, { user_metadata: { ...(data?.user?.user_metadata || {}), active_plan_key: IRONTEST_META_PLAN, blockSummaries: {} } });
@@ -629,4 +662,4 @@ async function getCopyPlanDays() {
   return data ? data.days_json : null;
 }
 
-module.exports = { seed, seedRename, seedMuscles, seedRecentPR, seedDrill, seedThisWeek, seedDeload, seedLongest, seedMaintenanceVolume, seedDormantPlateau, seedRecencyRank, seedDrillLink, seedStreakBanner, seedPlanResolution, restorePlanResolution, seedPickerDay, restorePicker, seedCopyDay, restoreCopyDay, getCopyPlanDays, seedCompletedBlock, restoreCompletedBlock, getBlockSummaries, getUserMeta, setDeloadDismissedAt, setStreakTracking, readCoaching, resetCoaching, setCoaching, cleanup, cleanupPRs, hasKey };
+module.exports = { seed, seedRename, seedMuscles, seedRecentPR, seedDrill, seedThisWeek, seedDeload, seedLongest, seedMaintenanceVolume, seedDormantPlateau, seedRecencyRank, seedDrillLink, seedStreakBanner, seedPlanResolution, restorePlanResolution, seedPickerDay, restorePicker, seedCopyDay, restoreCopyDay, getCopyPlanDays, seedCompletedBlock, restoreCompletedBlock, getBlockSummaries, seedBlockSummary, getPlans, getUserMeta, setDeloadDismissedAt, setStreakTracking, readCoaching, resetCoaching, setCoaching, cleanup, cleanupPRs, hasKey };

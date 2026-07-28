@@ -865,6 +865,7 @@ export default function ForgeApp(){
   const [isOnline,setIsOnline]=useState(navigator.onLine);
   const [bodyStatsGlobal,setBodyStatsGlobal]=useState([]);
   const [tab,setTab]=useState("today");
+  const [planInitialView,setPlanInitialView]=useState(null); // one-shot sub-view for PlanTab (from the block-summary next-step)
   const [pendingDrill,setPendingDrill]=useState(null); // History→Stats deep-link: exName to open the drill-down on; consumed once by StatsTab
   const [activeWorkout,setActiveWorkout]=useState(null);
   const [workoutDraft,setWorkoutDraft]=useState(null);
@@ -1377,6 +1378,51 @@ export default function ForgeApp(){
       onCancel={()=>{setWorkoutDraft(null);setMinimizedWorkout(null);setActiveWorkout(null);}} C={C}/>;
   }
 
+  // Mark a plan's block summary seen (per-plan one-shot) — merges seen:true into the frozen record so it
+  // never re-pops, without recomputing it (2a's idempotence guard still holds). user_metadata write path.
+  const markBlockSummarySeen=(planKey)=>{
+    const bs=authUser?.user_metadata?.blockSummaries||{};
+    const rec=bs[planKey]; if(!rec)return;
+    const next={...bs,[planKey]:{...rec,seen:true}};
+    supabase.auth.updateUser({data:{blockSummaries:next}}).catch(e=>console.error("markBlockSummarySeen:",e));
+    setAuthUser(prev=>prev?{...prev,user_metadata:{...prev.user_metadata,blockSummaries:next}}:prev);
+  };
+  // "Repeat this block": clone the finished plan's STRUCTURE (fresh exercise ids per the cross-wire rule)
+  // into a new active plan starting today — no auto-progression. The repeat gets its own key, so 2a will
+  // snapshot ITS block later. Reuses the loadPreset/saveAsNewPlan clone pattern.
+  const repeatBlock=(planKey)=>{
+    const src=plans[planKey];
+    markBlockSummarySeen(planKey);
+    if(src){
+      const newKey=`custom_${Date.now()}`;
+      const today=new Date().toLocaleDateString("en-CA");
+      const newPlan={name:src.name,subtitle:src.subtitle||"",description:src.description||"",startDate:today,durationWeeks:src.durationWeeks||10,
+        days:(src.days||[]).map(d=>({...d,id:mkId(),exercises:(d.exercises||[]).map(e=>({...e,id:mkId()}))}))};
+      savePlans({...plans,[newKey]:newPlan});
+      persistActivePlanKey(newKey);
+    }
+    setTab("today");
+  };
+
+  // One-shot full-screen block-completion summary: the ACTIVE plan is complete, a snapshot exists, it
+  // cleared the >=60% adherence gate (frozen value), and it hasn't been marked seen. Computed in render
+  // (no effect race); becomes null the moment any next-step marks it seen or switches the active plan.
+  const blockSnap=(()=>{
+    if(!activePlan||!activePlanKey)return null;
+    const wk=planWeekOf(activePlan);
+    if(!(wk&&wk>(activePlan.durationWeeks||10)))return null; // not complete
+    const snap=authUser?.user_metadata?.blockSummaries?.[activePlanKey];
+    if(!snap||snap.seen||!(snap.adherencePct>=0.60))return null;
+    return snap;
+  })();
+  if(blockSnap){
+    return <BlockSummary snapshot={blockSnap} C={C}
+      onRepeat={()=>repeatBlock(activePlanKey)}
+      onTemplate={()=>{markBlockSummarySeen(activePlanKey);setPlanInitialView("presets");setTab("plan");}}
+      onBuild={()=>{markBlockSummarySeen(activePlanKey);setPlanInitialView("mine");setTab("plan");}}
+      onDismiss={()=>{markBlockSummarySeen(activePlanKey);setTab("today");}}/>;
+  }
+
   return <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:C.serif,paddingBottom:72,userSelect:"none",scrollBehavior:"smooth"}}>
     {!isOnline&&<div style={{background:"#f7c948",color:"#1a202c",padding:"8px 18px",fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"center",letterSpacing:"0.04em"}}>
       ⚠ Offline — workouts will sync when connection is restored
@@ -1396,6 +1442,7 @@ export default function ForgeApp(){
     {tab==="plan"&&<PlanErrorBoundary C={C}><PlanTab plans={plans} activePlanKey={activePlanKey}
       setActivePlanKey={persistActivePlanKey}
       adherenceAnchor={activePlan?.startDate||programStart||getProgramStart(sessions)}
+      initialView={planInitialView} onInitialViewConsumed={()=>setPlanInitialView(null)}
       savePlans={savePlans} settings={settings} C={C} toggleTheme={toggleTheme} themeMode={themeMode}/></PlanErrorBoundary>}
     {tab==="log"&&<HistoryTab sessions={sessions} saveSessions={saveSessions} setSessions={setSessions} savePRs={savePRs} prs={prs} plans={plans} C={C} toggleTheme={toggleTheme} themeMode={themeMode} onDrillTo={name=>{setPendingDrill(name);setTab("stats");}} onRerun={sess=>{
       const day=(activePlan?.days||[]).find(d=>d.id===sess.dayId)||{...sess,exercises:Object.keys(sess.sets||{}).map(name=>({id:name,name,sets:"3",reps:"",muscle:"",note:""})),label:sess.dayLabel||"Workout"};
@@ -1447,10 +1494,6 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,p
   })();
 
   const userName = authUser?.user_metadata?.display_name || authUser?.email?.split("@")[0] || "there";
-  const wkNum = planWeekOf(plan);
-  const wkTotal = plan?.durationWeeks || 10;
-  const isProgramComplete = !!wkNum && wkNum > wkTotal;
-  const [dismissedComplete,setDismissedComplete]=useState(false);
 
   return <div>
     <div style={{background:C.bg,borderBottom:`1px solid ${C.border}`,padding:"16px 14px 14px"}}>
@@ -1486,14 +1529,6 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,p
             </div>
           </div>
           <button onClick={onDeloadDismiss} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:18,padding:"0 0 0 12px",flexShrink:0,lineHeight:1}}>✕</button>
-        </div>
-      </div>}
-      {isProgramComplete&&!dismissedComplete&&<div style={{background:C.gold+"15",border:`1px solid ${C.gold}55`,borderRadius:10,padding:"14px",marginBottom:14}}>
-        <div style={{fontSize:13,color:C.goldInk,fontWeight:700,marginBottom:4,display:"flex",alignItems:"center",gap:6}}><Trophy size={ICON.sm} strokeWidth={1.75}/>PROGRAM COMPLETE · WEEK {wkTotal} OF {wkTotal}</div>
-        <div style={{fontSize:11,color:C.muted,lineHeight:1.6,marginBottom:10}}>You've completed your {wkTotal}-week program. What's next?</div>
-        <div style={{display:"flex",gap:8}}>
-          <button onClick={()=>setDismissedComplete(true)} style={{flex:1,padding:"9px",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",color:C.muted,fontSize:11,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer"}}>Continue As Is</button>
-          <button onClick={onGoToPlan} style={{flex:1,padding:"9px",borderRadius:8,border:"none",background:C.gold,color:"#1a202c",fontSize:11,fontFamily:"'SF Mono','Courier New',monospace",fontWeight:700,cursor:"pointer"}}>Start New Plan</button>
         </div>
       </div>}
       {plan&&isFutureStart&&<div style={{background:C.accent+"15",border:`1px solid ${C.accent}40`,borderRadius:10,padding:"14px",marginBottom:14}}>
@@ -2445,8 +2480,9 @@ function PlanAnalysisView({plan,goalRaw,C,onBack}){
   </div>;
 }
 
-function PlanTab({plans,activePlanKey,setActivePlanKey,savePlans,settings,C,toggleTheme,themeMode,adherenceAnchor}){
-  const [view,setView]=useState("mine"); // mine | presets | ai
+function PlanTab({plans,activePlanKey,setActivePlanKey,savePlans,settings,C,toggleTheme,themeMode,adherenceAnchor,initialView,onInitialViewConsumed}){
+  const [view,setView]=useState(initialView||"mine"); // mine | presets | ai
+  useEffect(()=>{if(initialView&&onInitialViewConsumed)onInitialViewConsumed();},[]);// eslint-disable-line react-hooks/exhaustive-deps
   const [expandedDay,setExpandedDay]=useState(null);
   const [editEx,setEditEx]=useState(null);
   const [addExDay,setAddExDay]=useState(null);
@@ -4887,6 +4923,64 @@ Plain text, no markdown, be concise.`;
       :aiUpgrade?<UpgradePrompt {...aiUpgrade} C={C}/>
       :<div style={{fontSize:13,lineHeight:1.8,color:C.text,whiteSpace:"pre-wrap"}}>{response}</div>}
   </Modal>;
+}
+
+// Full-screen plan-completion moment — reuses the WorkoutSummary shell/styling. Renders the FROZEN
+// snapshot (never recomputes). Header is a constant neutral "BLOCK COMPLETE" — the three items carry the
+// truth; empty/low states read factual, never scolding or celebratory (bad-block copy).
+function BlockSummary({snapshot,onRepeat,onTemplate,onBuild,onDismiss,C}){
+  const s=snapshot||{};
+  const X=s.sessionsCompleted||0, Y=s.sessionsScheduled||0;
+  const prsList=Array.isArray(s.prs)?s.prs:[];
+  const prCount=s.prsHit||0;
+  const mi=s.mostImproved;
+  const fmt=(str)=>{if(!str)return "";const[y,m,d]=String(str).split("-");return new Date(+y,+m-1,+d).toLocaleDateString("en",{month:"short",day:"numeric"});};
+  const dateRange=(s.startDate&&s.scheduledEnd)?`${fmt(s.startDate)} – ${fmt(s.scheduledEnd)}`:"";
+  const prText=prCount>0?`${prCount} new PR${prCount!==1?"s":""}`:"No new PRs this block";
+  const miText=mi?`${mi.name} +${Math.round((mi.pctGain||0)*100)}%`:"No standout lift this block";
+  const btn=(label,onClick,primary)=>(
+    <button onClick={onClick} style={{width:"100%",padding:"14px",borderRadius:12,fontSize:13,fontWeight:700,letterSpacing:"0.04em",fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",border:primary?"none":`1.5px solid ${C.border}`,background:primary?C.neon:"transparent",color:primary?"#0b0c0e":C.muted}}>{label}</button>
+  );
+  return (
+    <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'SF Mono','Courier New',monospace",paddingTop:"env(safe-area-inset-top,0px)",paddingBottom:"env(safe-area-inset-bottom,0px)",overflowY:"auto"}}>
+      <div style={{background:"linear-gradient(150deg,#4f8ef7 0%,#3d6fd4 100%)",padding:"36px 24px 32px",textAlign:"center",position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",width:120,height:120,borderRadius:"50%",background:"rgba(255,255,255,0.08)",top:-30,right:-20,pointerEvents:"none"}}/>
+        <div style={{position:"absolute",width:80,height:80,borderRadius:"50%",background:"rgba(255,255,255,0.06)",bottom:-10,left:-15,pointerEvents:"none"}}/>
+        <div style={{fontSize:22,fontWeight:800,color:"#fff",letterSpacing:"0.06em",marginBottom:6}}>BLOCK COMPLETE</div>
+        {s.planName&&<div style={{fontSize:16,fontWeight:700,color:"#fff",marginBottom:4}}>{s.planName}</div>}
+        {dateRange&&<div style={{fontSize:13,fontWeight:500,color:"rgba(255,255,255,0.9)",letterSpacing:"0.04em"}}>{dateRange}</div>}
+      </div>
+      <div style={{padding:"20px 20px 32px"}}>
+        <div style={{background:C.card,borderRadius:12,padding:"16px",textAlign:"center",border:`1.5px solid ${C.accent}44`,marginBottom:12}}>
+          <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.14em",color:C.accentInk,marginBottom:6}}>SESSIONS</div>
+          <div style={{fontSize:28,fontWeight:800,letterSpacing:"-0.02em",color:C.text}}>{X} of {Y}</div>
+          <div style={{fontSize:11,color:C.muted,marginTop:2}}>completed of scheduled</div>
+        </div>
+        <div style={{background:C.card,borderRadius:12,padding:"16px",border:`1.5px solid ${C.red}44`,marginBottom:12}}>
+          <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.14em",color:C.redInk,marginBottom:6,textAlign:"center"}}>PERSONAL RECORDS</div>
+          <div style={{fontSize:15,fontWeight:800,color:C.text,textAlign:"center"}}>{prText}</div>
+          {prsList.length>0&&<div style={{marginTop:10}}>
+            {prsList.map((pr,i)=>(
+              <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderTop:`1px solid ${C.border}`}}>
+                <div style={{fontSize:13,color:C.text}}>{pr.name}</div>
+                <div style={{fontSize:13,fontWeight:700,color:C.text}}>{pr.weight} lbs</div>
+              </div>
+            ))}
+          </div>}
+        </div>
+        <div style={{background:C.card,borderRadius:12,padding:"16px",textAlign:"center",border:`1.5px solid ${C.neon}44`,marginBottom:18}}>
+          <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.14em",color:C.neonInk,marginBottom:6}}>MOST IMPROVED</div>
+          <div style={{fontSize:15,fontWeight:800,color:C.text}}>{miText}</div>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {btn("Repeat this block",onRepeat,true)}
+          {btn("Start from a template",onTemplate,false)}
+          {btn("Build from scratch",onBuild,false)}
+          {btn("Not now",onDismiss,false)}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function WorkoutSummary({session,newPRs,previousPRs,complianceStreak,setsWarning,onClose,C}){
