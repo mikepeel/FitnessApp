@@ -16,6 +16,7 @@ import { serializeTrainingExport } from "./lib/exportTraining";
 import { weeklyAdherence } from "./lib/weeklyAdherence";
 import { copyDayInto } from "./lib/copyDay";
 import { buildBlockSummary, scheduledEndStr } from "./lib/blockSummary";
+import { selectBlockHero } from "./lib/selectBlockHero";
 import { assembleDigest } from "./lib/overviewDigest";
 import { mapSessionRow } from "./lib/sessionMap";
 import { historyWindow } from "./lib/historyWindow";
@@ -4979,11 +4980,15 @@ function BlockSummary({snapshot,onRepeat,onTemplate,onBuild,onDismiss,onBack,C})
   const dateRange=(s.startDate&&s.scheduledEnd)?`${fmt(s.startDate)} – ${fmt(s.scheduledEnd)}`:"";
   const prText=prCount>0?`${prCount} new PR${prCount!==1?"s":""}`:"No new PRs this block";
   const miText=mi?`${mi.name} +${Math.round((mi.pctGain||0)*100)}%`:"No standout lift this block";
+  // Adaptive honest hero — the strongest TRUE story to lead with. Selected here (a pure display rule over
+  // the frozen snapshot); Commit 2 restyles the layout around it. No visual change yet: it's exposed via
+  // data-hero on the root so nothing collides with the existing cards/tests.
+  const hero=selectBlockHero(snapshot);
   const btn=(label,onClick,primary)=>(
     <button onClick={onClick} style={{width:"100%",padding:"14px",borderRadius:12,fontSize:13,fontWeight:700,letterSpacing:"0.04em",fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",border:primary?"none":`1.5px solid ${C.border}`,background:primary?C.neon:"transparent",color:primary?"#0b0c0e":C.muted}}>{label}</button>
   );
   return (
-    <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'SF Mono','Courier New',monospace",paddingTop:"env(safe-area-inset-top,0px)",paddingBottom:"env(safe-area-inset-bottom,0px)",overflowY:"auto"}}>
+    <div data-hero={hero.kind} style={{minHeight:"100vh",background:C.bg,fontFamily:"'SF Mono','Courier New',monospace",paddingTop:"env(safe-area-inset-top,0px)",paddingBottom:"env(safe-area-inset-bottom,0px)",overflowY:"auto"}}>
       <div style={{background:"linear-gradient(150deg,#4f8ef7 0%,#3d6fd4 100%)",padding:"36px 24px 32px",textAlign:"center",position:"relative",overflow:"hidden"}}>
         <div style={{position:"absolute",width:120,height:120,borderRadius:"50%",background:"rgba(255,255,255,0.08)",top:-30,right:-20,pointerEvents:"none"}}/>
         <div style={{position:"absolute",width:80,height:80,borderRadius:"50%",background:"rgba(255,255,255,0.06)",bottom:-10,left:-15,pointerEvents:"none"}}/>
