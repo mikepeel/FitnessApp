@@ -4970,6 +4970,72 @@ function PastBlocksSection({blockSummaries,onOpenBlock,C}){
   </div>;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared summary shell — the Block & Workout summaries are SIBLINGS: one editorial
+// language (quiet META eyebrow → one dominant HERO → a quiet supporting stat floor →
+// restrained actions). Restyling these primitives elevates BOTH screens together.
+// Palette stays within THEMES; the single accent (neon) appears once, only on a
+// genuinely positive hero. No loud banner, no per-stat rainbow, no new fonts.
+// ─────────────────────────────────────────────────────────────────────────────
+function SummaryPage({children,dataHero,C}){
+  return (
+    <div data-hero={dataHero} style={{minHeight:"100vh",background:C.bg,fontFamily:C.mono,paddingTop:"env(safe-area-inset-top,0px)",paddingBottom:"env(safe-area-inset-bottom,0px)",overflowY:"auto",overflowX:"hidden"}}>
+      <div style={{width:"100%",maxWidth:440,margin:"0 auto",padding:"0 24px",boxSizing:"border-box"}}>{children}</div>
+    </div>
+  );
+}
+// META tier — quietest, receding.
+function SummaryMeta({label,title,sub,C}){
+  return (
+    <div style={{textAlign:"center",paddingTop:44}}>
+      <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.24em",color:C.faint}}>{label}</div>
+      {title?<div style={{fontSize:15,fontWeight:700,letterSpacing:"0.02em",color:C.muted,marginTop:10}}>{title}</div>:null}
+      {sub?<div style={{fontSize:12,fontWeight:600,letterSpacing:"0.06em",color:C.faint,marginTop:5}}>{sub}</div>:null}
+    </div>
+  );
+}
+// HERO tier — one dominant element. accent=true => the single neon highlight; else neutral (dignified).
+// clamp() keeps the headline from overflowing at 320/375 while staying large on roomier screens.
+function SummaryHero({value,sub,caption,accent,C}){
+  return (
+    <div style={{textAlign:"center",padding:"48px 0 44px"}}>
+      <div data-testid="summary-hero" style={{fontSize:"clamp(42px,14vw,58px)",fontWeight:800,letterSpacing:"-0.03em",lineHeight:1,color:accent?C.neonInk:C.text,wordBreak:"break-word"}}>{value}</div>
+      {sub?<div style={{fontSize:17,fontWeight:700,letterSpacing:"0.01em",color:C.text,marginTop:14,wordBreak:"break-word"}}>{sub}</div>:null}
+      {caption?<div style={{fontSize:11,fontWeight:700,letterSpacing:"0.16em",color:C.muted,marginTop:12}}>{caption}</div>:null}
+    </div>
+  );
+}
+// SUPPORTING tier (the practical floor) — a quiet hairline stat row. items:[{label,value}] (nulls dropped).
+function SummaryStatRow({items,C}){
+  const cells=(items||[]).filter(Boolean);
+  if(!cells.length) return null;
+  return (
+    <div style={{display:"flex",borderTop:`1px solid ${C.border}`,borderBottom:`1px solid ${C.border}`}}>
+      {cells.map((it,i)=>(
+        <div key={i} style={{flex:1,minWidth:0,textAlign:"center",padding:"18px 6px",borderLeft:i>0?`1px solid ${C.border}`:"none"}}>
+          <div data-testid="summary-stat" style={{fontSize:19,fontWeight:700,letterSpacing:"-0.01em",color:C.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{it.value}</div>
+          <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.12em",color:C.faint,marginTop:7}}>{it.label}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+// A single quiet supporting line (label ——— value) for prose stats that don't fit a compact cell.
+function SupLine({label,value,C}){
+  return (
+    <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",gap:14,padding:"13px 2px",borderTop:`1px solid ${C.border}`}}>
+      <span style={{fontSize:10,fontWeight:700,letterSpacing:"0.14em",color:C.faint,whiteSpace:"nowrap"}}>{label}</span>
+      <span data-testid="summary-stat" style={{fontSize:14,fontWeight:700,color:C.text,textAlign:"right"}}>{value}</span>
+    </div>
+  );
+}
+// One shared action-button language across both screens (layout differs per screen).
+function SummaryButton({label,onClick,primary,C}){
+  return (
+    <button onClick={onClick} style={{width:"100%",padding:"15px",borderRadius:12,fontSize:12,fontWeight:700,letterSpacing:"0.08em",fontFamily:C.mono,cursor:"pointer",border:primary?"none":`1.5px solid ${C.border}`,background:primary?C.neon:"transparent",color:primary?"#0b0c0e":C.muted}}>{label}</button>
+  );
+}
+
 function BlockSummary({snapshot,onRepeat,onTemplate,onBuild,onDismiss,onBack,C}){
   const s=snapshot||{};
   const X=s.sessionsCompleted||0, Y=s.sessionsScheduled||0;
@@ -4980,58 +5046,48 @@ function BlockSummary({snapshot,onRepeat,onTemplate,onBuild,onDismiss,onBack,C})
   const dateRange=(s.startDate&&s.scheduledEnd)?`${fmt(s.startDate)} – ${fmt(s.scheduledEnd)}`:"";
   const prText=prCount>0?`${prCount} new PR${prCount!==1?"s":""}`:"No new PRs this block";
   const miText=mi?`${mi.name} +${Math.round((mi.pctGain||0)*100)}%`:"No standout lift this block";
-  // Adaptive honest hero — the strongest TRUE story to lead with. Selected here (a pure display rule over
-  // the frozen snapshot); Commit 2 restyles the layout around it. No visual change yet: it's exposed via
-  // data-hero on the root so nothing collides with the existing cards/tests.
+  const durationWeeks=Number(s.durationWeeks)||0;
+  // Adaptive honest HERO — selectBlockHero (Commit 1) picks the strongest TRUE story; this commit RENDERS it
+  // as the dominant element. The single neon accent lands ONLY on a genuine strength win (mostImproved);
+  // consistency and completion stay neutral so a poor block reads calm and dignified, never a fake flex.
   const hero=selectBlockHero(snapshot);
-  const btn=(label,onClick,primary)=>(
-    <button onClick={onClick} style={{width:"100%",padding:"14px",borderRadius:12,fontSize:13,fontWeight:700,letterSpacing:"0.04em",fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",border:primary?"none":`1.5px solid ${C.border}`,background:primary?C.neon:"transparent",color:primary?"#0b0c0e":C.muted}}>{label}</button>
-  );
+  let heroValue, heroSub=null, heroCaption, heroAccent=false;
+  if(hero.kind==="mostImproved"){ heroValue=`+${Math.round((hero.pctGain||0)*100)}%`; heroSub=hero.name; heroCaption="MOST IMPROVED"; heroAccent=true; }
+  else if(hero.kind==="consistency"){ heroValue=`${X} of ${Y}`; heroCaption="SESSIONS COMPLETED"; }
+  else { heroValue=durationWeeks>0?`${durationWeeks}`:"Done"; heroCaption=durationWeeks>0?"WEEKS COMPLETE":"BLOCK COMPLETE"; }
+  const showSessions=hero.kind!=="consistency";   // the hero owns X-of-Y when consistency is the lead
+  const showImproved=hero.kind!=="mostImproved";  // the hero owns most-improved when it's the strength lead
   return (
-    <div data-hero={hero.kind} style={{minHeight:"100vh",background:C.bg,fontFamily:"'SF Mono','Courier New',monospace",paddingTop:"env(safe-area-inset-top,0px)",paddingBottom:"env(safe-area-inset-bottom,0px)",overflowY:"auto"}}>
-      <div style={{background:"linear-gradient(150deg,#4f8ef7 0%,#3d6fd4 100%)",padding:"36px 24px 32px",textAlign:"center",position:"relative",overflow:"hidden"}}>
-        <div style={{position:"absolute",width:120,height:120,borderRadius:"50%",background:"rgba(255,255,255,0.08)",top:-30,right:-20,pointerEvents:"none"}}/>
-        <div style={{position:"absolute",width:80,height:80,borderRadius:"50%",background:"rgba(255,255,255,0.06)",bottom:-10,left:-15,pointerEvents:"none"}}/>
-        <div style={{fontSize:22,fontWeight:800,color:"#fff",letterSpacing:"0.06em",marginBottom:6}}>BLOCK COMPLETE</div>
-        {s.planName&&<div style={{fontSize:16,fontWeight:700,color:"#fff",marginBottom:4}}>{s.planName}</div>}
-        {dateRange&&<div style={{fontSize:13,fontWeight:500,color:"rgba(255,255,255,0.9)",letterSpacing:"0.04em"}}>{dateRange}</div>}
+    <SummaryPage dataHero={hero.kind} C={C}>
+      <SummaryMeta label="BLOCK COMPLETE" title={s.planName||""} sub={dateRange} C={C}/>
+      <SummaryHero value={heroValue} sub={heroSub} caption={heroCaption} accent={heroAccent} C={C}/>
+      {/* Supporting floor: the stats the hero doesn't already own, quiet but legible. */}
+      <div style={{paddingBottom:8}}>
+        {showSessions&&<SupLine label="SESSIONS" value={`${X} of ${Y}`} C={C}/>}
+        <SupLine label="PERSONAL RECORDS" value={prText} C={C}/>
+        {prsList.length>0&&<div style={{padding:"4px 2px 8px"}}>
+          {prsList.map((pr,i)=>(
+            <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 0",fontSize:12}}>
+              <span style={{color:C.muted}}>{pr.name}</span>
+              <span style={{color:C.text,fontWeight:700}}>{pr.weight} lbs</span>
+            </div>
+          ))}
+        </div>}
+        {showImproved&&<SupLine label="MOST IMPROVED" value={miText} C={C}/>}
       </div>
-      <div style={{padding:"20px 20px 32px"}}>
-        <div style={{background:C.card,borderRadius:12,padding:"16px",textAlign:"center",border:`1.5px solid ${C.accent}44`,marginBottom:12}}>
-          <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.14em",color:C.accentInk,marginBottom:6}}>SESSIONS</div>
-          <div style={{fontSize:28,fontWeight:800,letterSpacing:"-0.02em",color:C.text}}>{X} of {Y}</div>
-          <div style={{fontSize:11,color:C.muted,marginTop:2}}>completed of scheduled</div>
-        </div>
-        <div style={{background:C.card,borderRadius:12,padding:"16px",border:`1.5px solid ${C.red}44`,marginBottom:12}}>
-          <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.14em",color:C.redInk,marginBottom:6,textAlign:"center"}}>PERSONAL RECORDS</div>
-          <div style={{fontSize:15,fontWeight:800,color:C.text,textAlign:"center"}}>{prText}</div>
-          {prsList.length>0&&<div style={{marginTop:10}}>
-            {prsList.map((pr,i)=>(
-              <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderTop:`1px solid ${C.border}`}}>
-                <div style={{fontSize:13,color:C.text}}>{pr.name}</div>
-                <div style={{fontSize:13,fontWeight:700,color:C.text}}>{pr.weight} lbs</div>
-              </div>
-            ))}
-          </div>}
-        </div>
-        <div style={{background:C.card,borderRadius:12,padding:"16px",textAlign:"center",border:`1.5px solid ${C.neon}44`,marginBottom:18}}>
-          <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.14em",color:C.neonInk,marginBottom:6}}>MOST IMPROVED</div>
-          <div style={{fontSize:15,fontWeight:800,color:C.text}}>{miText}</div>
-        </div>
-        <div style={{display:"flex",flexDirection:"column",gap:10}}>
-          {/* History detail (onBack set): Repeat + Back only. Completion moment: the four-way next-step. */}
-          {onBack?<>
-            {onRepeat&&btn("Repeat this block",onRepeat,true)}
-            {btn("Back",onBack,false)}
-          </>:<>
-            {btn("Repeat this block",onRepeat,true)}
-            {btn("Start from a template",onTemplate,false)}
-            {btn("Build from scratch",onBuild,false)}
-            {btn("Not now",onDismiss,false)}
-          </>}
-        </div>
+      <div style={{display:"flex",flexDirection:"column",gap:10,padding:"22px 0 32px"}}>
+        {/* History detail (onBack set): Repeat + Back only. Completion moment: the four-way next-step. */}
+        {onBack?<>
+          {onRepeat&&<SummaryButton label="Repeat this block" onClick={onRepeat} primary C={C}/>}
+          <SummaryButton label="Back" onClick={onBack} C={C}/>
+        </>:<>
+          <SummaryButton label="Repeat this block" onClick={onRepeat} primary C={C}/>
+          <SummaryButton label="Start from a template" onClick={onTemplate} C={C}/>
+          <SummaryButton label="Build from scratch" onClick={onBuild} C={C}/>
+          <SummaryButton label="Not now" onClick={onDismiss} C={C}/>
+        </>}
       </div>
-    </div>
+    </SummaryPage>
   );
 }
 
@@ -5044,6 +5100,7 @@ function WorkoutSummary({session,newPRs,previousPRs,complianceStreak,setsWarning
   const volume=workingSets.reduce((sum,x)=>sum+(parseFloat(x.weight)||0)*(parseInt(x.reps)||0),0);
   const setCount=workingSets.length;
   const prList=Object.entries(newPRs||{}).map(([name,pr])=>({name,weight:pr.weight}));
+  const volStr=volume>=1000?`${(volume/1000).toFixed(1)}k`:volume.toLocaleString();
 
   const handleShare=()=>{
     const text=`${session.dayLabel} complete! ${setCount} sets · ${volume>=1000?(volume/1000).toFixed(1)+"k":volume.toLocaleString()} lbs · ${durationMin} min${prList.length>0?` · ${prList.length} new PR${prList.length>1?"s":""}!`:""} 💪 #IRON`;
@@ -5051,85 +5108,46 @@ function WorkoutSummary({session,newPRs,previousPRs,complianceStreak,setsWarning
     else if(navigator.clipboard){navigator.clipboard.writeText(text).catch(()=>{});}
   };
 
+  // Adaptive headline (sibling to the Block hero): a PR day leads with the PR (the genuine win, accented);
+  // an ordinary session leads with volume (neutral). The single accent appears only when there's a PR.
+  const heroIsPR=prList.length>0;
+  const heroValue=heroIsPR?`${prList.length}`:volStr;
+  const heroSub=heroIsPR&&prList.length===1?prList[0].name:null;
+  const heroCaption=heroIsPR?`NEW PR${prList.length!==1?"S":""}`:"LBS LIFTED";
+
   return(
-    <div style={{minHeight:"100vh",background:C.bg,fontFamily:"'SF Mono','Courier New',monospace",paddingTop:"env(safe-area-inset-top,0px)",paddingBottom:"env(safe-area-inset-bottom,0px)",overflowY:"auto"}}>
-      {setsWarning&&<div style={{background:"#f7c948",padding:"10px 18px",textAlign:"center"}}><Mono style={{fontSize:12,color:"#0b0c0e",fontWeight:700}}>Workout saved — set details failed to sync. Check History and re-log if needed.</Mono></div>}
-      {/* Header */}
-      <div style={{background:"linear-gradient(150deg,#3ecf8e 0%,#2ebd80 100%)",padding:"36px 24px 32px",textAlign:"center",position:"relative",overflow:"hidden"}}>
-        <div style={{position:"absolute",width:120,height:120,borderRadius:"50%",background:"rgba(255,255,255,0.08)",top:-30,right:-20,pointerEvents:"none"}}/>
-        <div style={{position:"absolute",width:80,height:80,borderRadius:"50%",background:"rgba(255,255,255,0.06)",bottom:-10,left:-15,pointerEvents:"none"}}/>
-        <div style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:80,height:80,borderRadius:"50%",background:"rgba(255,255,255,0.2)",marginBottom:16}}>
-          <div style={{width:64,height:64,borderRadius:"50%",background:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>
-            <svg width={24} height={24} viewBox="0 0 24 24" fill="none">
-              <circle cx={12} cy={12} r={10} fill="#3ecf8e"/>
-              <path d="M7 12.5l3.5 3.5 6.5-7" stroke="#fff" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-        </div>
-        <div style={{fontSize:22,fontWeight:800,color:"#fff",letterSpacing:"0.04em",marginBottom:6}}>WORKOUT SUMMARY</div>
-        <div style={{fontSize:16,fontWeight:700,color:"#fff",marginBottom:6}}>{session.dayLabel}</div>
-        <div style={{fontSize:15,fontWeight:600,color:"#fff",marginBottom:3}}>{dayName}, {dateStr}</div>
-        <div style={{fontSize:13,fontWeight:500,color:"rgba(255,255,255,0.9)",letterSpacing:"0.08em"}}>{durationMin} MIN</div>
-      </div>
-
-      {/* Content */}
-      <div style={{padding:"20px 20px 32px"}}>
-        {/* 2x2 stat grid */}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
-          <div style={{background:C.card,borderRadius:12,padding:"14px 16px",textAlign:"center",border:`1.5px solid ${C.neon}44`}}>
-            <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.14em",color:C.neonInk,marginBottom:6}}>VOLUME</div>
-            <div style={{fontSize:24,fontWeight:800,letterSpacing:"-0.02em",color:C.text}}>{volume>=1000?`${(volume/1000).toFixed(1)}k`:volume.toLocaleString()}</div>
-            <div style={{fontSize:11,color:C.muted,marginTop:2}}>lbs lifted</div>
-          </div>
-          <div style={{background:C.card,borderRadius:12,padding:"14px 16px",textAlign:"center",border:`1.5px solid ${C.accent}44`}}>
-            <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.14em",color:C.accentInk,marginBottom:6}}>SETS</div>
-            <div style={{fontSize:24,fontWeight:800,letterSpacing:"-0.02em",color:C.text}}>{setCount}</div>
-            <div style={{fontSize:11,color:C.muted,marginTop:2}}>completed</div>
-          </div>
-          <div style={{background:C.card,borderRadius:12,padding:"14px 16px",textAlign:"center",border:`1.5px solid ${C.gold}44`}}>
-            <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.14em",color:C.goldInk,marginBottom:6}}>STREAK</div>
-            <div style={{fontSize:24,fontWeight:800,letterSpacing:"-0.02em",color:C.goldInk}}>{complianceStreak}</div>
-            <div style={{fontSize:11,color:C.muted,marginTop:2}}>days on plan</div>
-          </div>
-          <div style={{background:C.card,borderRadius:12,padding:"14px 16px",textAlign:"center",border:`1.5px solid ${C.red}44`}}>
-            <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.14em",color:C.redInk,marginBottom:6}}>NEW PRs</div>
-            <div style={{fontSize:24,fontWeight:800,letterSpacing:"-0.02em",color:C.redInk}}>{prList.length}</div>
-            <div style={{fontSize:11,color:C.muted,marginTop:2}}>new records</div>
-          </div>
-        </div>
-
-        {/* New records section */}
-        {prList.length>0&&(
-          <div style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:12,padding:"14px 16px",marginBottom:14}}>
-            <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.14em",color:C.muted,marginBottom:12}}>NEW RECORDS</div>
-            {prList.map((pr,i)=>(
-              <div key={pr.name} style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:i<prList.length-1?10:0,marginBottom:i<prList.length-1?10:0,borderBottom:i<prList.length-1?`1px solid ${C.border}`:"none"}}>
-                <div>
-                  <div style={{fontSize:13,fontWeight:600,color:C.text}}>{pr.name}</div>
-                  {previousPRs[pr.name]&&<div style={{fontSize:11,color:C.muted}}>was {previousPRs[pr.name].weight} lbs</div>}
-                </div>
-                <div style={{textAlign:"right"}}>
-                  <div style={{fontSize:14,fontWeight:800,color:C.text,marginBottom:4}}>{pr.weight} lbs</div>
-                  <PRMark C={C}/>
-                </div>
+    <SummaryPage C={C}>
+      {setsWarning&&<div style={{background:"#f7c948",borderRadius:10,padding:"10px 14px",textAlign:"center",marginTop:16}}><Mono style={{fontSize:12,color:"#0b0c0e",fontWeight:700}}>Workout saved — set details failed to sync. Check History and re-log if needed.</Mono></div>}
+      <SummaryMeta label="WORKOUT SUMMARY" title={session.dayLabel} sub={`${dayName}, ${dateStr} · ${durationMin} min`} C={C}/>
+      <SummaryHero value={heroValue} sub={heroSub} caption={heroCaption} accent={heroIsPR} C={C}/>
+      {/* Supporting floor: the stats the hero doesn't already own. */}
+      <SummaryStatRow items={[
+        heroIsPR?{label:"VOLUME",value:volStr}:null,
+        {label:"SETS",value:`${setCount}`},
+        {label:"MIN",value:`${durationMin}`},
+        {label:"STREAK",value:`${complianceStreak}`},
+      ]} C={C}/>
+      {prList.length>0&&(
+        <div style={{padding:"18px 0 2px"}}>
+          <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.14em",color:C.faint,marginBottom:8}}>NEW RECORDS</div>
+          {prList.map((pr,i)=>(
+            <div key={pr.name} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderTop:i>0?`1px solid ${C.border}`:"none"}}>
+              <div>
+                <div style={{fontSize:13,fontWeight:600,color:C.text}}>{pr.name}</div>
+                {previousPRs[pr.name]&&<div style={{fontSize:11,color:C.muted}}>was {previousPRs[pr.name].weight} lbs</div>}
               </div>
-            ))}
-          </div>
-        )}
-
-        {/* Action buttons */}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          <button onClick={handleShare} style={{background:C.card,border:`1.5px solid ${C.border}`,borderRadius:12,padding:14,fontSize:12,fontWeight:700,letterSpacing:"0.08em",color:C.muted,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/>
-            </svg>
-            SHARE
-          </button>
-          <button onClick={onClose} style={{background:"#3ecf8e",border:"none",borderRadius:12,padding:14,fontSize:12,fontWeight:700,letterSpacing:"0.08em",color:"#fff",cursor:"pointer"}}>
-            CLOSE ✓
-          </button>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontSize:14,fontWeight:800,color:C.text}}>{pr.weight} lbs</span>
+                <PRMark C={C}/>
+              </div>
+            </div>
+          ))}
         </div>
+      )}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,padding:"22px 0 32px"}}>
+        <SummaryButton label="SHARE" onClick={handleShare} C={C}/>
+        <SummaryButton label="CLOSE" onClick={onClose} primary C={C}/>
       </div>
-    </div>
+    </SummaryPage>
   );
 }

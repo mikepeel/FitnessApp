@@ -56,6 +56,21 @@ test.describe("workout save", () => {
 
     // WorkoutSummary screen appears — dismiss it to return to main nav
     await expect(page.getByText("WORKOUT SUMMARY")).toBeVisible({ timeout: 8000 });
+    // Sibling editorial shell: one dominant hero over a legible supporting floor, no overflow at 375/320.
+    const hero = page.locator('[data-testid="summary-hero"]');
+    await expect(hero).toBeVisible();
+    const heroPx = await hero.evaluate(el => parseFloat(getComputedStyle(el).fontSize));
+    const statPx = await page.locator('[data-testid="summary-stat"]').first().evaluate(el => parseFloat(getComputedStyle(el).fontSize));
+    expect(heroPx).toBeGreaterThan(statPx);
+    expect(heroPx).toBeGreaterThanOrEqual(40);
+    const orig = page.viewportSize();
+    for (const w of [375, 320]) {
+      await page.setViewportSize({ width: w, height: 760 });
+      const box = await hero.boundingBox();
+      expect(box.x, `hero left in-viewport @${w}`).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width, `hero right in-viewport @${w}`).toBeLessThanOrEqual(w + 1);
+    }
+    if (orig) await page.setViewportSize(orig);
     await page.getByRole("button", { name: /CLOSE/i }).click();
 
     // History session count incremented — proves the session persisted

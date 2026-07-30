@@ -49,7 +49,16 @@ test.describe("cap-past-blocks Progress past-blocks list", () => {
     await openProgress(page);
     await page.getByRole("button", { name: /Low Block/ }).click();
     await expect(page.getByText("BLOCK COMPLETE")).toBeVisible({ timeout: 8000 });
-    await expect(page.getByText(/16 of 40/)).toBeVisible();
+    // Low Block is a bad block (40% adherence, 0 PRs, no lift) → the completion HERO: neutral weeks-complete,
+    // NOT the sad "16 of 40" as the lead. The honest count still shows quietly in the supporting floor.
+    const hero = page.locator('[data-testid="summary-hero"]');
+    await expect(hero).toHaveText("8");                                    // durationWeeks — dignified, neutral
+    await expect(page.getByText("WEEKS COMPLETE")).toBeVisible();
+    await expect(page.getByText(/16 of 40/)).toBeVisible();                // supporting floor keeps the honest count
+    await expect(page.getByText(/great|amazing|crushed|behind|nailed|beast|smashed/i)).toHaveCount(0);
+    const heroPx = await hero.evaluate(el => parseFloat(getComputedStyle(el).fontSize));
+    const statPx = await page.locator('[data-testid="summary-stat"]').first().evaluate(el => parseFloat(getComputedStyle(el).fontSize));
+    expect(heroPx).toBeGreaterThan(statPx);                                // completion hero still dominates
     await expect(page.getByRole("button", { name: "Repeat this block" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Back" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Not now" })).toHaveCount(0);            // not the one-shot four-way

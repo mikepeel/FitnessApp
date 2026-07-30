@@ -12,6 +12,29 @@ const seed = require("./seedHistory");
 
 const KEY = "AutoTest-Completed";
 
+// The adaptive hero (data-testid="summary-hero") must be the single dominant element — larger than any
+// supporting stat (data-testid="summary-stat"), the tell of the editorial three-tier hierarchy.
+async function assertHeroDominant(page, expect) {
+  const heroPx = await page.locator('[data-testid="summary-hero"]').evaluate(el => parseFloat(getComputedStyle(el).fontSize));
+  const statPx = await page.locator('[data-testid="summary-stat"]').first().evaluate(el => parseFloat(getComputedStyle(el).fontSize));
+  expect(heroPx).toBeGreaterThan(statPx);     // hero dominates the supporting floor
+  expect(heroPx).toBeGreaterThanOrEqual(40);  // and is genuinely large
+}
+// The overflow lesson (8cc0d0f): both summaries must render with all bounding rects inside the viewport
+// at 375 AND 320, and the page must not scroll horizontally.
+async function assertNoOverflow(page, expect) {
+  const orig = page.viewportSize();
+  for (const w of [375, 320]) {
+    await page.setViewportSize({ width: w, height: 760 });
+    const box = await page.locator('[data-testid="summary-hero"]').boundingBox();
+    expect(box.x, `hero left in-viewport @${w}`).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width, `hero right in-viewport @${w}`).toBeLessThanOrEqual(w + 1);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow, `no horizontal overflow @${w}`).toBeLessThanOrEqual(1);
+  }
+  if (orig) await page.setViewportSize(orig);
+}
+
 test.describe("cap-block block-completion summary (one-shot UI)", () => {
   test.skip(!seed.hasKey(), "needs SUPABASE_SERVICE_KEY");
   // Restore after EACH test so a "Repeat" clone (same plan name) can't leave a duplicate chip for the next.
@@ -30,17 +53,22 @@ test.describe("cap-block block-completion summary (one-shot UI)", () => {
     await page.getByRole("button", { name: /sign in/i }).click();
   }
 
-  test("≥60% block pops the summary with frozen X/Y, PRs, most-improved, and four next-steps", async ({ page }) => {
+  test("≥60% block pops: mostImproved is the dominant HERO, supporting stats present, four next-steps, no overflow", async ({ page }) => {
     await seed.seedBlockSummary({ adherencePct: 0.7, sessionsCompleted: 28, sessionsScheduled: 40, prs: [{ name: "AutoBench", weight: 225 }], mostImproved: { name: "AutoPress", pctGain: 0.2, from: 120, to: 144 } });
     await activate(page);
     await expect(page.getByText("BLOCK COMPLETE")).toBeVisible({ timeout: 15000 });
+    // HERO = the strength win (a qualifying most-improved), rendered as the dominant element.
+    await expect(page.locator('[data-testid="summary-hero"]')).toHaveText("+20%");
+    await expect(page.getByText("AutoPress")).toBeVisible();  // hero sub-line = the lift
+    // Supporting floor still present & legible (the practical stats, not lost to minimalism).
     await expect(page.getByText("28 of 40")).toBeVisible();
-    await expect(page.getByText(/AutoPress \+20%/)).toBeVisible();
     await expect(page.getByText("1 new PR")).toBeVisible();
     await expect(page.getByText("AutoBench")).toBeVisible();
     for (const b of ["Repeat this block", "Start from a template", "Build from scratch", "Not now"]) {
       await expect(page.getByRole("button", { name: b })).toBeVisible();
     }
+    await assertHeroDominant(page, expect);
+    await assertNoOverflow(page, expect);
   });
 
   test("sub-60% block does NOT pop (adherence gate)", async ({ page }) => {
@@ -86,9 +114,13 @@ test.describe("cap-block block-completion summary (one-shot UI)", () => {
     await seed.seedBlockSummary({ adherencePct: 0.65, sessionsCompleted: 26, sessionsScheduled: 40, prs: [], mostImproved: null });
     await activate(page);
     await expect(page.getByText("BLOCK COMPLETE")).toBeVisible({ timeout: 15000 });
-    await expect(page.getByText("26 of 40")).toBeVisible();
-    await expect(page.getByText("No new PRs this block")).toBeVisible();
+    // No qualifying lift → the honest lead is consistency ("X of Y"), rendered as the dominant HERO (neutral,
+    // NOT accented — we don't celebrate a middling block, but we don't scold it either).
+    await expect(page.locator('[data-testid="summary-hero"]')).toHaveText("26 of 40");
+    await expect(page.getByText("No new PRs this block")).toBeVisible();      // supporting floor
     await expect(page.getByText("No standout lift this block")).toBeVisible();
     await expect(page.getByText(/great|amazing|crushed|behind|nailed|beast|smashed/i)).toHaveCount(0);
+    await assertHeroDominant(page, expect);
+    await assertNoOverflow(page, expect);
   });
 });
