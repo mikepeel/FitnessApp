@@ -55,7 +55,7 @@ test.describe("workout save", () => {
     await expect(page.getByText(/Workout not saved/i)).not.toBeVisible({ timeout: 8000 });
 
     // WorkoutSummary screen appears — dismiss it to return to main nav
-    await expect(page.getByText("WORKOUT SUMMARY")).toBeVisible({ timeout: 8000 });
+    await expect(page.getByText("WORKOUT RECAP")).toBeVisible({ timeout: 8000 });
     // Sibling editorial shell: one dominant hero over a legible supporting floor, no overflow at 375/320.
     const hero = page.locator('[data-testid="summary-hero"]');
     await expect(hero).toBeVisible();
@@ -105,6 +105,6 @@ test.describe("workout save", () => {
     // WorkoutSummary appears on success — its presence confirms the save went through
     // The definitive regression check: no error banner, summary screen visible
     await expect(page.getByText(/Workout not saved/i)).not.toBeVisible({ timeout: 8000 });
-    await expect(page.getByText("WORKOUT SUMMARY")).toBeVisible({ timeout: 8000 });
+    await expect(page.getByText("WORKOUT RECAP")).toBeVisible({ timeout: 8000 });
   });
 });

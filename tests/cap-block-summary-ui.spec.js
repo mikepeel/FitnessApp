@@ -54,17 +54,18 @@ test.describe("cap-block block-completion summary (one-shot UI)", () => {
   }
 
   test("≥60% block pops: mostImproved is the dominant HERO, supporting stats present, four next-steps, no overflow", async ({ page }) => {
-    await seed.seedBlockSummary({ adherencePct: 0.7, sessionsCompleted: 28, sessionsScheduled: 40, prs: [{ name: "AutoBench", weight: 225 }], mostImproved: { name: "AutoPress", pctGain: 0.2, from: 120, to: 144 } });
+    await seed.seedBlockSummary({ adherencePct: 0.7, sessionsCompleted: 28, sessionsScheduled: 40, prs: [{ name: "AutoBench", weight: 225 }], mostImproved: { name: "AutoPress", pctGain: 0.2, from: 120, to: 144, fromWeight: 185, toWeight: 205 } });
     await activate(page);
-    await expect(page.getByText("BLOCK COMPLETE")).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText("PLAN RECAP")).toBeVisible({ timeout: 15000 });
     // HERO = the strength win (a qualifying most-improved), rendered as the dominant element.
     await expect(page.locator('[data-testid="summary-hero"]')).toHaveText("+20%");
     await expect(page.getByText("AutoPress")).toBeVisible();  // hero sub-line = the lift
+    await expect(page.getByText("185 → 205 lbs")).toBeVisible();  // weight context: concrete TOP-SET weight, start → end
     // Supporting floor still present & legible (the practical stats, not lost to minimalism).
     await expect(page.getByText("28 of 40")).toBeVisible();
     await expect(page.getByText("1 new PR")).toBeVisible();
     await expect(page.getByText("AutoBench")).toBeVisible();
-    for (const b of ["Repeat this block", "Start from a template", "Build from scratch", "Not now"]) {
+    for (const b of ["Repeat this plan", "Start from a template", "Build from scratch", "Not now"]) {
       await expect(page.getByRole("button", { name: b })).toBeVisible();
     }
     await assertHeroDominant(page, expect);
@@ -76,27 +77,27 @@ test.describe("cap-block block-completion summary (one-shot UI)", () => {
     await activate(page); // reload lands on the normal app (Workout tab) when the summary doesn't pop
     await expect(page.getByRole("button", { name: /Workout/i })).toBeVisible({ timeout: 12000 });
     await page.waitForTimeout(2000); // give any (wrong) pop a chance to render
-    await expect(page.getByText("BLOCK COMPLETE")).toHaveCount(0);
+    await expect(page.getByText("PLAN RECAP")).toHaveCount(0);
   });
 
   test("Not now marks the plan seen (no re-pop on reload); the old inline banner is gone", async ({ page }) => {
     await seed.seedBlockSummary({ adherencePct: 0.7 });
     await activate(page);
-    await expect(page.getByText("BLOCK COMPLETE")).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText("PLAN RECAP")).toBeVisible({ timeout: 15000 });
     await page.getByRole("button", { name: "Not now" }).click();
     await expect(page.getByRole("button", { name: /Workout/i })).toBeVisible({ timeout: 8000 });
     await expect(page.getByText(/PROGRAM COMPLETE/)).toHaveCount(0); // retired inline banner is gone
     await expect.poll(async () => { const bs = await seed.getBlockSummaries(); return bs && bs[KEY] && bs[KEY].seen ? "seen" : "no"; }, { timeout: 10000 }).toBe("seen");
     await page.goto("/"); // reload → one-shot: does not re-pop
     await expect(page.getByRole("button", { name: /Workout/i })).toBeVisible({ timeout: 12000 });
-    await expect(page.getByText("BLOCK COMPLETE")).toHaveCount(0);
+    await expect(page.getByText("PLAN RECAP")).toHaveCount(0);
   });
 
-  test("Repeat this block clones a fresh, active plan (new key, today start, fresh exercise ids)", async ({ page }) => {
+  test("Repeat this plan clones a fresh, active plan (new key, today start, fresh exercise ids)", async ({ page }) => {
     await seed.seedBlockSummary({ adherencePct: 0.7 });
     await activate(page);
-    await expect(page.getByText("BLOCK COMPLETE")).toBeVisible({ timeout: 15000 });
-    await page.getByRole("button", { name: "Repeat this block" }).click();
+    await expect(page.getByText("PLAN RECAP")).toBeVisible({ timeout: 15000 });
+    await page.getByRole("button", { name: "Repeat this plan" }).click();
     await expect(page.getByRole("button", { name: /Workout/i })).toBeVisible({ timeout: 10000 });
 
     const today = new Date().toLocaleDateString("en-CA");
@@ -110,15 +111,17 @@ test.describe("cap-block block-completion summary (one-shot UI)", () => {
     expect((await seed.getBlockSummaries())[KEY].seen).toBe(true);                  // finished block marked seen
   });
 
-  test("bad block (≥60% but 0 PRs / null most-improved) reads NEUTRAL — not scolding or celebratory", async ({ page }) => {
+  test("no-qualifying-lift block reads NEUTRAL — weeks-complete hero, count in the supporting floor", async ({ page }) => {
     await seed.seedBlockSummary({ adherencePct: 0.65, sessionsCompleted: 26, sessionsScheduled: 40, prs: [], mostImproved: null });
     await activate(page);
-    await expect(page.getByText("BLOCK COMPLETE")).toBeVisible({ timeout: 15000 });
-    // No qualifying lift → the honest lead is consistency ("X of Y"), rendered as the dominant HERO (neutral,
-    // NOT accented — we don't celebrate a middling block, but we don't scold it either).
-    await expect(page.locator('[data-testid="summary-hero"]')).toHaveText("26 of 40");
-    await expect(page.getByText("No new PRs this block")).toBeVisible();      // supporting floor
-    await expect(page.getByText("No standout lift this block")).toBeVisible();
+    await expect(page.getByText("PLAN RECAP")).toBeVisible({ timeout: 15000 });
+    // No qualifying lift → the neutral completion hero ("N weeks complete"); the count is NOT hero'd (it
+    // lives quietly in the supporting floor), so a middling block reads calm — not celebratory, not scolding.
+    await expect(page.locator('[data-testid="summary-hero"]')).toHaveText("8");
+    await expect(page.getByText("WEEKS COMPLETE")).toBeVisible();
+    await expect(page.getByText("26 of 40")).toBeVisible();                   // honest count, supporting floor
+    await expect(page.getByText("No new PRs this cycle")).toBeVisible();
+    await expect(page.getByText("No standout lift this cycle")).toBeVisible();
     await expect(page.getByText(/great|amazing|crushed|behind|nailed|beast|smashed/i)).toHaveCount(0);
     await assertHeroDominant(page, expect);
     await assertNoOverflow(page, expect);

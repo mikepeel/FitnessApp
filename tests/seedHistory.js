@@ -616,7 +616,7 @@ async function seedBlockSummary(opts = {}) {
   const endStr = end.toLocaleDateString("en-CA");
   const { error } = await sb.from("plans").insert({ user_id: uid, plan_key: COMPLETED_KEY, name: "AutoTest Completed Plan", subtitle: "", description: "", days_json: completedPlanDays(), start_date: startStr, duration_weeks: 8 });
   if (error) throw new Error("seedBlockSummary insert: " + error.message);
-  const { adherencePct = 0.7, sessionsCompleted = 28, sessionsScheduled = 40, prs = [{ name: "AutoBench", weight: 225 }], mostImproved = { name: "AutoPress", pctGain: 0.2, from: 120, to: 144 }, seen = false } = opts;
+  const { adherencePct = 0.7, sessionsCompleted = 28, sessionsScheduled = 40, prs = [{ name: "AutoBench", weight: 225 }], mostImproved = { name: "AutoPress", pctGain: 0.2, from: 120, to: 144, fromWeight: 185, toWeight: 205 }, seen = false } = opts;
   const snapshot = { planKey: COMPLETED_KEY, planName: "AutoTest Completed Plan", startDate: startStr, durationWeeks: 8, scheduledEnd: endStr, sessionsCompleted, sessionsScheduled, adherencePct, prsHit: (prs || []).length, prs: prs || [], mostImproved: mostImproved || null, capturedAt: new Date().toISOString(), seen };
   await sb.from("profiles").update({ active_plan_key: COMPLETED_KEY }).eq("id", uid);
   const { data } = await sb.auth.admin.getUserById(uid);
@@ -646,7 +646,7 @@ async function restoreCompletedBlock() {
   const uid = await getUid(sb);
   if (!uid) return;
   await sb.from("plans").delete().eq("user_id", uid).eq("plan_key", COMPLETED_KEY);
-  await sb.from("plans").delete().eq("user_id", uid).like("plan_key", "custom_%"); // "Repeat this block" clones
+  await sb.from("plans").delete().eq("user_id", uid).like("plan_key", "custom_%"); // "Repeat this plan" clones
   await sb.from("profiles").update({ active_plan_key: IRONTEST_PLAN }).eq("id", uid);
   const { data } = await sb.auth.admin.getUserById(uid);
   await sb.auth.admin.updateUserById(uid, { user_metadata: { ...(data?.user?.user_metadata || {}), active_plan_key: IRONTEST_META_PLAN, blockSummaries: {} } });
@@ -675,9 +675,9 @@ async function seedPastBlocks({ empty = false } = {}) {
     { user_id: uid, plan_key: HIST_KEY, name: "AutoTest Hist Plan", subtitle: "", description: "", days_json: [{ id: "h0", name: "Mon", label: "HistDay", tag: "Hist", color: "#4f8ef7", isRest: false, exercises: [histEx("he0", "Hist Lift A"), histEx("he1", "Hist Lift B")] }], start_date: daysAgoStr(80), duration_weeks: 8 },
   ]);
   const blockSummaries = empty ? {} : {
-    [HIST_KEY]: mkSnap(HIST_KEY, "AutoTest Hist Plan", 80, 0.75, 30, 40, false, [{ name: "HB", weight: 200 }], { name: "HistImp", pctGain: 0.15, from: 100, to: 115 }),
+    [HIST_KEY]: mkSnap(HIST_KEY, "AutoTest Hist Plan", 80, 0.75, 30, 40, false, [{ name: "HB", weight: 200 }], { name: "HistImp", pctGain: 0.15, from: 100, to: 115, fromWeight: 155, toWeight: 175 }),
     "AutoTest-HistLow": mkSnap("AutoTest-HistLow", "Low Block", 120, 0.40, 16, 40, false, [], null),
-    "AutoTest-HistOld": mkSnap("AutoTest-HistOld", "Old Block", 200, 0.90, 36, 40, true, [{ name: "OB", weight: 300 }], { name: "OldImp", pctGain: 0.25, from: 100, to: 125 }),
+    "AutoTest-HistOld": mkSnap("AutoTest-HistOld", "Old Block", 200, 0.90, 36, 40, true, [{ name: "OB", weight: 300 }], { name: "OldImp", pctGain: 0.25, from: 100, to: 125, fromWeight: 225, toWeight: 275 }),
   };
   await sb.from("profiles").update({ active_plan_key: ACTIVE_KEY }).eq("id", uid);
   const { data } = await sb.auth.admin.getUserById(uid);

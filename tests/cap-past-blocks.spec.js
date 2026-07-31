@@ -27,7 +27,7 @@ test.describe("cap-past-blocks Progress past-blocks list", () => {
     await expect(page.getByText(/ActiveDay/).first()).toBeVisible({ timeout: 10000 }); // plans finished loading (active plan's day rendered)
     await page.getByRole("button", { name: /^Stats$/i }).click();
     await page.getByRole("button", { name: /^Progress$/i }).click();
-    await expect(page.getByText("Past Blocks")).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText("Past Plans")).toBeVisible({ timeout: 10000 });
   }
 
   test("lists ALL completed plans (incl. the sub-60% one), most-recent first, with headline stats", async ({ page }) => {
@@ -48,7 +48,7 @@ test.describe("cap-past-blocks Progress past-blocks list", () => {
     await seed.seedPastBlocks();
     await openProgress(page);
     await page.getByRole("button", { name: /Low Block/ }).click();
-    await expect(page.getByText("BLOCK COMPLETE")).toBeVisible({ timeout: 8000 });
+    await expect(page.getByText("PLAN RECAP")).toBeVisible({ timeout: 8000 });
     // Low Block is a bad block (40% adherence, 0 PRs, no lift) → the completion HERO: neutral weeks-complete,
     // NOT the sad "16 of 40" as the lead. The honest count still shows quietly in the supporting floor.
     const hero = page.locator('[data-testid="summary-hero"]');
@@ -59,12 +59,12 @@ test.describe("cap-past-blocks Progress past-blocks list", () => {
     const heroPx = await hero.evaluate(el => parseFloat(getComputedStyle(el).fontSize));
     const statPx = await page.locator('[data-testid="summary-stat"]').first().evaluate(el => parseFloat(getComputedStyle(el).fontSize));
     expect(heroPx).toBeGreaterThan(statPx);                                // completion hero still dominates
-    await expect(page.getByRole("button", { name: "Repeat this block" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Repeat this plan" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Back" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Not now" })).toHaveCount(0);            // not the one-shot four-way
     await expect(page.getByRole("button", { name: "Start from a template" })).toHaveCount(0);
     await page.getByRole("button", { name: "Back" }).click();
-    await expect(page.getByText("Past Blocks")).toBeVisible({ timeout: 8000 });
+    await expect(page.getByText("Past Plans")).toBeVisible({ timeout: 8000 });
     expect((await seed.getBlockSummaries())[LOW].seen).toBe(false);                        // seen untouched
   });
 
@@ -78,8 +78,8 @@ test.describe("cap-past-blocks Progress past-blocks list", () => {
     await seed.seedPastBlocks();
     await openProgress(page);
     await page.getByRole("button", { name: /AutoTest Hist Plan/ }).click(); // the block whose plan row exists
-    await expect(page.getByText("BLOCK COMPLETE")).toBeVisible({ timeout: 8000 });
-    await page.getByRole("button", { name: "Repeat this block" }).click();
+    await expect(page.getByText("PLAN RECAP")).toBeVisible({ timeout: 8000 });
+    await page.getByRole("button", { name: "Repeat this plan" }).click();
     await expect(page.getByRole("button", { name: /Workout/i })).toBeVisible({ timeout: 10000 });
     const today = new Date().toLocaleDateString("en-CA");
     await expect.poll(async () => { const ps = await seed.getPlans(); return ps.some(p => p.plan_key.startsWith("custom_") && p.start_date === today) ? "yes" : "no"; }, { timeout: 12000 }).toBe("yes");

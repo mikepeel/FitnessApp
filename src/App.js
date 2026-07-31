@@ -4939,7 +4939,7 @@ Plain text, no markdown, be concise.`;
 }
 
 // Full-screen plan-completion moment — reuses the WorkoutSummary shell/styling. Renders the FROZEN
-// snapshot (never recomputes). Header is a constant neutral "BLOCK COMPLETE" — the three items carry the
+// snapshot (never recomputes). Header is a constant neutral "PLAN RECAP" — the hero + floor carry the
 // truth; empty/low states read factual, never scolding or celebratory (bad-block copy).
 // Progress "past blocks" list — reads the frozen blockSummaries (no recompute), most-recent first, ALL
 // adherence levels (the 60% gate was only for the one-shot pop). Tapping a row opens the BlockSummary as
@@ -4952,7 +4952,7 @@ function PastBlocksSection({blockSummaries,onOpenBlock,C}){
   });
   const fmt=(str)=>{if(!str)return "";const[y,m,d]=String(str).split("-");return new Date(+y,+m-1,+d).toLocaleDateString("en",{month:"short",day:"numeric"});};
   return <div style={{marginTop:18}}>
-    <SectionLabel C={C}>Past Blocks</SectionLabel>
+    <SectionLabel C={C}>Past Plans</SectionLabel>
     {blocks.length===0
       ? <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"20px",textAlign:"center"}}><Mono style={{fontSize:12,color:C.muted}}>Your completed plans will appear here.</Mono></div>
       : blocks.map((s,i)=>{
@@ -4996,11 +4996,12 @@ function SummaryMeta({label,title,sub,C}){
 }
 // HERO tier — one dominant element. accent=true => the single neon highlight; else neutral (dignified).
 // clamp() keeps the headline from overflowing at 320/375 while staying large on roomier screens.
-function SummaryHero({value,sub,caption,accent,C}){
+function SummaryHero({value,sub,context,caption,accent,C}){
   return (
     <div style={{textAlign:"center",padding:"48px 0 44px"}}>
       <div data-testid="summary-hero" style={{fontSize:"clamp(42px,14vw,58px)",fontWeight:800,letterSpacing:"-0.03em",lineHeight:1,color:accent?C.neonInk:C.text,wordBreak:"break-word"}}>{value}</div>
       {sub?<div style={{fontSize:17,fontWeight:700,letterSpacing:"0.01em",color:C.text,marginTop:14,wordBreak:"break-word"}}>{sub}</div>:null}
+      {context?<div style={{fontSize:13,fontWeight:600,letterSpacing:"0.02em",color:C.muted,marginTop:7}}>{context}</div>:null}
       {caption?<div style={{fontSize:11,fontWeight:700,letterSpacing:"0.16em",color:C.muted,marginTop:12}}>{caption}</div>:null}
     </div>
   );
@@ -5044,26 +5045,32 @@ function BlockSummary({snapshot,onRepeat,onTemplate,onBuild,onDismiss,onBack,C})
   const mi=s.mostImproved;
   const fmt=(str)=>{if(!str)return "";const[y,m,d]=String(str).split("-");return new Date(+y,+m-1,+d).toLocaleDateString("en",{month:"short",day:"numeric"});};
   const dateRange=(s.startDate&&s.scheduledEnd)?`${fmt(s.startDate)} – ${fmt(s.scheduledEnd)}`:"";
-  const prText=prCount>0?`${prCount} new PR${prCount!==1?"s":""}`:"No new PRs this block";
-  const miText=mi?`${mi.name} +${Math.round((mi.pctGain||0)*100)}%`:"No standout lift this block";
+  const prText=prCount>0?`${prCount} new PR${prCount!==1?"s":""}`:"No new PRs this cycle";
+  const miText=mi?`${mi.name} +${Math.round((mi.pctGain||0)*100)}%`:"No standout lift this cycle";
   const durationWeeks=Number(s.durationWeeks)||0;
-  // Adaptive honest HERO — selectBlockHero (Commit 1) picks the strongest TRUE story; this commit RENDERS it
-  // as the dominant element. The single neon accent lands ONLY on a genuine strength win (mostImproved);
-  // consistency and completion stay neutral so a poor block reads calm and dignified, never a fake flex.
+  // Adaptive honest HERO — selectBlockHero picks the strongest TRUE story: a qualifying most-improved lift,
+  // else neutral "N weeks complete". This commit RENDERS it. The single neon accent lands ONLY on the
+  // strength win; the session count and PRs ALWAYS live in the supporting floor (never hero'd), so a poor
+  // block reads calm and dignified, never a fake flex.
   const hero=selectBlockHero(snapshot);
-  let heroValue, heroSub=null, heroCaption, heroAccent=false;
-  if(hero.kind==="mostImproved"){ heroValue=`+${Math.round((hero.pctGain||0)*100)}%`; heroSub=hero.name; heroCaption="MOST IMPROVED"; heroAccent=true; }
-  else if(hero.kind==="consistency"){ heroValue=`${X} of ${Y}`; heroCaption="SESSIONS COMPLETED"; }
-  else { heroValue=durationWeeks>0?`${durationWeeks}`:"Done"; heroCaption=durationWeeks>0?"WEEKS COMPLETE":"BLOCK COMPLETE"; }
-  const showSessions=hero.kind!=="consistency";   // the hero owns X-of-Y when consistency is the lead
+  let heroValue, heroSub=null, heroContext=null, heroCaption, heroAccent=false;
+  if(hero.kind==="mostImproved"){
+    heroValue=`+${Math.round((hero.pctGain||0)*100)}%`; heroSub=hero.name;
+    // Concrete top-set weight the % amounts to — shown only when the heaviest weight actually rose (a
+    // rep-based gain leaves it flat, so we show just the % rather than a misleading "185 → 185 lbs").
+    heroContext=(mi&&mi.fromWeight!=null&&mi.toWeight!=null&&mi.toWeight>mi.fromWeight)?`${Math.round(mi.fromWeight)} → ${Math.round(mi.toWeight)} lbs`:null;
+    heroCaption="MOST IMPROVED"; heroAccent=true;
+  } else {
+    heroValue=durationWeeks>0?`${durationWeeks}`:"Done"; heroCaption=durationWeeks>0?"WEEKS COMPLETE":"PLAN COMPLETE";
+  }
   const showImproved=hero.kind!=="mostImproved";  // the hero owns most-improved when it's the strength lead
   return (
     <SummaryPage dataHero={hero.kind} C={C}>
-      <SummaryMeta label="BLOCK COMPLETE" title={s.planName||""} sub={dateRange} C={C}/>
-      <SummaryHero value={heroValue} sub={heroSub} caption={heroCaption} accent={heroAccent} C={C}/>
-      {/* Supporting floor: the stats the hero doesn't already own, quiet but legible. */}
+      <SummaryMeta label="PLAN RECAP" title={s.planName||""} sub={dateRange} C={C}/>
+      <SummaryHero value={heroValue} sub={heroSub} context={heroContext} caption={heroCaption} accent={heroAccent} C={C}/>
+      {/* Supporting floor: sessions + PRs always here (never hero'd); most-improved only when it's not the hero. */}
       <div style={{paddingBottom:8}}>
-        {showSessions&&<SupLine label="SESSIONS" value={`${X} of ${Y}`} C={C}/>}
+        <SupLine label="SESSIONS" value={`${X} of ${Y}`} C={C}/>
         <SupLine label="PERSONAL RECORDS" value={prText} C={C}/>
         {prsList.length>0&&<div style={{padding:"4px 2px 8px"}}>
           {prsList.map((pr,i)=>(
@@ -5078,10 +5085,10 @@ function BlockSummary({snapshot,onRepeat,onTemplate,onBuild,onDismiss,onBack,C})
       <div style={{display:"flex",flexDirection:"column",gap:10,padding:"22px 0 32px"}}>
         {/* History detail (onBack set): Repeat + Back only. Completion moment: the four-way next-step. */}
         {onBack?<>
-          {onRepeat&&<SummaryButton label="Repeat this block" onClick={onRepeat} primary C={C}/>}
+          {onRepeat&&<SummaryButton label="Repeat this plan" onClick={onRepeat} primary C={C}/>}
           <SummaryButton label="Back" onClick={onBack} C={C}/>
         </>:<>
-          <SummaryButton label="Repeat this block" onClick={onRepeat} primary C={C}/>
+          <SummaryButton label="Repeat this plan" onClick={onRepeat} primary C={C}/>
           <SummaryButton label="Start from a template" onClick={onTemplate} C={C}/>
           <SummaryButton label="Build from scratch" onClick={onBuild} C={C}/>
           <SummaryButton label="Not now" onClick={onDismiss} C={C}/>
@@ -5118,11 +5125,12 @@ function WorkoutSummary({session,newPRs,previousPRs,complianceStreak,setsWarning
   return(
     <SummaryPage C={C}>
       {setsWarning&&<div style={{background:"#f7c948",borderRadius:10,padding:"10px 14px",textAlign:"center",marginTop:16}}><Mono style={{fontSize:12,color:"#0b0c0e",fontWeight:700}}>Workout saved — set details failed to sync. Check History and re-log if needed.</Mono></div>}
-      <SummaryMeta label="WORKOUT SUMMARY" title={session.dayLabel} sub={`${dayName}, ${dateStr} · ${durationMin} min`} C={C}/>
+      <SummaryMeta label="WORKOUT RECAP" title={session.dayLabel} sub={`${dayName}, ${dateStr} · ${durationMin} min`} C={C}/>
       <SummaryHero value={heroValue} sub={heroSub} caption={heroCaption} accent={heroIsPR} C={C}/>
-      {/* Supporting floor: the stats the hero doesn't already own. */}
+      {/* Supporting floor: the stats the hero doesn't already own. When a PR is the hero, volume shows here
+          as LBS — same "lbs lifted" metric the volume-hero leads with when there's no PR. */}
       <SummaryStatRow items={[
-        heroIsPR?{label:"VOLUME",value:volStr}:null,
+        heroIsPR?{label:"LBS",value:volStr}:null,
         {label:"SETS",value:`${setCount}`},
         {label:"MIN",value:`${durationMin}`},
         {label:"STREAK",value:`${complianceStreak}`},

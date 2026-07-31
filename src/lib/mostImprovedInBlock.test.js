@@ -19,6 +19,8 @@ test("LOAD-BEARING: % gain beats a larger ABSOLUTE gain (normalization)", () => 
   expect(res).not.toBeNull();
   expect(res.name).toBe("Small"); // % wins; absolute would pick "Big"
   expect(res.pctGain).toBeCloseTo(0.2, 2);
+  expect(res.fromWeight).toBe(50);  // concrete top-set weights over the first-two / last-two windows
+  expect(res.toWeight).toBe(60);
 });
 
 test("gate: only 2 sessions → ineligible → null", () => {
@@ -60,6 +62,8 @@ test("rep progress at the same weight registers a positive gain (e1RM, not top w
   expect(res).not.toBeNull();
   expect(res.name).toBe("Reps");
   expect(res.pctGain).toBeGreaterThan(0); // top-weight basis would be 0 here
+  expect(res.fromWeight).toBe(185);
+  expect(res.toWeight).toBe(185);         // flat top weight (all 185) → UI shows just the %, no weight line
 });
 
 test("null: no qualifying lift", () => {
