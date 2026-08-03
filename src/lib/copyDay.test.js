@@ -4,7 +4,7 @@ import { copyDayInto } from "./copyDay";
 const mkCounter = () => { let k = 0; return () => `new_${k++}`; };
 
 const SRC = {
-  id: "src", name: "Tuesday", label: "Pull", tag: "Back . Biceps", color: "#3d8eff", isRest: false,
+  id: "src", name: "Tuesday", label: "Pull", tag: "Back . Biceps", color: "#f06584", isRest: false,
   exercises: [
     { id: "s1", name: "A", sets: "3", reps: "10", muscle: "Back" },
     { id: "s2", name: "B", sets: "3", reps: "10", muscle: "Biceps" },
@@ -28,7 +28,7 @@ test("copy into an EMPTY target: exercises = source in authored order, FRESH ids
   expect(t.name).toBe("Saturday"); // ...and its own name/slot
   expect(t.label).toBe("Pull");    // takes source's label/tag/color
   expect(t.tag).toBe("Back . Biceps");
-  expect(t.color).toBe("#3d8eff");
+  expect(t.color).toBe("#f06584");
 });
 
 test("pure: the source day and the input array are not mutated (not frozen — result is independent)", () => {
@@ -58,7 +58,7 @@ test("APPEND into a NON-empty target: existing + source copies, in order", () =>
 });
 
 test("REST target: isRest flips to false and the copied exercises are present", () => {
-  const rest = { id: "sun", name: "Sunday", label: "Rest", tag: "Full Rest", color: "#aaff00", isRest: true, exercises: [] };
+  const rest = { id: "sun", name: "Sunday", label: "Rest", tag: "Full Rest", color: "#3ecf8e", isRest: true, exercises: [] };
   const out = copyDayInto([SRC, rest], "sun", "src", "replace", mkCounter());
   const t = out.find((d) => d.id === "sun");
   expect(t.isRest).toBe(false);

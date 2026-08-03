@@ -135,14 +135,14 @@ const PRESET_TEMPLATES = [
         {name:"Pull-Ups / Lat Pulldown",sets:"4",reps:"6-10",note:"",muscle:"Back"},
         {name:"Dips",sets:"3",reps:"8-12",note:"Add weight when easy",muscle:"Triceps"},
       ]},
-      { label:"Lower Strength", tag:"Legs . Core", color:"#aa44ff", isRest:false, exercises:[
+      { label:"Lower Strength", tag:"Legs . Core", color:"#f7c948", isRest:false, exercises:[
         {name:"Squat",sets:"5",reps:"3-5",note:"Knee tracking -- go to comfortable depth",muscle:"Legs"},
         {name:"Romanian Deadlift",sets:"4",reps:"6-8",note:"Hip hinge, protect lower back",muscle:"Legs"},
         {name:"Leg Press",sets:"3",reps:"8-12",note:"High foot placement",muscle:"Legs"},
         {name:"Plank",sets:"3",reps:"45-60 sec",note:"",muscle:"Abs"},
         {name:"Ab Wheel",sets:"3",reps:"10-15",note:"",muscle:"Abs"},
       ]},
-      { label:"Rest", tag:"Active Recovery", color:"#aaff00", isRest:true, exercises:[
+      { label:"Rest", tag:"Active Recovery", color:"#3ecf8e", isRest:true, exercises:[
         {name:"Walk / Stretch",sets:"--",reps:"20-30 min",note:"",muscle:"Recovery"},
       ]},
       { label:"Upper Volume", tag:"Chest . Back . Arms", color:"#4f8ef7", isRest:false, exercises:[
@@ -153,17 +153,17 @@ const PRESET_TEMPLATES = [
         {name:"Tricep Pressdown",sets:"3",reps:"10-12",note:"",muscle:"Triceps"},
         {name:"Machine Crunch",sets:"3",reps:"15-20",note:"",muscle:"Abs"},
       ]},
-      { label:"Lower Volume", tag:"Legs . Glutes", color:"#aa44ff", isRest:false, exercises:[
+      { label:"Lower Volume", tag:"Legs . Glutes", color:"#f7c948", isRest:false, exercises:[
         {name:"Goblet Squat",sets:"4",reps:"12-15",note:"",muscle:"Legs"},
         {name:"Box Step-Ups",sets:"3",reps:"10 each",note:"Drive through heel",muscle:"Legs"},
         {name:"DB Lunge",sets:"3",reps:"10 each",note:"If knees allow",muscle:"Legs"},
         {name:"Decline Sit-Ups",sets:"3",reps:"15",note:"",muscle:"Abs"},
         {name:"Russian Twist",sets:"3",reps:"20",note:"",muscle:"Abs"},
       ]},
-      { label:"Rest", tag:"Full Rest", color:"#aaff00", isRest:true, exercises:[
+      { label:"Rest", tag:"Full Rest", color:"#3ecf8e", isRest:true, exercises:[
         {name:"Rest",sets:"--",reps:"--",note:"Recovery is progress",muscle:"Recovery"},
       ]},
-      { label:"Rest", tag:"Active Recovery", color:"#aaff00", isRest:true, exercises:[
+      { label:"Rest", tag:"Active Recovery", color:"#3ecf8e", isRest:true, exercises:[
         {name:"Cardio / Mobility",sets:"--",reps:"20 min",note:"",muscle:"Recovery"},
       ]},
     ]
@@ -172,14 +172,14 @@ const PRESET_TEMPLATES = [
     id:"preset_hiit", emoji:"⚡", name:"Athletic Performance", tag:"5 days . Functional + Cardio",
     desc:"Combines resistance training with metabolic conditioning. Builds muscle, burns fat, and improves cardiovascular fitness.",
     days:[
-      { label:"Push + Cardio", tag:"Chest . Shoulders . Triceps", color:"#f0b429", isRest:false, exercises:[
+      { label:"Push + Cardio", tag:"Chest . Shoulders . Triceps", color:"#4f8ef7", isRest:false, exercises:[
         {name:"DB Bench Press",sets:"4",reps:"10-12",note:"",muscle:"Chest"},
         {name:"Machine Shoulder Press",sets:"3",reps:"12-15",note:"",muscle:"Shoulders"},
         {name:"Lateral Raises",sets:"3",reps:"15-20",note:"Light weight, high rep",muscle:"Shoulders"},
         {name:"Tricep Pressdown",sets:"3",reps:"12-15",note:"",muscle:"Triceps"},
         {name:"Stair Stepper / Bike",sets:"--",reps:"15 min",note:"High intensity intervals",muscle:"Cardio"},
       ]},
-      { label:"Pull + Core", tag:"Back . Biceps . Abs", color:"#3d8eff", isRest:false, exercises:[
+      { label:"Pull + Core", tag:"Back . Biceps . Abs", color:"#4f8ef7", isRest:false, exercises:[
         {name:"Lat Pulldown",sets:"4",reps:"10-12",note:"",muscle:"Back"},
         {name:"Seated Cable Row",sets:"3",reps:"12-15",note:"",muscle:"Back"},
         {name:"Face Pull",sets:"3",reps:"15-20",note:"Great for shoulder health",muscle:"Shoulders"},
@@ -187,17 +187,17 @@ const PRESET_TEMPLATES = [
         {name:"Hanging Knee Raises",sets:"3",reps:"15-20",note:"",muscle:"Abs"},
         {name:"Plank",sets:"3",reps:"45 sec",note:"",muscle:"Abs"},
       ]},
-      { label:"Legs + Cardio", tag:"Full Lower Body", color:"#aa44ff", isRest:false, exercises:[
+      { label:"Legs + Cardio", tag:"Full Lower Body", color:"#f7c948", isRest:false, exercises:[
         {name:"Goblet Squat",sets:"4",reps:"15",note:"",muscle:"Legs"},
         {name:"Romanian Deadlift",sets:"3",reps:"12",note:"",muscle:"Legs"},
         {name:"Box Step-Ups",sets:"3",reps:"12 each",note:"",muscle:"Legs"},
         {name:"Calf Raises",sets:"3",reps:"20",note:"",muscle:"Legs"},
         {name:"Stair Stepper",sets:"--",reps:"10 min",note:"Moderate pace",muscle:"Cardio"},
       ]},
-      { label:"Rest", tag:"Active Recovery", color:"#aaff00", isRest:true, exercises:[
+      { label:"Rest", tag:"Active Recovery", color:"#3ecf8e", isRest:true, exercises:[
         {name:"Light Walk / Yoga",sets:"--",reps:"20-30 min",note:"",muscle:"Recovery"},
       ]},
-      { label:"Full Body Circuit", tag:"Total Body", color:"#f0b429", isRest:false, exercises:[
+      { label:"Full Body Circuit", tag:"Total Body", color:"#4f8ef7", isRest:false, exercises:[
         {name:"DB Bench Press",sets:"3",reps:"12",note:"",muscle:"Chest"},
         {name:"DB Row",sets:"3",reps:"12",note:"",muscle:"Back"},
         {name:"Goblet Squat",sets:"3",reps:"15",note:"",muscle:"Legs"},
@@ -214,7 +214,7 @@ const PRESET_TEMPLATES = [
         {name:"Dead Bug",sets:"3",reps:"10 each",note:"Opposite arm/leg, lower back stays flat",muscle:"Abs"},
         {name:"Pallof Press",sets:"3",reps:"12 each",note:"Anti-rotation, stand tall",muscle:"Abs"},
       ]},
-      { label:"Rest", tag:"Full Rest", color:"#aaff00", isRest:true, exercises:[
+      { label:"Rest", tag:"Full Rest", color:"#3ecf8e", isRest:true, exercises:[
         {name:"Rest",sets:"--",reps:"--",note:"",muscle:"Recovery"},
       ]},
     ]
@@ -223,7 +223,7 @@ const PRESET_TEMPLATES = [
     id:"preset_beginner", emoji:"🌱", name:"Beginner Foundations", tag:"3 days . Full Body",
     desc:"Three full-body sessions per week. Perfect starting point -- teaches movement patterns, builds baseline strength, low injury risk.",
     days:[
-      { label:"Full Body A", tag:"Total Body", color:"#aaff00", isRest:false, exercises:[
+      { label:"Full Body A", tag:"Total Body", color:"#3ecf8e", isRest:false, exercises:[
         {name:"Goblet Squat",sets:"3",reps:"12-15",note:"Master the pattern first",muscle:"Legs"},
         {name:"DB Bench Press",sets:"3",reps:"10-12",note:"",muscle:"Chest"},
         {name:"Lat Pulldown",sets:"3",reps:"10-12",note:"",muscle:"Back"},
@@ -231,10 +231,10 @@ const PRESET_TEMPLATES = [
         {name:"Plank",sets:"3",reps:"30-45 sec",note:"",muscle:"Abs"},
         {name:"Stair Stepper / Walk",sets:"--",reps:"10 min",note:"",muscle:"Cardio"},
       ]},
-      { label:"Rest", tag:"Active Recovery", color:"#3d8eff", isRest:true, exercises:[
+      { label:"Rest", tag:"Active Recovery", color:"#4f8ef7", isRest:true, exercises:[
         {name:"Walk or Light Stretch",sets:"--",reps:"20 min",note:"",muscle:"Recovery"},
       ]},
-      { label:"Full Body B", tag:"Total Body", color:"#aaff00", isRest:false, exercises:[
+      { label:"Full Body B", tag:"Total Body", color:"#3ecf8e", isRest:false, exercises:[
         {name:"Box Step-Ups",sets:"3",reps:"10 each",note:"Build leg strength safely",muscle:"Legs"},
         {name:"Cable Row",sets:"3",reps:"12",note:"",muscle:"Back"},
         {name:"DB Incline Press",sets:"3",reps:"10-12",note:"",muscle:"Chest"},
@@ -242,10 +242,10 @@ const PRESET_TEMPLATES = [
         {name:"Tricep Pressdown",sets:"3",reps:"12",note:"",muscle:"Triceps"},
         {name:"Machine Crunch",sets:"3",reps:"15",note:"",muscle:"Abs"},
       ]},
-      { label:"Rest", tag:"Active Recovery", color:"#3d8eff", isRest:true, exercises:[
+      { label:"Rest", tag:"Active Recovery", color:"#4f8ef7", isRest:true, exercises:[
         {name:"Walk or Light Stretch",sets:"--",reps:"20 min",note:"",muscle:"Recovery"},
       ]},
-      { label:"Full Body C", tag:"Total Body", color:"#aaff00", isRest:false, exercises:[
+      { label:"Full Body C", tag:"Total Body", color:"#3ecf8e", isRest:false, exercises:[
         {name:"Romanian Deadlift",sets:"3",reps:"12",note:"Hip hinge -- keep back flat",muscle:"Legs"},
         {name:"Pec Deck",sets:"3",reps:"12-15",note:"Chest stretch focus",muscle:"Chest"},
         {name:"Lat Pulldown",sets:"3",reps:"12",note:"",muscle:"Back"},
@@ -253,10 +253,10 @@ const PRESET_TEMPLATES = [
         {name:"Decline Sit-Ups",sets:"3",reps:"15",note:"",muscle:"Abs"},
         {name:"Stair Stepper",sets:"--",reps:"10 min",note:"",muscle:"Cardio"},
       ]},
-      { label:"Rest", tag:"Full Rest", color:"#3d8eff", isRest:true, exercises:[
+      { label:"Rest", tag:"Full Rest", color:"#4f8ef7", isRest:true, exercises:[
         {name:"Rest",sets:"--",reps:"--",note:"Recover, grow, repeat",muscle:"Recovery"},
       ]},
-      { label:"Rest", tag:"Full Rest", color:"#3d8eff", isRest:true, exercises:[
+      { label:"Rest", tag:"Full Rest", color:"#4f8ef7", isRest:true, exercises:[
         {name:"Rest",sets:"--",reps:"--",note:"",muscle:"Recovery"},
       ]},
     ]
@@ -274,7 +274,7 @@ const PRESET_TEMPLATES = [
         {name:"Cable Overhead Extension",sets:"2",reps:"12-15",note:"Long-head emphasis",muscle:"Triceps"},
         {name:"Stair Stepper",sets:"--",reps:"10-15 min",note:"Zone 2 cardio post-workout",muscle:"Cardio"},
       ]},
-      { name:"Tuesday", label:"Pull", tag:"Back . Biceps . Rear Delt", color:"#3d8eff", isRest:false, exercises:[
+      { name:"Tuesday", label:"Pull", tag:"Back . Biceps . Rear Delt", color:"#4f8ef7", isRest:false, exercises:[
         {name:"Reverse Grip Lat Pulldown",sets:"4",reps:"8-12",note:"Supinated grip -- easier on elbows",muscle:"Back"},
         {name:"Seated Cable Row",sets:"3",reps:"10-12",note:"Drive elbows back, hold 1 sec",muscle:"Back"},
         {name:"Rear Delt Machine",sets:"3",reps:"12-15",note:"Shoulder health -- never skip",muscle:"Shoulders"},
@@ -283,10 +283,10 @@ const PRESET_TEMPLATES = [
         {name:"Machine Crunch",sets:"3",reps:"15-20",note:"",muscle:"Abs"},
         {name:"Russian Twist",sets:"3",reps:"20 total",note:"Add plate for progression",muscle:"Abs"},
       ]},
-      { name:"Wednesday", label:"Rest", tag:"Active Recovery", color:"#aaff00", isRest:true, exercises:[
+      { name:"Wednesday", label:"Rest", tag:"Active Recovery", color:"#3ecf8e", isRest:true, exercises:[
         {name:"Walking / Yoga / Stretching",sets:"--",reps:"20-30 min",note:"Keep it easy",muscle:"Recovery"},
       ]},
-      { name:"Thursday", label:"Legs", tag:"Quads . Glutes . Hamstrings . Core", color:"#aa44ff", isRest:false, exercises:[
+      { name:"Thursday", label:"Legs", tag:"Quads . Glutes . Hamstrings . Core", color:"#f7c948", isRest:false, exercises:[
         {name:"Goblet Squat",sets:"4",reps:"10-15",note:"Keep weight over mid-foot",muscle:"Legs"},
         {name:"DB Romanian Deadlift",sets:"3",reps:"10-12",note:"Hip hinge -- protects knees",muscle:"Legs"},
         {name:"Box Step-Ups (DB)",sets:"3",reps:"10 each leg",note:"Drive through heel, controlled step down",muscle:"Legs"},
@@ -302,7 +302,7 @@ const PRESET_TEMPLATES = [
         {name:"Cable Rope Pressdown",sets:"3",reps:"12-15",note:"",muscle:"Triceps"},
         {name:"Machine Crunch",sets:"3",reps:"15-20",note:"",muscle:"Abs"},
       ]},
-      { name:"Saturday", label:"Pull", tag:"Back . Biceps (Volume)", color:"#3d8eff", isRest:false, exercises:[
+      { name:"Saturday", label:"Pull", tag:"Back . Biceps (Volume)", color:"#4f8ef7", isRest:false, exercises:[
         {name:"T-Bar Row",sets:"4",reps:"8-12",note:"Neutral grip easier on elbows",muscle:"Back"},
         {name:"Reverse Grip Pulldown",sets:"3",reps:"10-12",note:"",muscle:"Back"},
         {name:"Rear Delt Cable or Machine",sets:"3",reps:"12-15",note:"",muscle:"Shoulders"},
@@ -311,7 +311,7 @@ const PRESET_TEMPLATES = [
         {name:"Decline Sit-Ups",sets:"3",reps:"12-15",note:"",muscle:"Abs"},
         {name:"Stair Stepper",sets:"--",reps:"15 min",note:"",muscle:"Cardio"},
       ]},
-      { name:"Sunday", label:"Rest", tag:"Full Rest", color:"#aaff00", isRest:true, exercises:[
+      { name:"Sunday", label:"Rest", tag:"Full Rest", color:"#3ecf8e", isRest:true, exercises:[
         {name:"Full Rest or Light Walk",sets:"--",reps:"--",note:"Recovery is where you grow",muscle:"Recovery"},
       ]},
     ]
@@ -330,7 +330,7 @@ const PRESET_TEMPLATES = [
         {name:"Machine Crunch",sets:"3",reps:"15-20",note:"",muscle:"Abs"},
         {name:"Stair Stepper",sets:"--",reps:"10-15 min",note:"",muscle:"Cardio"},
       ]},
-      { name:"Tuesday", label:"Arms", tag:"Shoulders . Triceps . Biceps", color:"#f0b429", isRest:false, exercises:[
+      { name:"Tuesday", label:"Arms", tag:"Shoulders . Triceps . Biceps", color:"#4f8ef7", isRest:false, exercises:[
         {name:"Machine Shoulder Press",sets:"4",reps:"10-12",note:"Machine reduces joint stress",muscle:"Shoulders"},
         {name:"DB / Cable Lateral Raises",sets:"3",reps:"12-15",note:"Slow and controlled",muscle:"Shoulders"},
         {name:"Rear Delt Machine",sets:"3",reps:"12-15",note:"Critical for shoulder health",muscle:"Shoulders"},
@@ -340,10 +340,10 @@ const PRESET_TEMPLATES = [
         {name:"Concentration Curl",sets:"3",reps:"12-15",note:"Full squeeze, slow negative",muscle:"Biceps"},
         {name:"Russian Twist",sets:"3",reps:"20 total",note:"",muscle:"Abs"},
       ]},
-      { name:"Wednesday", label:"Rest", tag:"Active Recovery", color:"#aaff00", isRest:true, exercises:[
+      { name:"Wednesday", label:"Rest", tag:"Active Recovery", color:"#3ecf8e", isRest:true, exercises:[
         {name:"Walking / Yoga / Stretching",sets:"--",reps:"20-30 min",note:"",muscle:"Recovery"},
       ]},
-      { name:"Thursday", label:"Legs", tag:"Quads . Glutes . Hamstrings . Core", color:"#aa44ff", isRest:false, exercises:[
+      { name:"Thursday", label:"Legs", tag:"Quads . Glutes . Hamstrings . Core", color:"#f7c948", isRest:false, exercises:[
         {name:"Goblet Squat",sets:"4",reps:"10-15",note:"Heels elevated slightly if needed",muscle:"Legs"},
         {name:"DB Romanian Deadlift",sets:"3",reps:"10-12",note:"Hip hinge -- protects knees",muscle:"Legs"},
         {name:"Box Step-Ups (DB)",sets:"3",reps:"10 each leg",note:"Drive through heel, controlled down",muscle:"Legs"},
@@ -361,7 +361,7 @@ const PRESET_TEMPLATES = [
         {name:"Russian Twist",sets:"3",reps:"20 total",note:"",muscle:"Abs"},
         {name:"Stair Stepper",sets:"--",reps:"15 min",note:"",muscle:"Cardio"},
       ]},
-      { name:"Saturday", label:"Arms", tag:"Shoulders . Triceps . Biceps (Vol)", color:"#f0b429", isRest:false, exercises:[
+      { name:"Saturday", label:"Arms", tag:"Shoulders . Triceps . Biceps (Vol)", color:"#4f8ef7", isRest:false, exercises:[
         {name:"Machine Shoulder Press",sets:"3",reps:"10-12",note:"",muscle:"Shoulders"},
         {name:"Cable Lateral Raise",sets:"3",reps:"12-15",note:"Constant tension",muscle:"Shoulders"},
         {name:"Front Delt Raise",sets:"2",reps:"12-15",note:"",muscle:"Shoulders"},
@@ -371,7 +371,7 @@ const PRESET_TEMPLATES = [
         {name:"Concentration Curl",sets:"2",reps:"12-15",note:"",muscle:"Biceps"},
         {name:"Decline Sit-Ups",sets:"3",reps:"12-15",note:"",muscle:"Abs"},
       ]},
-      { name:"Sunday", label:"Rest", tag:"Full Rest", color:"#aaff00", isRest:true, exercises:[
+      { name:"Sunday", label:"Rest", tag:"Full Rest", color:"#3ecf8e", isRest:true, exercises:[
         {name:"Full Rest",sets:"--",reps:"--",note:"Recovery is where you grow",muscle:"Recovery"},
       ]},
     ]
@@ -1469,14 +1469,18 @@ export default function ForgeApp(){
   </div>;
 }
 
-function getDayColor(day){
-  if(!day)return "#4f8ef7";
-  if(day.isRest)return "#3ecf8e";
+function getDayColor(day, C){
+  // Every day color is one of the 4 THEMES accents, theme-aware via C (falls back to dark tokens if a
+  // caller omits it). 3 primary movement patterns + rest use all 4 accents; secondary/custom days honor
+  // their (on-brand) picked color, else the primary accent. No off-brand purple/lime/amber.
+  const A = C || THEMES.dark;
+  if(!day) return A.accent;
+  if(day.isRest) return A.neon;
   const lbl=(day.label||"").toLowerCase();
-  if(lbl.startsWith("push"))return "#4f8ef7";
-  if(lbl.startsWith("pull"))return "#f06584";
-  if(lbl.startsWith("legs")||lbl.startsWith("lower"))return "#aa44ff";
-  return day.color||"#4f8ef7";
+  if(lbl.startsWith("push")||lbl.startsWith("upper")||lbl.startsWith("chest")) return A.accent;
+  if(lbl.startsWith("pull")) return A.red;
+  if(lbl.startsWith("legs")||lbl.startsWith("lower")) return A.gold;
+  return day.color || A.accent;
 }
 
 // -- TODAY ---------------------------------------------------------------------
@@ -1540,7 +1544,7 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,p
         {rawDays.map((d,i)=>{
           const slotDate=new Date(startDate);slotDate.setDate(startDate.getDate()+i);
           return<div key={d.id||i} style={{display:"flex",gap:10,alignItems:"center",padding:"6px 0",borderBottom:`1px solid ${C.border}40`}}>
-            <div style={{width:8,height:8,borderRadius:4,background:getDayColor(d),flexShrink:0}}/>
+            <div style={{width:8,height:8,borderRadius:4,background:getDayColor(d,C),flexShrink:0}}/>
             <Mono style={{fontSize:11,color:C.muted,width:90,flexShrink:0}}>{slotDate.toLocaleDateString("en",{weekday:"short",month:"short",day:"numeric"})}</Mono>
             <div style={{fontSize:12,color:d.isRest?C.muted:C.text,fontStyle:d.isRest?"italic":"normal",flex:1}}>{d.label}</div>
           </div>;
@@ -2720,7 +2724,7 @@ No explanation, no markdown, just the JSON array.`;
       {days.map((day,i)=>(
         <div key={day.id} style={{marginBottom:8}}>
           <div onClick={dayReorderMode?undefined:()=>setExpandedDay(expandedDay===i?null:i)}
-            style={{background:C.card,border:`1px solid ${dayReorderMode?C.neon+"33":expandedDay===i?getDayColor(day)+"55":C.border}`,borderLeft:`3px solid ${getDayColor(day)}`,borderRadius:(!dayReorderMode&&expandedDay===i)?"10px 10px 0 0":10,padding:"13px 14px",cursor:dayReorderMode?"default":"pointer"}}>
+            style={{background:C.card,border:`1px solid ${dayReorderMode?C.neon+"33":expandedDay===i?getDayColor(day,C)+"55":C.border}`,borderLeft:`3px solid ${getDayColor(day,C)}`,borderRadius:(!dayReorderMode&&expandedDay===i)?"10px 10px 0 0":10,padding:"13px 14px",cursor:dayReorderMode?"default":"pointer"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div style={{flex:1}}>
                 <div style={{fontSize:14,fontWeight:600}}>{slotWeekday(i)||day.name||`Day ${i+1}`} — {day.label}</div>
@@ -2846,7 +2850,7 @@ No explanation, no markdown, just the JSON array.`;
           <div style={{marginBottom:12}}>
             {t.days.filter(d=>!d.isRest).map((d,i)=>(
               <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:`1px solid ${C.border}`}}>
-                <div style={{width:8,height:8,borderRadius:4,background:getDayColor(d),flexShrink:0}}/>
+                <div style={{width:8,height:8,borderRadius:4,background:getDayColor(d,C),flexShrink:0}}/>
                 <Mono style={{fontSize:11,color:C.muted,flex:1}}>{d.label}</Mono>
                 <Mono style={{fontSize:10,color:C.muted}}>{d.exercises.length} ex</Mono>
               </div>
@@ -2978,7 +2982,7 @@ No explanation, no markdown, just the JSON array.`;
       {presetPreview.days.map((d,i)=>(
         <div key={i} style={{borderBottom:`1px solid ${C.border}`,padding:"10px 0"}}>
           <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:6}}>
-            <div style={{width:8,height:8,borderRadius:4,background:getDayColor(d)}}/>
+            <div style={{width:8,height:8,borderRadius:4,background:getDayColor(d,C)}}/>
             <div style={{fontSize:13,fontWeight:600}}>{d.label}</div>
             <Mono style={{fontSize:11,color:C.muted}}>{d.tag}</Mono>
           </div>
@@ -3067,7 +3071,7 @@ Return ONLY a JSON object with this exact structure (no markdown, no explanation
     }
   ]
 }
-Use 7 days total (fill rest days with isRest:true and minimal exercises array with one recovery item). Colors: use only these hex values: #f7c948, #3d9bff, #b06aff, #00d4aa, #ffb830. Make the plan practical and appropriate for the stated limitations.`;
+Use 7 days total (fill rest days with isRest:true and minimal exercises array with one recovery item). Colors: use only these hex values: #4f8ef7, #f06584, #f7c948, #3ecf8e. Make the plan practical and appropriate for the stated limitations.`;
 
     try{
       const data=await callAI({action:"plan_builder",messages:[{role:"user",content:prompt}],maxTokens:2000});
@@ -3123,7 +3127,7 @@ Use 7 days total (fill rest days with isRest:true and minimal exercises array wi
       {(result.days||[]).filter(d=>!d.isRest).map((d,i)=>(
         <div key={i} style={{padding:"10px 0",borderBottom:`1px solid ${C.border}`}}>
           <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:4}}>
-            <div style={{width:8,height:8,borderRadius:4,background:getDayColor(d)}}/>
+            <div style={{width:8,height:8,borderRadius:4,background:getDayColor(d,C)}}/>
             <div style={{fontSize:13,fontWeight:600}}>{d.label}</div>
           </div>
           {(d.exercises||[]).slice(0,3).map((e,j)=>(
@@ -3166,7 +3170,7 @@ function ExerciseForm({title,initial,onSave,onClose,isNew,C}){
 
 function DayForm({onSave,onClose,C}){
   const [d,setD]=useState({name:"",label:"",tag:"",color:"#4f8ef7",isRest:false});
-  const colors=["#f06584","#3d9bff","#b06aff","#00d4aa","#ffb830"];
+  const colors=["#4f8ef7","#f06584","#f7c948","#3ecf8e"]; // the 4 THEMES accents (blue/red/gold/neon) — no off-brand
   return <div>
     <div style={{fontSize:16,fontWeight:600,marginBottom:18}}>Add Day</div>
     {[["Day Name (e.g. Monday)","name"],["Label (e.g. Push)","label"],["Tag (e.g. Chest . Back)","tag"]].map(([label,key])=>(
