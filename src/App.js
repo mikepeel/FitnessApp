@@ -104,6 +104,12 @@ const THEMES = {
   }
 };
 
+// Corner-radius scale (A3) — one place for rectangular-element radii. Not theme-dependent.
+// control = buttons/inputs; card = cards/rows/sheets/panels (matches the recap standard); chip = small
+// tags/filters; modal = bottom-sheet/modal containers; pill = fully-round. Fixed-size elements that are
+// round-by-dimension (toggle knobs, progress bars, dots) keep their size/2 radius — they're not drift.
+const RADIUS = { chip: 6, control: 10, card: 12, modal: 16, pill: 999 };
+
 // -- DEFAULT PLANS -------------------------------------------------------------
 const mkId = () => `id_${Math.random().toString(36).slice(2,9)}`;
 
@@ -624,7 +630,7 @@ function Toggle({on,onToggle,C}){
 }
 
 function Pill({children,color,style={}}){
-  return <span style={{fontSize:9,fontFamily:"'SF Mono','Courier New',monospace",background:color+"16",color,padding:"2px 10px 2px 8px",borderRadius:3,letterSpacing:"0.1em",textTransform:"uppercase",fontWeight:700,border:`1px solid ${color}40`,...style}}>{children}</span>;
+  return <span style={{fontSize:9,fontFamily:"'SF Mono','Courier New',monospace",background:color+"16",color,padding:"2px 10px 2px 8px",borderRadius:RADIUS.chip,letterSpacing:"0.1em",textTransform:"uppercase",fontWeight:700,border:`1px solid ${color}40`,...style}}>{children}</span>;
 }
 
 function Btn({children,onClick,variant="primary",size="md",style={},disabled=false,C}){
@@ -634,7 +640,7 @@ function Btn({children,onClick,variant="primary",size="md",style={},disabled=fal
   const bg={primary:C.neon,ghost:"transparent",danger:C.danger+"22",subtle:C.card,gold:C.gold};
   const col={primary:"#0b0c0e",ghost:C.text,danger:C.dangerInk,subtle:C.text,gold:"#0b0c0e"};
   const bdr={ghost:`1px solid ${C.border}`,danger:`1px solid ${C.danger}44`,subtle:`1px solid ${C.border}`};
-  return <button style={{border:bdr[variant]||"none",cursor:disabled?"not-allowed":"pointer",fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.04em",borderRadius:8,transition:"opacity .15s",opacity:disabled?.5:1,background:bg[variant]||C.accent,color:col[variant]||"#fff",...sizes[size],...style}} onClick={onClick} disabled={disabled}>{children}</button>;
+  return <button style={{border:bdr[variant]||"none",cursor:disabled?"not-allowed":"pointer",fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.04em",borderRadius:RADIUS.control,transition:"opacity .15s",opacity:disabled?.5:1,background:bg[variant]||C.accent,color:col[variant]||"#fff",...sizes[size],...style}} onClick={onClick} disabled={disabled}>{children}</button>;
 }
 
 function Modal({children,onClose,C,showClose=true}){
@@ -647,7 +653,7 @@ function Modal({children,onClose,C,showClose=true}){
     startY.current=null;
   }
   return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.72)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={onClose}>
-    <div style={{background:C.surface,borderRadius:"18px 18px 0 0",width:"100%",maxWidth:560,maxHeight:"90vh",overflowY:"auto",WebkitOverflowScrolling:"touch",padding:"20px 20px 40px",position:"relative"}} onClick={e=>e.stopPropagation()} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+    <div style={{background:C.surface,borderRadius:`${RADIUS.modal}px ${RADIUS.modal}px 0 0`,width:"100%",maxWidth:560,maxHeight:"90vh",overflowY:"auto",WebkitOverflowScrolling:"touch",padding:"20px 20px 40px",position:"relative"}} onClick={e=>e.stopPropagation()} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       <div style={{width:36,height:4,borderRadius:2,background:C.border,margin:"-8px auto 12px",flexShrink:0}}/>
       {showClose&&<button onClick={onClose} style={{position:"absolute",top:12,right:14,background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:20,lineHeight:1,padding:"4px 8px",zIndex:1}}>✕</button>}
       {children}
