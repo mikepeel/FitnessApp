@@ -629,8 +629,10 @@ function Pill({children,color,style={}}){
 
 function Btn({children,onClick,variant="primary",size="md",style={},disabled=false,C}){
   const sizes={sm:{padding:"6px 13px",fontSize:11},md:{padding:"10px 18px",fontSize:13},lg:{padding:"14px 24px",fontSize:14}};
-  const bg={primary:C.accentBtn,ghost:"transparent",danger:C.danger+"22",subtle:C.card,gold:C.gold};
-  const col={primary:"#fff",ghost:C.text,danger:C.dangerInk,subtle:C.text,gold:"#0b0c0e"};
+  // primary = flat NEON — the ONE workhorse CTA color (save/commit/done), set here in one place.
+  // gold is RESERVED for the signature START action only. (A1+A4)
+  const bg={primary:C.neon,ghost:"transparent",danger:C.danger+"22",subtle:C.card,gold:C.gold};
+  const col={primary:"#0b0c0e",ghost:C.text,danger:C.dangerInk,subtle:C.text,gold:"#0b0c0e"};
   const bdr={ghost:`1px solid ${C.border}`,danger:`1px solid ${C.danger}44`,subtle:`1px solid ${C.border}`};
   return <button style={{border:bdr[variant]||"none",cursor:disabled?"not-allowed":"pointer",fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.04em",borderRadius:8,transition:"opacity .15s",opacity:disabled?.5:1,background:bg[variant]||C.accent,color:col[variant]||"#fff",...sizes[size],...style}} onClick={onClick} disabled={disabled}>{children}</button>;
 }
@@ -1522,7 +1524,7 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,p
         <div style={{fontSize:18,marginBottom:8}}>💪</div>
         <div style={{fontSize:15,fontWeight:700,marginBottom:6}}>No plan set up yet</div>
         <div style={{fontSize:11,color:C.muted,marginBottom:14}}>Pick a template to get started or build a custom plan.</div>
-        <button onClick={onGoToPlan} style={{padding:"10px 20px",borderRadius:8,border:"none",background:C.accentBtn,color:"#fff",fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",fontWeight:700,cursor:"pointer",letterSpacing:"0.04em"}}>Browse Templates</button>
+        <Btn onClick={onGoToPlan} C={C} style={{fontWeight:700}}>Browse Templates</Btn>
       </div>}
       {deloadDue&&<div style={{background:C.gold+"15",border:`1px solid ${C.gold}55`,borderRadius:10,padding:"12px 14px",marginBottom:14}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
@@ -1598,10 +1600,10 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,p
               {doneSess&&dayVol&&dayVol.sets>0&&<Mono style={{fontSize:11,color:C.neonInk,display:"block",marginTop:4}}>{dayVol.sets} sets · {dayVol.vol>0?`${Math.round(dayVol.vol).toLocaleString()} lbs`:"logged"}</Mono>}
               {day.isRest&&isToday&&<div style={{fontSize:12,color:C.neonInk,fontStyle:"italic",marginTop:6,lineHeight:1.5}}>"{quote}"</div>}
             </div>
-            {!isToday&&!day.isRest&&!doneSess&&!isFutureStart&&<Btn onClick={()=>onStart(day)} size="sm" C={C} style={{marginLeft:10,background:C.neonBtn,color:"#fff",fontWeight:700,letterSpacing:"0.1em"}}>START</Btn>}
+            {!isToday&&!day.isRest&&!doneSess&&!isFutureStart&&<Btn onClick={()=>onStart(day)} size="sm" C={C} style={{marginLeft:10,fontWeight:700,letterSpacing:"0.1em"}}>START</Btn>}
             {!day.isRest&&doneSess&&!isToday&&<Btn onClick={()=>onStart(day)} size="sm" variant="ghost" C={C} style={{marginLeft:10,fontSize:10,color:C.muted,borderColor:C.border}}>↺ Again</Btn>}
           </div>
-          {isToday&&!doneSess&&!day.isRest&&!isFutureStart&&<button onClick={()=>onStart(day)} style={{width:"100%",padding:"11px",background:themeMode==="dark"?"#f7c948":"#d4a017",border:"none",borderRadius:10,color:"#1a202c",fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",fontWeight:800,letterSpacing:"0.08em",cursor:"pointer",marginTop:12,boxShadow:"0 2px 8px rgba(0,0,0,0.15)"}}>START {day.label.toUpperCase()}</button>}
+          {isToday&&!doneSess&&!day.isRest&&!isFutureStart&&<Btn variant="gold" size="md" C={C} onClick={()=>onStart(day)} style={{width:"100%",marginTop:12,fontSize:13,fontWeight:800,letterSpacing:"0.08em",boxShadow:"0 2px 8px rgba(0,0,0,0.15)"}}>START {day.label.toUpperCase()}</Btn>}
         </div>;
       })}
     </div>
@@ -1707,7 +1709,7 @@ function ExerciseLibraryModal({onSelect,onClose,C,multiAdd=false}){
       <Btn style={{width:"100%",marginTop:6}} C={C} onClick={()=>{if(custom.name.trim()){handleSelect(custom);if(multiAdd)setCustom(p=>({...p,name:"",note:""}));}}} disabled={!custom.name.trim()}>Add Exercise</Btn>
     </div>}
     {multiAdd&&<div style={{position:"sticky",bottom:0,marginTop:12,paddingTop:10,background:C.surface,borderTop:`1px solid ${C.border}`}}>
-      <Btn onClick={onClose} C={C} style={{width:"100%",background:C.neon,color:"#0b0c0e",fontWeight:800,letterSpacing:"0.08em",borderColor:C.neon}}>{addedCount>0?`Done — ${addedCount} added`:"Done"}</Btn>
+      <Btn onClick={onClose} C={C} style={{width:"100%",fontWeight:800,letterSpacing:"0.08em"}}>{addedCount>0?`Done — ${addedCount} added`:"Done"}</Btn>
     </div>}
   </Modal>;
 }
@@ -2374,7 +2376,7 @@ class PlanErrorBoundary extends Component{
       return <div style={{padding:"40px 20px",textAlign:"center"}}>
         <div style={{fontSize:15,fontWeight:700,color:C.redInk,marginBottom:8}}>Plan editor error</div>
         <Mono style={{fontSize:12,color:C.muted,display:"block",marginBottom:16}}>Something went wrong. Tap Retry to reload the editor.</Mono>
-        <button onClick={()=>this.setState({hasError:false})} style={{padding:"10px 20px",borderRadius:8,border:"none",background:C.accentBtn,color:"#fff",fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",fontWeight:700}}>Retry</button>
+        <Btn onClick={()=>this.setState({hasError:false})} C={C} style={{fontWeight:700}}>Retry</Btn>
       </div>;
     }
     return this.props.children;
@@ -2689,7 +2691,7 @@ No explanation, no markdown, just the JSON array.`;
       {!plan&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"20px",textAlign:"center",marginBottom:14}}>
         <div style={{fontSize:15,fontWeight:700,marginBottom:6}}>No plan yet</div>
         <Mono style={{fontSize:11,color:C.muted,display:"block",marginBottom:14}}>Go to Templates to pick a plan and get started.</Mono>
-        <button onClick={()=>setView("presets")} style={{padding:"10px 20px",borderRadius:8,border:"none",background:C.accentBtn,color:"#fff",fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",fontWeight:700,cursor:"pointer"}}>Browse Templates</button>
+        <Btn onClick={()=>setView("presets")} C={C} style={{fontWeight:700}}>Browse Templates</Btn>
       </div>}
       {plan&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"13px 14px",marginBottom:12}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
@@ -2823,7 +2825,7 @@ No explanation, no markdown, just the JSON array.`;
               {!day.isRest&&settings.aiRecs&&<Btn size="sm" variant="ghost" style={{color:C.muted}} onClick={()=>setAiModal({type:"day",day})} C={C}>✦ Analyze</Btn>}
               <Btn size="sm" variant="danger" onClick={()=>setDeletingDay(day.id)} C={C}>Delete Day</Btn>
             </div>
-            <Btn onClick={()=>setSaveSheet(day.id)} C={C} style={{width:"100%",marginTop:10,background:C.neon,color:"#0b0c0e",fontWeight:800,letterSpacing:"0.08em",fontSize:13,borderColor:C.neon}}>Save Day</Btn>
+            <Btn onClick={()=>setSaveSheet(day.id)} C={C} style={{width:"100%",marginTop:10,fontWeight:800,letterSpacing:"0.08em",fontSize:13}}>Save Day</Btn>
           </div>}
         </div>
       ))}
@@ -2870,7 +2872,7 @@ No explanation, no markdown, just the JSON array.`;
         <div style={{fontSize:24,marginBottom:6}}>✦</div>
         <div style={{fontSize:16,fontWeight:700,marginBottom:6}}>AI Custom Plan Builder</div>
         <div style={{fontSize:13,color:C.muted,lineHeight:1.6,marginBottom:16}}>Answer a few questions and get a personalized workout plan built for your exact goals, schedule, and limitations.</div>
-        <Btn size="lg" onClick={()=>setGoalModal(true)} C={C} style={{background:`linear-gradient(135deg,${C.accent},${C.gold})`,border:"none"}}>Build My Plan ✦</Btn>
+        <Btn size="lg" onClick={()=>setGoalModal(true)} C={C}>Build My Plan ✦</Btn>
       </div>
       <div style={{background:C.card,border:`1px solid ${C.border}`,borderTop:`2px solid ${C.accent}`,borderRadius:6,padding:"14px"}}>
         <SectionLabel C={C}>What the AI considers</SectionLabel>
@@ -3499,7 +3501,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
         </div>
         <div style={{display:"flex",gap:6,alignItems:"center",marginTop:2}}>
           <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
-          <Btn size="sm" C={C} onClick={()=>setAddingSession(a=>!a)} style={{background:C.neonBtn,color:"#fff",fontWeight:700,padding:"6px 10px",fontSize:11}}>+ Log</Btn>
+          <Btn size="sm" C={C} onClick={()=>setAddingSession(a=>!a)} style={{fontWeight:700,padding:"6px 10px",fontSize:11}}>+ Log</Btn>
         </div>
       </div>
       <div style={{display:"flex",gap:5}}>
@@ -3557,7 +3559,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
           style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box",resize:"none",height:56}}/>
       </div>
       <div style={{display:"flex",gap:8}}>
-        <Btn C={C} style={{flex:1,background:C.neonBtn,color:"#fff",fontWeight:700}} onClick={saveManualSession}>Save Session</Btn>
+        <Btn C={C} style={{flex:1,fontWeight:700}} onClick={saveManualSession}>Save Session</Btn>
         <Btn C={C} variant="ghost" style={{flex:1}} onClick={()=>setAddingSession(false)}>Cancel</Btn>
       </div>
     </div>}
@@ -3900,7 +3902,7 @@ function SessionEditModal({session,onSave,onClose,allSessions=[],onRenameAll,C})
 
     {editData.partial&&<div style={{marginBottom:16,padding:"10px 14px",background:C.gold+"18",border:`1px solid ${C.gold}44`,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
       <Mono style={{fontSize:12,color:C.goldInk}}>Partial session</Mono>
-      <button onClick={()=>setEditData(p=>({...p,partial:false}))} style={{padding:"5px 10px",background:C.gold,border:"none",borderRadius:6,color:"#0b0c0e",fontSize:11,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",letterSpacing:"0.06em"}}>Mark as complete</button>
+      <Btn size="sm" onClick={()=>setEditData(p=>({...p,partial:false}))} C={C} style={{fontWeight:700,letterSpacing:"0.06em"}}>Mark as complete</Btn>
     </div>}
 
     {saveError&&<div style={{marginBottom:10,padding:"10px 12px",background:C.danger+"22",border:`1px solid ${C.danger}44`,borderRadius:8,color:C.dangerInk,fontSize:12,fontFamily:"'SF Mono','Courier New',monospace"}}>{saveError}</div>}
