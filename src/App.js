@@ -109,6 +109,8 @@ const THEMES = {
 // tags/filters; modal = bottom-sheet/modal containers; pill = fully-round. Fixed-size elements that are
 // round-by-dimension (toggle knobs, progress bars, dots) keep their size/2 radius — they're not drift.
 const RADIUS = { chip: 6, control: 10, card: 12, modal: 16, pill: 999 };
+// Dark ink for text/icons on colored (neon/gold) fills — theme-independent, one place (A5).
+const ONACCENT = "#0b0c0e";
 
 // -- DEFAULT PLANS -------------------------------------------------------------
 const mkId = () => `id_${Math.random().toString(36).slice(2,9)}`;
@@ -638,7 +640,7 @@ function Btn({children,onClick,variant="primary",size="md",style={},disabled=fal
   // primary = flat NEON — the ONE workhorse CTA color (save/commit/done), set here in one place.
   // gold is RESERVED for the signature START action only. (A1+A4)
   const bg={primary:C.neon,ghost:"transparent",danger:C.danger+"22",subtle:C.card,gold:C.gold};
-  const col={primary:"#0b0c0e",ghost:C.text,danger:C.dangerInk,subtle:C.text,gold:"#0b0c0e"};
+  const col={primary:ONACCENT,ghost:C.text,danger:C.dangerInk,subtle:C.text,gold:ONACCENT};
   const bdr={ghost:`1px solid ${C.border}`,danger:`1px solid ${C.danger}44`,subtle:`1px solid ${C.border}`};
   return <button style={{border:bdr[variant]||"none",cursor:disabled?"not-allowed":"pointer",fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.04em",borderRadius:RADIUS.control,transition:"opacity .15s",opacity:disabled?.5:1,background:bg[variant]||C.accent,color:col[variant]||"#fff",...sizes[size],...style}} onClick={onClick} disabled={disabled}>{children}</button>;
 }
@@ -1439,8 +1441,8 @@ export default function ForgeApp(){
       ⚠ Offline — workouts will sync when connection is restored
     </div>}
     {minimizedWorkout&&<div onClick={()=>{setWorkoutDraft({loggedSets:minimizedWorkout.loggedSets,elapsed:bannerElapsed,startedAt:minimizedWorkout.startedAt,workout:minimizedWorkout.workout,exercises:minimizedWorkout.exercises,completedExIds:minimizedWorkout.completedExIds});setActiveWorkout(minimizedWorkout.workout);setMinimizedWorkout(null);}} style={{position:"fixed",top:"env(safe-area-inset-top,0px)",left:0,right:0,zIndex:100,background:C.neon,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",minHeight:44,cursor:"pointer",userSelect:"none"}}>
-      <Mono style={{fontSize:12,color:"#0b0c0e",fontWeight:700}}>🔴 {minimizedWorkout.workout.label} in progress · {Math.floor(bannerElapsed/60)}:{String(bannerElapsed%60).padStart(2,"0")}</Mono>
-      <Mono style={{fontSize:12,color:"#0b0c0e",fontWeight:700}}>View →</Mono>
+      <Mono style={{fontSize:12,color:ONACCENT,fontWeight:700}}>🔴 {minimizedWorkout.workout.label} in progress · {Math.floor(bannerElapsed/60)}:{String(bannerElapsed%60).padStart(2,"0")}</Mono>
+      <Mono style={{fontSize:12,color:ONACCENT,fontWeight:700}}>View →</Mono>
     </div>}
     {minimizedWorkout&&<div style={{height:44}}/>}
     {tab==="today"&&<TodayTab plan={activePlan} plans={plans} activePlanKey={activePlanKey}
@@ -2044,11 +2046,11 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
       </div>
     </div>
     {autoSaveToast&&<div style={{background:C.gold,padding:"10px 18px",textAlign:"center"}}>
-      <Mono style={{fontSize:12,color:"#0b0c0e",fontWeight:700}}>Workout auto-saved after 3 hours</Mono>
+      <Mono style={{fontSize:12,color:ONACCENT,fontWeight:700}}>Workout auto-saved after 3 hours</Mono>
     </div>}
     {autoFinishCountdown!==null&&<div style={{background:C.neon,padding:"10px 18px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-      <Mono style={{fontSize:12,color:"#0b0c0e",fontWeight:700}}>All done! Completing in {autoFinishCountdown}s…</Mono>
-      <Btn onClick={()=>setAutoFinishCountdown(null)} variant="ghost" size="sm" C={C} style={{fontSize:11,color:"#0b0c0e",borderColor:"#0b0c0e44",padding:"3px 10px"}}>CANCEL</Btn>
+      <Mono style={{fontSize:12,color:ONACCENT,fontWeight:700}}>All done! Completing in {autoFinishCountdown}s…</Mono>
+      <Btn onClick={()=>setAutoFinishCountdown(null)} variant="ghost" size="sm" C={C} style={{fontSize:11,color:ONACCENT,borderColor:ONACCENT+"44",padding:"3px 10px"}}>CANCEL</Btn>
     </div>}
     <div style={{padding:"14px 18px"}}>
       {/* Scroll target so set-confirm brings the rest timer + active exercise into view */}
@@ -2690,7 +2692,7 @@ No explanation, no markdown, just the JSON array.`;
     </div>
 
     {saveToast&&<div style={{background:C.neon,padding:"10px 18px",textAlign:"center"}}>
-      <Mono style={{fontSize:12,color:"#0b0c0e",fontWeight:700}}>{saveToast}</Mono>
+      <Mono style={{fontSize:12,color:ONACCENT,fontWeight:700}}>{saveToast}</Mono>
     </div>}
     {/* MY PLANS */}
     {view==="mine"&&<div style={{padding:"14px 18px"}}>
@@ -4528,7 +4530,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
           const sets=Math.round((groupSets[muscle]||0)*2)/2;
           if(!vol&&!sets)return null;
           const pct=Math.round((vol/maxMuscleVol)*100);
-          const colors={"Chest":C.accent,"Back":C.blue,"Shoulders":C.gold,"Biceps":C.neon,"Triceps":C.neon,"Legs":"#b06aff","Abs":C.muted,"Cardio":C.green};
+          const colors={"Chest":C.accent,"Back":C.blue,"Shoulders":C.gold,"Biceps":C.neon,"Triceps":C.neon,"Legs":C.red,"Abs":C.muted,"Cardio":C.green};
           return <div key={muscle} style={{marginBottom:12}}>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
               <Mono style={{fontSize:12,color:C.text,fontWeight:600}}>{muscle}</Mono>
@@ -5045,7 +5047,7 @@ function SupLine({label,value,C}){
 // One shared action-button language across both screens (layout differs per screen).
 function SummaryButton({label,onClick,primary,C}){
   return (
-    <button onClick={onClick} style={{width:"100%",padding:"15px",borderRadius:12,fontSize:12,fontWeight:700,letterSpacing:"0.08em",fontFamily:C.mono,cursor:"pointer",border:primary?"none":`1.5px solid ${C.border}`,background:primary?C.neon:"transparent",color:primary?"#0b0c0e":C.muted}}>{label}</button>
+    <button onClick={onClick} style={{width:"100%",padding:"15px",borderRadius:12,fontSize:12,fontWeight:700,letterSpacing:"0.08em",fontFamily:C.mono,cursor:"pointer",border:primary?"none":`1.5px solid ${C.border}`,background:primary?C.neon:"transparent",color:primary?ONACCENT:C.muted}}>{label}</button>
   );
 }
 
@@ -5136,7 +5138,7 @@ function WorkoutSummary({session,newPRs,previousPRs,complianceStreak,setsWarning
 
   return(
     <SummaryPage C={C}>
-      {setsWarning&&<div style={{background:"#f7c948",borderRadius:10,padding:"10px 14px",textAlign:"center",marginTop:16}}><Mono style={{fontSize:12,color:"#0b0c0e",fontWeight:700}}>Workout saved — set details failed to sync. Check History and re-log if needed.</Mono></div>}
+      {setsWarning&&<div style={{background:"#f7c948",borderRadius:10,padding:"10px 14px",textAlign:"center",marginTop:16}}><Mono style={{fontSize:12,color:ONACCENT,fontWeight:700}}>Workout saved — set details failed to sync. Check History and re-log if needed.</Mono></div>}
       <SummaryMeta label="WORKOUT RECAP" title={session.dayLabel} sub={`${dayName}, ${dateStr} · ${durationMin} min`} C={C}/>
       <SummaryHero value={heroValue} sub={heroSub} caption={heroCaption} accent={heroIsPR} C={C}/>
       {/* Supporting floor: the stats the hero doesn't already own. When a PR is the hero, volume shows here
