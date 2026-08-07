@@ -1480,17 +1480,18 @@ export default function ForgeApp(){
 }
 
 function getDayColor(day, C){
-  // Every day color is one of the 4 THEMES accents, theme-aware via C (falls back to dark tokens if a
-  // caller omits it). 3 primary movement patterns + rest use all 4 accents; secondary/custom days honor
-  // their (on-brand) picked color, else the primary accent. No off-brand purple/lime/amber.
+  // Every day color is one of the 4 THEMES accents, theme-aware via C, determined ENTIRELY by the day type
+  // (label). We do NOT read day.color: saved plans carry legacy off-brand colors (e.g. Arms #f0b429 amber
+  // that clashes with Legs gold), so leaking the stored value re-introduces off-brand + near-duplicate hues.
+  // Push/Upper/Chest -> blue · Pull/Arms -> red · Legs/Lower -> gold · Rest -> neon · anything else -> blue.
   const A = C || THEMES.dark;
   if(!day) return A.accent;
   if(day.isRest) return A.neon;
   const lbl=(day.label||"").toLowerCase();
   if(lbl.startsWith("push")||lbl.startsWith("upper")||lbl.startsWith("chest")) return A.accent;
-  if(lbl.startsWith("pull")) return A.red;
+  if(lbl.startsWith("pull")||lbl.startsWith("arm")) return A.red;
   if(lbl.startsWith("legs")||lbl.startsWith("lower")) return A.gold;
-  return day.color || A.accent;
+  return A.accent;
 }
 
 // -- TODAY ---------------------------------------------------------------------
