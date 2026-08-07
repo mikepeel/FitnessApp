@@ -1532,7 +1532,7 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,p
         <div style={{fontSize:11,color:C.muted,marginBottom:14}}>Pick a template to get started or build a custom plan.</div>
         <Btn onClick={onGoToPlan} C={C} style={{fontWeight:700}}>Browse Templates</Btn>
       </div>}
-      {deloadDue&&<div style={{background:C.gold+"15",border:`1px solid ${C.gold}55`,borderRadius:10,padding:"12px 14px",marginBottom:14}}>
+      {deloadDue&&<div style={{background:C.gold+"15",border:`1px solid ${C.gold}55`,borderRadius:RADIUS.card,padding:"12px 14px",marginBottom:14}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
           <div style={{flex:1}}>
             <div style={{fontSize:13,color:C.goldInk,fontWeight:700,marginBottom:4}}>⚠ Deload Week Recommended</div>
@@ -1546,7 +1546,7 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,p
           <button onClick={onDeloadDismiss} style={{background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:18,padding:"0 0 0 12px",flexShrink:0,lineHeight:1}}>✕</button>
         </div>
       </div>}
-      {plan&&isFutureStart&&<div style={{background:C.accent+"15",border:`1px solid ${C.accent}40`,borderRadius:10,padding:"14px",marginBottom:14}}>
+      {plan&&isFutureStart&&<div style={{background:C.accent+"15",border:`1px solid ${C.accent}40`,borderRadius:RADIUS.card,padding:"14px",marginBottom:14}}>
         <Mono style={{fontSize:10,color:C.accentInk,letterSpacing:"0.1em",display:"block",marginBottom:6}}>STARTS IN {daysUntilStart} DAY{daysUntilStart!==1?"S":""} · {startDate.toLocaleDateString("en",{weekday:"long",month:"long",day:"numeric"})}</Mono>
         <div style={{fontSize:13,fontWeight:600,color:C.text,marginBottom:10}}>Upcoming rotation</div>
         {rawDays.map((d,i)=>{
@@ -1593,7 +1593,7 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,p
           return {vol,sets};
         })():null;
         const isPast=slotOffset!==null&&slotOffset<0;
-        return <div key={day.id} style={{background:isToday?C.neon+"0d":C.card,border:`2px solid ${isToday?C.neon:C.border}`,borderRadius:10,padding:"13px 14px",marginBottom:8,opacity:isToday?1:day.isRest?.65:isPast?.7:1,boxShadow:isToday?`0 0 12px ${C.neon}33`:"none",transition:"all .2s"}}>
+        return <div key={day.id} style={{background:isToday?C.neon+"0d":C.card,border:`2px solid ${isToday?C.neon:C.border}`,borderRadius:RADIUS.card,padding:"13px 14px",marginBottom:8,opacity:isToday?1:day.isRest?.65:isPast?.7:1,boxShadow:isToday?`0 0 12px ${C.neon}33`:"none",transition:"all .2s"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <div style={{flex:1}}>
               <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:2}}>
