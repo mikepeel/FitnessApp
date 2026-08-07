@@ -676,7 +676,7 @@ function RestTimer({seconds,onDone,onSkip,C}){
     },1000);
     return()=>clearTimeout(t);
   },[rem]); // eslint-disable-line react-hooks/exhaustive-deps
-  return <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"8px 12px",marginBottom:8,display:"flex",alignItems:"center",gap:12}}>
+  return <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"8px 12px",marginBottom:8,display:"flex",alignItems:"center",gap:12}}>
     <Mono style={{fontSize:9,color:C.muted,letterSpacing:"0.12em",flexShrink:0}}>REST</Mono>
     <div style={{fontSize:20,fontFamily:"'SF Mono','Courier New',monospace",color:rem<10?C.redInk:C.neonInk,fontWeight:700,minWidth:42}}>
       {Math.floor(rem/60)}:{String(rem%60).padStart(2,"0")}
@@ -708,7 +708,7 @@ function OverloadCalc({C}){
     <Mono style={{fontSize:11,color:C.muted,display:"block",marginBottom:12}}>Enter your current max weight -- see your next target</Mono>
     <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:12}}>
       <input type="number" placeholder="Current weight (lbs)" value={w} onChange={e=>setW(e.target.value)}
-        style={{flex:1,padding:"10px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
+        style={{flex:1,padding:"10px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
       <Mono style={{fontSize:12,color:C.muted}}>lbs</Mono>
     </div>
     {weight>0&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
@@ -1520,13 +1520,13 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,p
           <div style={{fontSize:22,letterSpacing:"-0.03em",fontWeight:800}}>{new Date().toLocaleDateString("en",{weekday:"long"})}</div>
           <div style={{fontSize:13,color:C.muted,marginTop:1}}>{new Date().toLocaleDateString("en",{month:"short",day:"numeric",year:"numeric"})}</div>
         </div>
-        <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",marginTop:2,display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
+        <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",marginTop:2,display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
           {themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}
         </button>
       </div>
     </div>
     <div style={{padding:"14px 18px"}}>
-      {!plan&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"20px",textAlign:"center",marginBottom:14}}>
+      {!plan&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"20px",textAlign:"center",marginBottom:14}}>
         <div style={{fontSize:18,marginBottom:8}}>💪</div>
         <div style={{fontSize:15,fontWeight:700,marginBottom:6}}>No plan set up yet</div>
         <div style={{fontSize:11,color:C.muted,marginBottom:14}}>Pick a template to get started or build a custom plan.</div>
@@ -1676,7 +1676,7 @@ function ExerciseLibraryModal({onSelect,onClose,C,multiAdd=false}){
     {tab==="library"&&<div>
       <input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search 200+ exercises..."
         autoFocus
-        style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box",marginBottom:10,outline:"none"}}/>
+        style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box",marginBottom:10,outline:"none"}}/>
       <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:10}}>
         <button onClick={()=>setMuscleFilter(null)} style={{padding:"5px 9px",borderRadius:5,border:`1px solid ${muscleFilter===null?C.accent+"66":C.border}`,background:muscleFilter===null?C.accent+"20":"transparent",color:muscleFilter===null?C.accentInk:C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:9,cursor:"pointer",letterSpacing:"0.06em"}}>ALL</button>
         {muscles.map(m=>(
@@ -1709,7 +1709,7 @@ function ExerciseLibraryModal({onSelect,onClose,C,multiAdd=false}){
         <div key={key} style={{marginBottom:10}}>
           <SectionLabel C={C}>{label}</SectionLabel>
           <input value={custom[key]||""} onChange={e=>setCustom(p=>({...p,[key]:e.target.value}))}
-            style={{width:"100%",padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
+            style={{width:"100%",padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
         </div>
       ))}
       <Btn style={{width:"100%",marginTop:6}} C={C} onClick={()=>{if(custom.name.trim()){handleSelect(custom);if(multiAdd)setCustom(p=>({...p,name:"",note:""}));}}} disabled={!custom.name.trim()}>Add Exercise</Btn>
@@ -2022,7 +2022,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
     if(ok){await deleteDraft();}else{finishCalledRef.current=false;setSaving(false);setSaveError("Workout not saved — check connection and tap Retry.");}
   }
 
-  const inputStyle={padding:"9px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:7,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",width:"100%",boxSizing:"border-box"};
+  const inputStyle={padding:"9px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",width:"100%",boxSizing:"border-box"};
 
 
   return <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:C.serif,paddingBottom:100,scrollBehavior:"smooth"}}>
@@ -2223,7 +2223,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
       {settings.workoutNotes&&<div style={{marginTop:4}}>
         <SectionLabel C={C}>Session Notes</SectionLabel>
         <textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Energy, joints, anything notable..."
-          style={{width:"100%",padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:10,color:C.text,fontSize:16,fontFamily:C.serif,height:72,resize:"none",boxSizing:"border-box"}}/>
+          style={{width:"100%",padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,color:C.text,fontSize:16,fontFamily:C.serif,height:72,resize:"none",boxSizing:"border-box"}}/>
       </div>}
       {saveError&&<div style={{background:"#f06584",padding:"12px 14px",borderRadius:8,marginTop:14}}>
         <Mono style={{fontSize:12,color:"#fff",fontWeight:700,display:"block",marginBottom:8}}>⚠ {saveError}</Mono>
@@ -2238,7 +2238,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
         <div style={{width:36,height:4,borderRadius:2,background:C.border,alignSelf:"center",marginTop:-8,marginBottom:4}}/>
         <Mono style={{fontSize:11,color:C.muted,letterSpacing:"0.1em",marginBottom:4}}>END WORKOUT</Mono>
         <button onClick={()=>{setShowEndMenu(false);finish();}} disabled={saving} style={{width:"100%",padding:"13px 16px",background:C.neon+"22",border:`1px solid ${C.neon}44`,borderRadius:10,color:C.neonInk,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:saving?"not-allowed":"pointer",textAlign:"left",letterSpacing:"0.04em",opacity:saving?0.5:1}}><span style={{display:"inline-flex",alignItems:"center",gap:8}}><Check size={ICON.md} strokeWidth={1.75}/>Complete Workout</span></button>
-        <button onClick={()=>{setShowEndMenu(false);savePartialAndExit();}} disabled={saving} style={{width:"100%",padding:"13px 16px",background:C.card,border:`1px solid ${C.border}`,borderRadius:10,color:C.text,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:saving?"not-allowed":"pointer",textAlign:"left",letterSpacing:"0.04em",opacity:saving?0.5:1}}>↓ Save & Exit</button>
+        <button onClick={()=>{setShowEndMenu(false);savePartialAndExit();}} disabled={saving} style={{width:"100%",padding:"13px 16px",background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,color:C.text,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:saving?"not-allowed":"pointer",textAlign:"left",letterSpacing:"0.04em",opacity:saving?0.5:1}}>↓ Save & Exit</button>
         <button onClick={()=>{setShowEndMenu(false);setShowAbandonConfirm(true);}} style={{width:"100%",padding:"13px 16px",background:C.red+"11",border:`1px solid ${C.red}44`,borderRadius:10,color:C.redInk,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}>✕ Abandon</button>
         <button onClick={()=>setShowEndMenu(false)} style={{width:"100%",padding:"11px 16px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",letterSpacing:"0.04em",marginTop:2}}>Cancel</button>
       </div>
@@ -2341,11 +2341,11 @@ No markdown, no explanation, just the array.`;
 
     {tab==="ai"&&<div>
       <input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Filter suggestions..."
-        style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box",marginBottom:10}}/>
+        style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box",marginBottom:10}}/>
       {swapUpgrade?<UpgradePrompt {...swapUpgrade} C={C}/>
         :loadingAI?<div style={{textAlign:"center",padding:"24px",color:C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:12}}>Finding alternatives...</div>
         :filtered.map((s,i)=>(
-          <div key={i} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,padding:"12px",marginBottom:8,cursor:"pointer"}} onClick={()=>onSwap(s)}>
+          <div key={i} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,padding:"12px",marginBottom:8,cursor:"pointer"}} onClick={()=>onSwap(s)}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
               <div style={{flex:1}}>
                 <div style={{fontSize:13,fontWeight:700,marginBottom:2}}>{s.name}</div>
@@ -2363,7 +2363,7 @@ No markdown, no explanation, just the array.`;
         <div key={key} style={{marginBottom:10}}>
           <SectionLabel C={C}>{label}</SectionLabel>
           <input value={custom[key]||""} onChange={e=>setCustom(p=>({...p,[key]:e.target.value}))}
-            style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
+            style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
         </div>
       ))}
       <Btn style={{width:"100%",marginTop:6}} C={C} onClick={()=>onSwap(custom)} disabled={!custom.name.trim()}>Swap In</Btn>
@@ -2435,7 +2435,7 @@ function PlanAnalysisView({plan,goalRaw,C,onBack}){
     return <div>
       {Header}
       <div style={{padding:"14px 18px"}}>
-        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"14px",marginBottom:14}}>
+        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"14px",marginBottom:14}}>
           <SectionLabel C={C}>Strength goal — coarse guidance</SectionLabel>
           <Mono style={{fontSize:12,color:C.muted,lineHeight:1.7,display:"block"}}>Strength is lift-specific: train your key lifts 2–3×/week, keep most sets heavy and 1–2 reps from failure, and aim ~6–12 working sets on the primary movers. Per-muscle set totals matter far less than for hypertrophy — don't over-index on them.</Mono>
         </div>
@@ -2670,7 +2670,7 @@ No explanation, no markdown, just the JSON array.`;
     <div style={{background:C.bg,borderBottom:`2px solid ${C.accent}`,padding:"16px 18px 14px"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
         <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>Plan Editor</div>
-        <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
+        <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
       </div>
       {/* View switcher */}
       <div style={{display:"flex",gap:6,marginBottom:10,background:C.card,padding:4,borderRadius:10}}>
@@ -2694,12 +2694,12 @@ No explanation, no markdown, just the JSON array.`;
     </div>}
     {/* MY PLANS */}
     {view==="mine"&&<div style={{padding:"14px 18px"}}>
-      {!plan&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"20px",textAlign:"center",marginBottom:14}}>
+      {!plan&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"20px",textAlign:"center",marginBottom:14}}>
         <div style={{fontSize:15,fontWeight:700,marginBottom:6}}>No plan yet</div>
         <Mono style={{fontSize:11,color:C.muted,display:"block",marginBottom:14}}>Go to Templates to pick a plan and get started.</Mono>
         <Btn onClick={()=>setView("presets")} C={C} style={{fontWeight:700}}>Browse Templates</Btn>
       </div>}
-      {plan&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"13px 14px",marginBottom:12}}>
+      {plan&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"13px 14px",marginBottom:12}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
           <Mono style={{fontSize:10,color:C.muted,letterSpacing:"0.1em"}}>PLAN SCHEDULE</Mono>
           {(()=>{const wk=planWeekOf(plan);const tot=plan?.durationWeeks||10;return wk?<Mono style={{fontSize:10,color:wk>tot?C.goldInk:C.accentInk,fontWeight:700}}>{wk>tot?`COMPLETE`:`WEEK ${wk} OF ${tot}`}</Mono>:null;})()}
@@ -2708,7 +2708,7 @@ No explanation, no markdown, just the JSON array.`;
           <div style={{flex:1,minWidth:0}}>
             <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:4}}>START DATE</Mono>
             <div style={{position:"relative"}}>
-              <div style={{padding:"9px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:7,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",color:plan?.startDate?C.text:C.faint,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",cursor:"pointer",userSelect:"none"}}>
+              <div style={{padding:"9px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",color:plan?.startDate?C.text:C.faint,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",cursor:"pointer",userSelect:"none"}}>
                 {plan?.startDate?(()=>{const[y,m,d]=plan.startDate.split("-");return new Date(+y,+m-1,+d).toLocaleDateString("en",{month:"short",day:"numeric",year:"numeric"});})():"Tap to set"}
               </div>
               <input type="date" value={plan?.startDate||""} onChange={e=>savePlans({...plans,[activePlanKey]:{...plan,startDate:e.target.value}})}
@@ -2847,7 +2847,7 @@ No explanation, no markdown, just the JSON array.`;
     {view==="presets"&&<div style={{padding:"14px 18px"}}>
       <SectionLabel C={C}>Popular Programs</SectionLabel>
       {PRESET_TEMPLATES.map(t=>(
-        <div key={t.id} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"16px",marginBottom:10}}>
+        <div key={t.id} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"16px",marginBottom:10}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
             <div>
               <div style={{fontSize:16}}>{t.emoji} <span style={{fontWeight:700,fontSize:15}}>{t.name}</span></div>
@@ -2917,7 +2917,7 @@ No explanation, no markdown, just the JSON array.`;
           <div style={{width:36,height:4,borderRadius:2,background:C.border,alignSelf:"center",marginTop:-8,marginBottom:4}}/>
           <Mono style={{fontSize:11,color:C.muted,letterSpacing:"0.1em",marginBottom:4}}>COPY INTO {(target?.label||"DAY").toUpperCase()} FROM…</Mono>
           {others.map(d=>(
-            <button key={d.id} onClick={()=>pickCopySource(d.id)} style={{width:"100%",padding:"13px 16px",background:C.card,border:`1px solid ${C.border}`,borderRadius:10,color:C.text,fontSize:14,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
+            <button key={d.id} onClick={()=>pickCopySource(d.id)} style={{width:"100%",padding:"13px 16px",background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,color:C.text,fontSize:14,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
               <span style={{fontWeight:700}}>{d.label||d.name||"Day"}</span>
               <Mono style={{fontSize:11,color:C.muted}}>{d.isRest?"Rest":`${(d.exercises||[]).length} exercises`}</Mono>
             </button>
@@ -3010,7 +3010,7 @@ No explanation, no markdown, just the JSON array.`;
       <div style={{marginBottom:14}}>
         <Mono style={{fontSize:10,color:C.muted,letterSpacing:"0.1em",display:"block",marginBottom:6}}>START DATE</Mono>
         <input type="date" value={modalStartDate} onChange={e=>setModalStartDate(e.target.value)}
-          style={{width:"100%",padding:"9px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
+          style={{width:"100%",padding:"9px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,color:C.text,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
       </div>
       <div style={{marginBottom:22}}>
         <Mono style={{fontSize:10,color:C.muted,letterSpacing:"0.1em",display:"block",marginBottom:6}}>DURATION</Mono>
@@ -3166,7 +3166,7 @@ function ExerciseForm({title,initial,onSave,onClose,isNew,C}){
       <div key={key} style={{marginBottom:12}}>
         <SectionLabel C={C}>{label}</SectionLabel>
         <input value={ex[key]||""} onChange={e=>setEx(p=>({...p,[key]:e.target.value}))}
-          style={{width:"100%",padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
+          style={{width:"100%",padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
       </div>
     ))}
     <div style={{display:"flex",gap:10,marginTop:16}}>
@@ -3185,7 +3185,7 @@ function DayForm({onSave,onClose,C}){
       <div key={key} style={{marginBottom:12}}>
         <SectionLabel C={C}>{label}</SectionLabel>
         <input value={d[key]||""} onChange={e=>setD(p=>({...p,[key]:e.target.value}))}
-          style={{width:"100%",padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
+          style={{width:"100%",padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
       </div>
     ))}
     <div style={{marginBottom:16}}>
@@ -3506,7 +3506,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
           <Mono style={{fontSize:11,color:C.muted}}>{filteredSorted.length} session{filteredSorted.length!==1?"s":""}{historyFilter!=="all"?` · last ${historyFilter.toUpperCase()}`:" · all time"}</Mono>
         </div>
         <div style={{display:"flex",gap:6,alignItems:"center",marginTop:2}}>
-          <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
+          <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
           <Btn size="sm" C={C} onClick={()=>setAddingSession(a=>!a)} style={{fontWeight:700,padding:"6px 10px",fontSize:11}}>+ Log</Btn>
         </div>
       </div>
@@ -3519,18 +3519,18 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
     {deleteError&&<div onClick={()=>setDeleteError(null)} style={{background:C.red,color:"#fff",padding:"10px 18px",fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"center"}}>{deleteError} (tap to dismiss)</div>}
 
     {/* Manual Session Logger Modal */}
-    {addingSession&&<div style={{margin:"12px 18px 0",background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"16px"}}>
+    {addingSession&&<div style={{margin:"12px 18px 0",background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"16px"}}>
       <div style={{fontSize:15,fontWeight:700,marginBottom:14}}>Log a Workout</div>
       <div style={{marginBottom:10}}>
         <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:4}}>WORKOUT NAME</Mono>
         <input value={manualSession.dayLabel} onChange={e=>setManualSession(p=>({...p,dayLabel:e.target.value}))}
           placeholder="e.g. Chest & Triceps"
-          style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
+          style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
       </div>
       <div style={{marginBottom:10}}>
         <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:4}}>DATE</Mono>
         <input type="date" value={manualSession.date} onChange={e=>setManualSession(p=>({...p,date:e.target.value}))}
-          style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
+          style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
       </div>
       <div style={{marginBottom:12}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
@@ -3544,13 +3544,13 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
         {manualSession.exercises.map((ex,ei)=>(
           <div key={ei} style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr auto",gap:5,marginBottom:6,alignItems:"center"}}>
             <input value={ex.name} onChange={e=>setManualSession(p=>({...p,exercises:p.exercises.map((x,i)=>i===ei?{...x,name:e.target.value}:x)}))}
-              placeholder="Exercise name" style={{padding:"7px 8px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace"}}/>
+              placeholder="Exercise name" style={{padding:"7px 8px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace"}}/>
             <input value={ex.sets} onChange={e=>setManualSession(p=>({...p,exercises:p.exercises.map((x,i)=>i===ei?{...x,sets:e.target.value}:x)}))}
-              style={{padding:"7px 4px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"center"}}/>
+              style={{padding:"7px 4px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"center"}}/>
             <input value={ex.reps} onChange={e=>setManualSession(p=>({...p,exercises:p.exercises.map((x,i)=>i===ei?{...x,reps:e.target.value}:x)}))}
-              style={{padding:"7px 4px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"center"}}/>
+              style={{padding:"7px 4px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"center"}}/>
             <input value={ex.weight} onChange={e=>setManualSession(p=>({...p,exercises:p.exercises.map((x,i)=>i===ei?{...x,weight:e.target.value}:x)}))}
-              style={{padding:"7px 4px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"center"}}/>
+              style={{padding:"7px 4px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"center"}}/>
             {manualSession.exercises.length>1
               ?<button onClick={()=>setManualSession(p=>({...p,exercises:p.exercises.filter((_,i)=>i!==ei)}))}
                 style={{background:"transparent",border:"none",color:C.redInk,cursor:"pointer",fontSize:14,padding:"0 2px"}}>✕</button>
@@ -3562,7 +3562,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
         <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:4}}>NOTES (optional)</Mono>
         <textarea value={manualSession.notes} onChange={e=>setManualSession(p=>({...p,notes:e.target.value}))}
           placeholder="How did it go?"
-          style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box",resize:"none",height:56}}/>
+          style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box",resize:"none",height:56}}/>
       </div>
       <div style={{display:"flex",gap:8}}>
         <Btn C={C} style={{flex:1,fontWeight:700}} onClick={saveManualSession}>Save Session</Btn>
@@ -3785,7 +3785,7 @@ function SessionEditModal({session,onSave,onClose,allSessions=[],onRenameAll,C})
     });
   }
 
-  const inputStyle={padding:"8px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",width:"100%",boxSizing:"border-box"};
+  const inputStyle={padding:"8px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",width:"100%",boxSizing:"border-box"};
 
   // Parse completedAt into a LOCAL date string for the input (YYYY-MM-DD)
   const dateVal=editData.completedAt?new Date(editData.completedAt).toLocaleDateString("en-CA"):"";
@@ -3825,13 +3825,13 @@ function SessionEditModal({session,onSave,onClose,allSessions=[],onRenameAll,C})
       <div style={{flex:1,padding:"10px 14px",background:C.card,border:`1px solid ${C.border}`,borderRadius:8}}>
         <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:4,letterSpacing:"0.1em"}}>WORKOUT DATE</Mono>
         <input type="date" value={dateVal} onChange={e=>updateDate(e.target.value)}
-          style={{width:"100%",padding:"7px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:7,color:C.text,fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box",cursor:"pointer"}}/>
+          style={{width:"100%",padding:"7px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box",cursor:"pointer"}}/>
       </div>
-      <div style={{width:110,padding:"10px 14px",background:C.card,border:`1px solid ${C.border}`,borderRadius:8,flexShrink:0}}>
+      <div style={{width:110,padding:"10px 14px",background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,flexShrink:0}}>
         <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:4,letterSpacing:"0.1em"}}>DURATION</Mono>
         <div style={{display:"flex",alignItems:"center",gap:6}}>
           <input type="number" min="1" max="300" value={durationMins} onChange={e=>updateDuration(e.target.value)} onBlur={e=>{if(!e.target.value||parseInt(e.target.value)<1)updateDuration("1");}}
-            style={{width:"100%",padding:"7px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:7,color:C.text,fontSize:16,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box",textAlign:"center"}}/>
+            style={{width:"100%",padding:"7px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box",textAlign:"center"}}/>
           <Mono style={{fontSize:11,color:C.muted,flexShrink:0}}>min</Mono>
         </div>
       </div>
@@ -3903,7 +3903,7 @@ function SessionEditModal({session,onSave,onClose,allSessions=[],onRenameAll,C})
       <SectionLabel C={C}>Session Notes</SectionLabel>
       <textarea value={editData.notes||""} onChange={e=>setEditData(p=>({...p,notes:e.target.value}))}
         placeholder="How did it feel? Any joint issues?"
-        style={{width:"100%",padding:"10px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",height:72,resize:"none",boxSizing:"border-box"}}/>
+        style={{width:"100%",padding:"10px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",height:72,resize:"none",boxSizing:"border-box"}}/>
     </div>
 
     {editData.partial&&<div style={{marginBottom:16,padding:"10px 14px",background:C.gold+"18",border:`1px solid ${C.gold}44`,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -4010,7 +4010,7 @@ function RealizedVolumeInsight({sessions,settings,C}){
   // Strength: per-muscle set totals matter far less (see Plan Analysis) — stay quiet.
   if(rv.goal==="strength")return null;
   const Label=<SectionLabel C={C}>Volume vs Targets — Last 28 Days</SectionLabel>;
-  const cardStyle={background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"12px 14px",marginBottom:18};
+  const cardStyle={background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"12px 14px",marginBottom:18};
   if(!rv.sufficient)return <div style={cardStyle}>{Label}
     <Mono style={{fontSize:11,color:C.muted,display:"block",lineHeight:1.6}}>Keep logging — about 4 weeks of sessions unlocks volume guidance.</Mono>
   </div>;
@@ -4297,7 +4297,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
     <div style={{background:C.bg,borderBottom:`1px solid ${C.border}`,padding:"16px 18px 14px"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
         <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>Progress</div>
-        <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
+        <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
       </div>
       <Mono style={{fontSize:11,color:C.muted,display:"block",marginBottom:12}}>{(()=>{const wk=planWeekOf(activePlan);const tot=activePlan?.durationWeeks||10;const fb=programStart?programWeekFromDate(programStart):programWeek(sessions);return wk?`Week ${Math.min(wk,tot)} of ${tot} in your program`:`Week ${fb} of your program`;})()}</Mono>
       <div style={{display:"flex",gap:4,background:C.card,padding:4,borderRadius:10}}>
@@ -4325,7 +4325,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
           if(settings.showVolumeTargets&&settings.showCoaching){const rv=analyzeRealized(sessions,{goal:(settings.aiGoal||"").toLowerCase(),windowDays:28});if(rv.sufficient){const f=(rv.perGroup||[]).find(g=>g.status!=="in_range");if(f)volumeFlag={group:f.group,status:f.status};}}
           const digest=assembleDigest({adherence,currentStreak:settings.streakTracking?complianceStreak:0,recentPR,plateaus,volumeFlag,deloadNewlyDue:!!deloadDue});
           const toneColor={positive:C.neonInk,caution:C.goldInk,info:C.accentInk,neutral:C.text};
-          return <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px",marginBottom:14}}>
+          return <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"14px",marginBottom:14}}>
             <SectionLabel C={C}>This Week</SectionLabel>
             {digest.lines.map((ln,i)=>(
               <div key={i} style={{fontSize:i===0?14:12,fontWeight:i===0?700:500,color:toneColor[ln.tone]||C.text,marginTop:i===0?2:8,lineHeight:1.5}}>{ln.text}</div>
@@ -4339,7 +4339,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
             Gated by streakTracking (same as the removed header chips). Full-width card so it can't
             bleed off a phone-width row — the header-chip overflow lesson, designed out. */}
         {settings.streakTracking&&longestStreak>0&&(
-          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"12px 14px",marginBottom:14,display:"flex",alignItems:"center",gap:10}}>
+          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"12px 14px",marginBottom:14,display:"flex",alignItems:"center",gap:10}}>
             <span style={{color:C.gold,display:"inline-flex",flexShrink:0}}><Trophy size={ICON.md} strokeWidth={1.75}/></span>
             <div style={{minWidth:0}}>
               <div style={{fontSize:14,fontWeight:700,color:C.goldInk}}>Best: {longestStreak}-week run</div>
@@ -4352,7 +4352,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
         {prBoard.length>0&&<div style={{marginBottom:14}}>
           <SectionLabel C={C}>Personal Records</SectionLabel>
           {prBoard.slice(0,5).map(([name,pr])=>(
-            <div key={name} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+            <div key={name} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
               <div style={{fontSize:13}}>{name}</div>
               <Mono style={{fontSize:14,color:C.goldInk,fontWeight:700}}>{pr.weight} lbs</Mono>
             </div>
@@ -4365,7 +4365,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
       {/* PROGRESS */}
       {statsView==="progress"&&(()=>{
         const mono="'SF Mono','Courier New',monospace";
-        const cardSt={background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"13px 14px",marginBottom:10};
+        const cardSt={background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"13px 14px",marginBottom:10};
         const thSt={color:C.faint,fontWeight:600,padding:"4px 6px",fontSize:9,letterSpacing:"0.08em",borderBottom:`1px solid ${C.border}`,fontFamily:mono};
         const tdSt={padding:"5px 6px",borderBottom:`1px solid ${C.border}`,fontFamily:mono,fontSize:11};
         const tableSt={width:"100%",borderCollapse:"collapse",marginTop:6};
@@ -4378,11 +4378,11 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
           {/* Controls: exercise selector + chart/table toggle */}
           <div style={{display:"flex",gap:8,marginBottom:14}}>
             <select value={selEx||""} onChange={e=>setSelEx(e.target.value||null)}
-              style={{flex:1,minWidth:0,padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:13,fontFamily:mono}}>
+              style={{flex:1,minWidth:0,padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,color:C.text,fontSize:13,fontFamily:mono}}>
               <option value="">All exercises</option>
               {allExNames.map(n=><option key={n} value={n}>{n}</option>)}
             </select>
-            <div style={{display:"flex",background:C.card,border:`1px solid ${C.border}`,borderRadius:8,overflow:"hidden",flexShrink:0}}>
+            <div style={{display:"flex",background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,overflow:"hidden",flexShrink:0}}>
               {[["chart","◊ Chart"],["table","▦ Table"]].map(([k,lbl])=>(
                 <button key={k} onClick={()=>setProgressView(k)} style={{padding:"9px 12px",background:view===k?C.accentBtn:"transparent",color:view===k?"#fff":C.muted,border:"none",fontFamily:mono,fontSize:11,fontWeight:view===k?700:400,cursor:"pointer",letterSpacing:"0.04em"}}>{lbl}</button>
               ))}
@@ -4444,30 +4444,30 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
           })() : <div>
             {/* ===== DRILL-DOWN (single exercise) ===== */}
             <div style={{position:"sticky",top:0,zIndex:10,background:C.bg,paddingBottom:12}}>
-              <button onClick={()=>setSelEx(null)} aria-label="Back to all exercises" style={{display:"flex",alignItems:"center",gap:8,width:"100%",minHeight:44,background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.accentInk,fontFamily:mono,fontSize:13,fontWeight:600,letterSpacing:"0.04em",cursor:"pointer",padding:"0 14px"}}>← All exercises</button>
+              <button onClick={()=>setSelEx(null)} aria-label="Back to all exercises" style={{display:"flex",alignItems:"center",gap:8,width:"100%",minHeight:44,background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,color:C.accentInk,fontFamily:mono,fontSize:13,fontWeight:600,letterSpacing:"0.04em",cursor:"pointer",padding:"0 14px"}}>← All exercises</button>
             </div>
             {view==="chart"
               ? (chartData.length>1?<div>
-                  <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"14px 8px",marginBottom:12}}>
+                  <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"14px 8px",marginBottom:12}}>
                     <div style={{fontSize:13,fontWeight:600,marginBottom:4,paddingLeft:8}}>{selEx} — Max Weight</div>
                     <ResponsiveContainer width="100%" height={160}>
                       <LineChart data={chartData} margin={{top:4,right:12,left:-10,bottom:0}}>
                         <CartesianGrid strokeDasharray="3 3" stroke={C.border}/>
                         <XAxis dataKey="label" tick={{fill:C.muted,fontSize:9,fontFamily:mono}}/>
                         <YAxis tick={{fill:C.muted,fontSize:9,fontFamily:mono}}/>
-                        <Tooltip contentStyle={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,fontFamily:mono,fontSize:11,color:C.text}}/>
+                        <Tooltip contentStyle={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,fontFamily:mono,fontSize:11,color:C.text}}/>
                         <Line type="monotone" dataKey="weight" stroke={C.accent} strokeWidth={2} dot={{fill:C.accent,r:3}} activeDot={{r:5}}/>
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
-                  <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"14px 8px",marginBottom:12}}>
+                  <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"14px 8px",marginBottom:12}}>
                     <div style={{fontSize:13,fontWeight:600,marginBottom:4,paddingLeft:8}}>{selEx} — Est. 1RM Trend</div>
                     <ResponsiveContainer width="100%" height={140}>
                       <LineChart data={chartData} margin={{top:4,right:12,left:-10,bottom:0}}>
                         <CartesianGrid strokeDasharray="3 3" stroke={C.border}/>
                         <XAxis dataKey="label" tick={{fill:C.muted,fontSize:9,fontFamily:mono}}/>
                         <YAxis tick={{fill:C.muted,fontSize:9,fontFamily:mono}}/>
-                        <Tooltip contentStyle={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,fontFamily:mono,fontSize:11,color:C.text}}/>
+                        <Tooltip contentStyle={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,fontFamily:mono,fontSize:11,color:C.text}}/>
                         <Line type="monotone" dataKey="orm" stroke={C.gold} strokeWidth={2} dot={{fill:C.gold,r:3}} activeDot={{r:5}}/>
                       </LineChart>
                     </ResponsiveContainer>
@@ -4483,12 +4483,12 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
                     else if(proj.status==="declining")text="Trending down recently";
                     else if(proj.status==="flat")text="Trending flat — consider a deload or variation";
                     else text="Keep logging — ~5 sessions over 3+ weeks to project this lift";
-                    return <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"14px",marginBottom:12}}>
+                    return <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"14px",marginBottom:12}}>
                       <SectionLabel C={C}>Projection</SectionLabel>
                       <Mono style={{fontSize:12,color:C.muted,lineHeight:1.6,display:"block"}}>{text}</Mono>
                     </div>;
                   })()}
-                  {prs[selEx]&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"14px",marginBottom:12}}>
+                  {prs[selEx]&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"14px",marginBottom:12}}>
                     <SectionLabel C={C}>Strength Level</SectionLabel>
                     <div style={{display:"flex",gap:4}}>
                       {STRENGTH_LEVELS.map((level,i)=>{const score=getStrengthScore(selEx,prs[selEx]?.weight);return <div key={level} style={{flex:1,textAlign:"center"}}>
@@ -4567,13 +4567,13 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
           <SectionLabel C={C}>Body Measurements</SectionLabel>
           <Btn size="sm" variant="subtle" C={C} onClick={()=>setAddingBody(true)}>+ Log</Btn>
         </div>
-        {addingBody&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px",marginBottom:14}}>
+        {addingBody&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"14px",marginBottom:14}}>
           <SectionLabel C={C}>New Entry — {newBodyStat.date}</SectionLabel>
           {[["Weight (lbs)","weight"],["Chest (in)","chest"],["Waist (in)","waist"],["Hips (in)","hips"],["Arms (in)","arms"]].map(([label,key])=>(
             <div key={key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
               <Mono style={{fontSize:12,color:C.muted,width:120}}>{label}</Mono>
               <input type="number" value={newBodyStat[key]||""} onChange={e=>setNewBodyStat(p=>({...p,[key]:e.target.value}))}
-                style={{width:80,padding:"6px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"right"}}/>
+                style={{width:80,padding:"6px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"right"}}/>
             </div>
           ))}
           <div style={{display:"flex",gap:8,marginTop:10}}>
@@ -4594,20 +4594,20 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
         </div>}
         {bodyStats.length>0&&<div>
           {/* Weight trend chart */}
-          {bodyStats.filter(s=>s.weight).length>1&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:"14px 8px",marginBottom:14}}>
+          {bodyStats.filter(s=>s.weight).length>1&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"14px 8px",marginBottom:14}}>
             <div style={{fontSize:13,fontWeight:600,marginBottom:8,paddingLeft:8}}>Weight Trend</div>
             <ResponsiveContainer width="100%" height={140}>
               <LineChart data={[...bodyStats].reverse().filter(s=>s.weight).map(s=>({date:s.date.slice(5),weight:parseFloat(s.weight)}))} margin={{top:4,right:12,left:-10,bottom:0}}>
                 <CartesianGrid strokeDasharray="3 3" stroke={C.border}/>
                 <XAxis dataKey="date" tick={{fill:C.muted,fontSize:9,fontFamily:"'SF Mono','Courier New',monospace"}}/>
                 <YAxis tick={{fill:C.muted,fontSize:9,fontFamily:"'SF Mono','Courier New',monospace"}}/>
-                <Tooltip contentStyle={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,fontFamily:"'SF Mono','Courier New',monospace",fontSize:11,color:C.text}}/>
+                <Tooltip contentStyle={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,fontFamily:"'SF Mono','Courier New',monospace",fontSize:11,color:C.text}}/>
                 <Line type="monotone" dataKey="weight" stroke={C.accent} strokeWidth={2} dot={{fill:C.accent,r:3}}/>
               </LineChart>
             </ResponsiveContainer>
           </div>}
           {bodyStats.slice(0,5).map(s=>(
-            <div key={s.id} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 14px",marginBottom:8}}>
+            <div key={s.id} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"10px 14px",marginBottom:8}}>
               <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:6}}>{s.date}</Mono>
               <div style={{display:"flex",flexWrap:"wrap",gap:12}}>
                 {s.weight&&<div><Mono style={{fontSize:9,color:C.muted}}>WT </Mono><span style={{fontSize:14,fontWeight:700}}>{s.weight}<Mono style={{fontSize:10,color:C.muted}}> lbs</Mono></span></div>}
@@ -4740,7 +4740,7 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>Settings</div>
         <div style={{display:"flex",gap:8}}>
-          <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
+          <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
           <button onClick={async()=>{try{await supabase.auth.signOut();}catch(e){console.error("signOut:",e);}}} style={{background:"transparent",border:`1px solid ${C.danger}44`,borderRadius:8,color:C.dangerInk,cursor:"pointer",padding:"7px 12px",fontSize:11,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.04em"}}>
             Sign Out
           </button>
@@ -4754,7 +4754,7 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
         <div style={{display:"flex",gap:8}}>
           <input value={displayName} onChange={e=>setDisplayName(e.target.value)}
             onKeyDown={e=>e.key==="Enter"&&saveDisplayName()}
-            style={{flex:1,padding:"10px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",outline:"none",boxSizing:"border-box"}}/>
+            style={{flex:1,padding:"10px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",outline:"none",boxSizing:"border-box"}}/>
           <Btn onClick={saveDisplayName} C={C} size="sm">Save</Btn>
         </div>
         {nameMsg&&<Mono style={{fontSize:11,color:C.neonInk,display:"block",marginTop:6}}>{nameMsg}</Mono>}
@@ -4818,7 +4818,7 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
       {local.restTimer&&<div style={{padding:"14px 0",borderBottom:`1px solid ${C.border}`}}>
         <SectionLabel C={C}>Rest Duration (seconds)</SectionLabel>
         <input type="number" value={local.restSeconds||90} onChange={e=>setLocal(p=>({...p,restSeconds:parseInt(e.target.value)||90}))}
-          style={{width:"100%",padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
+          style={{width:"100%",padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
       </div>}
 
       <Btn size="lg" style={{width:"100%",marginTop:20}} onClick={save} C={C}>{saved?"Saved":"Save Settings"}</Btn>
@@ -4882,7 +4882,7 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
           <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:6,letterSpacing:"0.08em"}}>JOINT / HEALTH NOTES</Mono>
           <input type="text" value={local.aiJointNotes||""} placeholder="e.g. bad left knee, avoid overhead press"
             onChange={e=>setLocal(p=>({...p,aiJointNotes:e.target.value}))}
-            style={{width:"100%",padding:"10px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
+            style={{width:"100%",padding:"10px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
         </div>
       </div>}
 
@@ -4966,11 +4966,11 @@ function PastBlocksSection({blockSummaries,onOpenBlock,C}){
   return <div style={{marginTop:18}}>
     <SectionLabel C={C}>Past Plans</SectionLabel>
     {blocks.length===0
-      ? <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"20px",textAlign:"center"}}><Mono style={{fontSize:12,color:C.muted}}>Your completed plans will appear here.</Mono></div>
+      ? <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"20px",textAlign:"center"}}><Mono style={{fontSize:12,color:C.muted}}>Your completed plans will appear here.</Mono></div>
       : blocks.map((s,i)=>{
           const X=s.sessionsCompleted||0,Y=s.sessionsScheduled||0,mi=s.mostImproved,pr=s.prsHit||0;
           return <button key={s.planKey||i} onClick={()=>onOpenBlock&&onOpenBlock(s)}
-            style={{width:"100%",textAlign:"left",background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"12px 14px",marginBottom:8,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
+            style={{width:"100%",textAlign:"left",background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"12px 14px",marginBottom:8,cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
             <div style={{minWidth:0,flex:1}}>
               <div style={{fontSize:13,fontWeight:700,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.planName||"Plan"}</div>
               <Mono style={{fontSize:10,color:C.muted}}>{fmt(s.startDate)} – {fmt(s.scheduledEnd)}</Mono>
