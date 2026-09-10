@@ -19,7 +19,7 @@ test.describe("cap-picker exercise picker multi-add", () => {
   test.afterAll(async () => { await seed.restorePicker(); });
 
   // Distinct library exercises, clicked in THIS order → must land appended in THIS order.
-  const ADDS = ["Goblet Squat", "Face Pull", "Hammer Curl"];
+  const ADDS = ["Dumbbell Goblet Squat", "Face Pull", "Dumbbell Hammer Curl"];
 
   async function openEmptyDayPicker(page) {
     await ensureCleanHome(page);
