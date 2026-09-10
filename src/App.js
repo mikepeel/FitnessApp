@@ -1090,7 +1090,7 @@ function bodyHeatColor(t,C){
   const mix=(a,b,f)=>{const p=H(a),q=H(b);return "#"+[0,1,2].map(i=>("0"+Math.max(0,Math.min(255,Math.round(p[i]+(q[i]-p[i])*f))).toString(16)).slice(-2)).join("");};
   return t<=0.5 ? mix(BODY_HEAT.lo,BODY_HEAT.mid,(t-0.03)/0.47) : mix(BODY_HEAT.mid,BODY_HEAT.hi,(Math.min(t,1)-0.5)/0.5);
 }
-function BodyMap({intensities={},focus=null,onSelect,C}){
+function BodyMap({intensities={},focus=null,onSelect,C,figMax=150}){
   const view=(v)=>(
     <svg viewBox={BODYMAP_DATA.viewBox[v]} preserveAspectRatio="xMidYMid meet" style={{width:"100%",height:"auto",display:"block",overflow:"visible"}}>
       <g>{BODYMAP_DATA[v].filter(m=>m.group==="structure").flatMap((m,mi)=>m.paths.map((d,i)=>
@@ -1104,7 +1104,7 @@ function BodyMap({intensities={},focus=null,onSelect,C}){
   );
   return <div style={{display:"flex",gap:8,justifyContent:"center",alignItems:"flex-end"}}>
     {[["front","FRONT"],["back","BACK"]].map(([v,lbl])=>(
-      <div key={v} style={{flex:1,maxWidth:150,display:"flex",flexDirection:"column",alignItems:"center",gap:5}}>
+      <div key={v} style={{flex:1,maxWidth:figMax,display:"flex",flexDirection:"column",alignItems:"center",gap:5}}>
         <div style={{width:"100%"}}>{view(v)}</div>
         <Mono style={{fontSize:10,letterSpacing:"0.16em",color:C.faint,fontWeight:600}}>{lbl}</Mono>
       </div>
@@ -2080,9 +2080,9 @@ async function writeToAppleHealth(startTime, endTime, totalVolume) {
 }
 
 // -- EXERCISE LIBRARY MODAL ---------------------------------------------------
-function ExerciseLibraryModal({onSelect,onClose,C,multiAdd=false}){
+function ExerciseLibraryModal({onSelect,onClose,C,multiAdd=false,initialMuscle=null}){
   const [query,setQuery]=useState("");
-  const [muscleFilter,setMuscleFilter]=useState(null);
+  const [muscleFilter,setMuscleFilter]=useState(initialMuscle||null); // preset when opened by tapping a muscle on the plan-day BodyMap
   const [tab,setTab]=useState("library");
   const [custom,setCustom]=useState({name:"",sets:"3",reps:"10-12",note:"",muscle:""});
   // multiAdd: keep the picker open across selections so a whole day is built in one session. `added`
@@ -2949,6 +2949,7 @@ function PlanTab({plans,activePlanKey,setActivePlanKey,savePlans,settings,C,togg
   const [expandedDay,setExpandedDay]=useState(null);
   const [editEx,setEditEx]=useState(null);
   const [addExDay,setAddExDay]=useState(null);
+  const [addExMuscle,setAddExMuscle]=useState(null); // muscle preset for the picker when opened by tapping the plan-day BodyMap
   const [addDayModal,setAddDayModal]=useState(false);
   const [aiModal,setAiModal]=useState(null);
   const [deletingDay,setDeletingDay]=useState(null);
@@ -3214,6 +3215,19 @@ No explanation, no markdown, just the JSON array.`;
               <Mono style={{fontSize:10,color:C.neonInk,letterSpacing:"0.12em"}}>DRAG MODE -- USE ARROWS TO REORDER</Mono>
               <Btn size="sm" variant="ghost" style={{color:C.neonInk,borderColor:C.neon+"55"}} onClick={()=>setReorderMode(null)} C={C}>Done</Btn>
             </div>}
+            {/* Tap-a-body plan builder: the day's muscle coverage as a picture — red = trained by this
+                day's current exercises (deeper = more lifts), gray = untrained. Tapping a muscle opens the
+                exercise picker pre-filtered to it, so you build the day off a diagram, not a data sheet. */}
+            {!day.isRest&&reorderMode!==day.id&&(()=>{
+              const grp=["Chest","Back","Shoulders","Biceps","Triceps","Legs","Abs"];
+              const cnt={};(day.exercises||[]).forEach(e=>{if(grp.includes(e.muscle))cnt[e.muscle]=(cnt[e.muscle]||0)+1;});
+              const mx=Math.max(1,...Object.values(cnt));
+              const bi={};grp.forEach(m=>{bi[m]=cnt[m]?0.4+0.6*(cnt[m]/mx):0;});
+              return <div style={{marginBottom:12,paddingBottom:12,borderBottom:`1px solid ${C.border}`}}>
+                <BodyMap intensities={bi} onSelect={m=>{setAddExMuscle(m);setAddExDay(day.id);}} C={C} figMax={128}/>
+                <Mono style={{fontSize:10,color:C.faint,textAlign:"center",display:"block",marginTop:8,lineHeight:1.5}}>Tap a muscle to add an exercise · red shows what this day trains</Mono>
+              </div>;
+            })()}
             {day.exercises.map((ex,exIdx)=>(
               <div key={ex.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:`1px solid ${C.border}`,background:reorderMode===day.id?"transparent":"transparent",transition:"background .15s"}}>
                 {/* Reorder arrows */}
@@ -3268,7 +3282,7 @@ No explanation, no markdown, just the JSON array.`;
               {/* "+ Exercise" adds without flipping isRest, so it would break the invariant → hidden on a rest
                   day (toggle to training first). "Copy from…" stays: copyDayInto flips isRest:false, so it
                   CONVERTS a rest day to training rather than creating a rest-day-with-exercises. */}
-              {!day.isRest&&<Btn size="sm" variant="subtle" onClick={()=>setAddExDay(day.id)} C={C}>+ Exercise</Btn>}
+              {!day.isRest&&<Btn size="sm" variant="subtle" onClick={()=>{setAddExMuscle(null);setAddExDay(day.id);}} C={C}>+ Exercise</Btn>}
               {days.length>1&&<Btn size="sm" variant="ghost" onClick={()=>setCopyFromDay(day.id)} C={C}>Copy from…</Btn>}
               {!day.isRest&&<Btn size="sm" variant="ghost" style={{color:reorderMode===day.id?C.neonInk:C.muted,borderColor:reorderMode===day.id?C.neon+"55":C.border}} onClick={()=>setReorderMode(reorderMode===day.id?null:day.id)} C={C}>
                 {reorderMode===day.id?<span style={{display:"inline-flex",alignItems:"center",gap:5}}><Check size={ICON.sm} strokeWidth={1.75}/>Done</span>:<span style={{display:"inline-flex",alignItems:"center",gap:5}}><GripVertical size={ICON.sm} strokeWidth={1.75}/>Reorder</span>}
@@ -3420,7 +3434,7 @@ No explanation, no markdown, just the JSON array.`;
       </div>;
     })()}
     {editEx&&<Modal onClose={()=>setEditEx(null)} C={C}><ExerciseForm title="Edit Exercise" initial={editEx.ex} onSave={ex=>{saveExercise(editEx.dayId,ex);setEditEx(null);}} onClose={()=>setEditEx(null)} C={C}/></Modal>}
-    {addExDay&&<ExerciseLibraryModal multiAdd onSelect={ex=>addExercise(addExDay,ex)} onClose={()=>setAddExDay(null)} C={C}/>}
+    {addExDay&&<ExerciseLibraryModal multiAdd initialMuscle={addExMuscle} onSelect={ex=>addExercise(addExDay,ex)} onClose={()=>{setAddExDay(null);setAddExMuscle(null);}} C={C}/>}
     {addDayModal&&<Modal onClose={()=>setAddDayModal(false)} C={C}><DayForm onSave={addDay} onClose={()=>setAddDayModal(false)} C={C}/></Modal>}
     {deletingDay&&<Modal onClose={()=>setDeletingDay(null)} C={C}>
       <div style={{textAlign:"center",padding:"10px 0"}}>
