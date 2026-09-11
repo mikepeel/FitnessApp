@@ -1901,7 +1901,10 @@ export default function ForgeApp(){
       let mergedPlans={};
       if(planRows&&planRows.length>0){
         planRows.forEach(r=>{
-          if(r.plan_key&&Array.isArray(r.days_json)&&r.days_json.length>0){
+          // Keep any plan with a days array — including an empty one, so a plan whose days were all
+          // deleted doesn't silently vanish on reload (the user can add days back). Rows with a
+          // null/missing days_json are still skipped as malformed.
+          if(r.plan_key&&Array.isArray(r.days_json)){
             mergedPlans[r.plan_key]={name:r.name,subtitle:r.subtitle||"",description:r.description||"",supabaseId:r.id,days:r.days_json,startDate:r.start_date||null,durationWeeks:r.duration_weeks||10};
           }
         });
@@ -3353,9 +3356,11 @@ function PlanTab({plans,activePlanKey,setActivePlanKey,savePlans,settings,C,togg
   function deleteExercise(dayId,exId,exName){
     updatePlan(days.map(d=>{
       if(d.id!==dayId)return d;
-      const filtered=d.exercises.filter(e=>e.id!==exId&&e.name!==exName);
-      // If nothing was removed by id, try name-only match as fallback
-      return {...d,exercises:filtered.length<d.exercises.length?filtered:d.exercises.filter(e=>e.name!==exName)};
+      // Remove exactly the targeted exercise by id. Only if no id matches (legacy rows without an
+      // id) fall back to removing a SINGLE by-name match — never every exercise sharing that name.
+      if(d.exercises.some(e=>e.id===exId))return {...d,exercises:d.exercises.filter(e=>e.id!==exId)};
+      let removed=false;
+      return {...d,exercises:d.exercises.filter(e=>{if(!removed&&e.name===exName){removed=true;return false;}return true;})};
     }));
   }
   function addExercise(dayId,ex){updatePlan(days.map(d=>d.id!==dayId?d:{...d,exercises:[...d.exercises,{...ex,id:mkId()}]}));}
