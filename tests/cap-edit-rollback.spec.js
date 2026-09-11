@@ -18,10 +18,13 @@ test.describe("cap-cleanup saveEdit rollback (.catch repair)", () => {
   test("a failed in-cap edit rolls sets_data back to the original", async ({ page }) => {
     // Force ONLY the logged_sets INSERT to fail: the first POST 500s; the session PATCH, the
     // logged_sets DELETE, and the rollback's re-insert (a later POST) all succeed.
-    let firstInsertFailed = false;
+    // Fail ONLY saveEdit's insert — ARMED just before Save Changes, so the load-time self-heal's
+    // logged_sets inserts (for seed sessions that carry sets_data but no logged_sets) pass through
+    // and don't consume the forced failure.
+    let armFailure = false, failed = false;
     await page.route(/\/rest\/v1\/logged_sets(\?|$)/, (route) => {
-      if (route.request().method() === "POST" && !firstInsertFailed) {
-        firstInsertFailed = true;
+      if (route.request().method() === "POST" && armFailure && !failed) {
+        failed = true;
         return route.fulfill({ status: 500, contentType: "application/json", body: '{"message":"forced insert failure"}' });
       }
       return route.continue();
@@ -37,6 +40,7 @@ test.describe("cap-cleanup saveEdit rollback (.catch repair)", () => {
     await page.getByRole("button", { name: /Edit/ }).first().click();
     await expect(page.getByText("✎ Edit Workout")).toBeVisible({ timeout: 5000 });
     await page.getByPlaceholder("lbs").fill("200");
+    armFailure = true; // the next logged_sets POST is saveEdit's insert
     await page.getByRole("button", { name: /Save Changes/ }).click();
     await expect(page.getByText(/Save failed/)).toBeVisible({ timeout: 8000 });
     await page.getByRole("button", { name: "Cancel" }).click();

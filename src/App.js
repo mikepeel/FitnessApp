@@ -4400,6 +4400,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
                     never re-derived from the plan — see lib/historyOrder.js */}
                 {exerciseOrderForSession(s).map(name=>{
                   const exSets=allSets.filter(x=>x.exName===name);
+                  const et=trackFor({name}); // time-holds display seconds ("45s"), not reps ("45r")
                   // Collapse consecutive identical strength sets (same type+weight+reps) into one row,
                   // preserving order. Cardio intervals stay per-row (each interval is distinct).
                   const groups=[];
@@ -4423,7 +4424,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
                     <div style={{display:"grid",gap:6}}>
                       {groups.map((g,j)=>(
                         <Mono key={j} style={{fontSize:11,background:C.surface,padding:"8px 10px",borderRadius:8,color:g.isPR?C.redInk:g.cardio?C.greenInk:C.muted,opacity:g.type==="warmup"?0.6:1}}>
-                          {g.type==="warmup"?"W ":""}{g.cardio?`Interval ${g.setNum}: ${g.minutes} min${g.level?` · L${g.level}`:""}`:""}{!g.cardio&&g.count>1?`${g.count} × `:""}{!g.cardio&&g.weight?`${g.weight}lbs`:""}{!g.cardio&&g.weight&&g.reps?" × ":""}{!g.cardio&&g.reps?`${g.reps}r`:""}{g.isPR?<> <PRMark C={C}/></>:""}
+                          {g.type==="warmup"?"W ":""}{g.cardio?`Interval ${g.setNum}: ${g.minutes} min${g.level?` · L${g.level}`:""}`:""}{!g.cardio&&g.count>1?`${g.count} × `:""}{!g.cardio&&g.weight?`${g.weight}lbs`:""}{!g.cardio&&g.weight&&g.reps?" × ":""}{!g.cardio&&g.reps?`${g.reps}${et==="time"?"s":"r"}`:""}{g.isPR?<> <PRMark C={C}/></>:""}
                         </Mono>
                       ))}
                       {(() => {
@@ -4632,7 +4633,13 @@ function SessionEditModal({session,onSave,onClose,allSessions=[],onRenameAll,C})
     {exNames.map((exName,exPos)=>{
       const sets=editData.sets[exName]||{};
       const setNums=Object.keys(sets).map(Number).sort((a,b)=>a-b);
-      const isCardioEx=isCardioName(exName)||Object.values(sets).some(s=>s.minutes);
+      const tk=trackFor({name:exName});
+      // Detect type in line with data entry — stored data wins (a set with minutes is cardio),
+      // else the catalog track. isRL = reps-like (bodyweight/hold): col1 primary, col2 optional +lbs.
+      const isCardioEx=Object.values(sets).some(s=>s.minutes)||tk==="cardio"||isCardioName(exName);
+      const isTimeEx=!isCardioEx&&tk==="time"; // hold: seconds (stored in reps)
+      const isRepsEx=!isCardioEx&&tk==="reps"; // bodyweight: reps primary, weight optional
+      const isRL=isTimeEx||isRepsEx;
       return <div key={exName} style={{marginBottom:14,paddingBottom:14,borderBottom:`1px solid ${C.border}`}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8,gap:8}}>
           {exNames.length>1&&<div style={{display:"flex",flexDirection:"column",gap:1,flexShrink:0}}>
@@ -4656,17 +4663,17 @@ function SessionEditModal({session,onSave,onClose,allSessions=[],onRenameAll,C})
         {/* Set rows — cardio: minutes + level, strength: weight + reps */}
         <div style={{display:"grid",gridTemplateColumns:"24px 1fr 1fr 32px",gap:"4px 8px",alignItems:"center",marginBottom:6}}>
           <Mono style={{fontSize:9,color:C.muted}}>#</Mono>
-          <Mono style={{fontSize:9,color:C.muted}}>{isCardioEx?"MINUTES":"WEIGHT (lbs)"}</Mono>
-          <Mono style={{fontSize:9,color:C.muted}}>{isCardioEx?"LEVEL":"REPS"}</Mono>
+          <Mono style={{fontSize:9,color:C.muted}}>{isCardioEx?"MINUTES":isTimeEx?"SECONDS":isRepsEx?"REPS":"WEIGHT (lbs)"}</Mono>
+          <Mono style={{fontSize:9,color:C.muted}}>{isCardioEx?"LEVEL":isRL?"+LBS":"REPS"}</Mono>
           <div/>
           {setNums.map(n=>[
             <Mono key={`n${n}`} style={{fontSize:11,color:C.muted,textAlign:"center"}}>{n}</Mono>,
             isCardioEx
-              ?<input key={`m${n}`} type="number" value={sets[n]?.minutes||""} onChange={e=>updateSet(exName,n,"minutes",e.target.value)} style={inputStyle} placeholder="min"/>
-              :<input key={`w${n}`} type="number" value={sets[n]?.weight||""} onChange={e=>updateSet(exName,n,"weight",e.target.value)} style={inputStyle} placeholder="lbs"/>,
+              ?<input key={`m${n}`} type="number" inputMode="numeric" value={sets[n]?.minutes||""} onChange={e=>updateSet(exName,n,"minutes",e.target.value)} style={inputStyle} placeholder="min"/>
+              :<input key={`c1${n}`} type="number" inputMode="numeric" value={(isRL?sets[n]?.reps:sets[n]?.weight)||""} onChange={e=>updateSet(exName,n,isRL?"reps":"weight",e.target.value)} style={inputStyle} placeholder={isTimeEx?"secs":isRepsEx?"reps":"lbs"}/>,
             isCardioEx
-              ?<input key={`l${n}`} type="number" value={sets[n]?.level||""} onChange={e=>updateSet(exName,n,"level",e.target.value)} style={inputStyle} placeholder="lvl"/>
-              :<input key={`r${n}`} type="number" value={sets[n]?.reps||""} onChange={e=>updateSet(exName,n,"reps",e.target.value)} style={inputStyle} placeholder="reps"/>,
+              ?<input key={`l${n}`} type="number" inputMode="numeric" value={sets[n]?.level||""} onChange={e=>updateSet(exName,n,"level",e.target.value)} style={inputStyle} placeholder="lvl"/>
+              :<input key={`c2${n}`} type="number" inputMode="numeric" value={(isRL?sets[n]?.weight:sets[n]?.reps)||""} onChange={e=>updateSet(exName,n,isRL?"weight":"reps",e.target.value)} style={inputStyle} placeholder={isRL?"+lbs":"reps"}/>,
             <button key={`x${n}`} onClick={()=>removeSet(exName,n)} style={{padding:"4px",background:"transparent",border:"none",color:C.dangerInk,cursor:"pointer",fontSize:14,borderRadius:4}}>✕</button>
           ])}
         </div>
