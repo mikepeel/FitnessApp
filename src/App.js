@@ -13,6 +13,7 @@ import { deloadVisible } from "./lib/deloadVisible";
 import { longestWeeklyStreak } from "./lib/longestWeeklyStreak";
 import { resolveActivePlanKey } from "./lib/activePlan";
 import { serializeTrainingExport } from "./lib/exportTraining";
+import { buildPersonalExport, buildPersonalCSV } from "./lib/exportPersonal";
 import { weeklyAdherence } from "./lib/weeklyAdherence";
 import { copyDayInto } from "./lib/copyDay";
 import { buildBlockSummary, scheduledEndStr } from "./lib/blockSummary";
@@ -5501,6 +5502,8 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
   const [nameMsg,setNameMsg]=useState("");
   const [pwMsg,setPwMsg]=useState("");
   const [exportMsg,setExportMsg]=useState("");
+  const [dlMsg,setDlMsg]=useState("");
+  const [dlBusy,setDlBusy]=useState(false);
   const isIOSSafari=typeof navigator!=="undefined"&&/iPhone|iPad|iPod/.test(navigator.userAgent)&&/Safari/.test(navigator.userAgent)&&!/Chrome|CriOS|FxiOS/.test(navigator.userAgent);
 
   function save(){saveSettings(local);setSaved(true);setTimeout(()=>setSaved(false),2000);}
@@ -5540,6 +5543,64 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
       await navigator.clipboard.writeText(json);
       setExportMsg("Copied — paste into your AI assistant.");setTimeout(()=>setExportMsg(""),4000);
     }catch(e){console.error("copyTrainingExport:",e);setExportMsg("Export failed — try again.");}
+  }
+
+  // Complete PERSONAL-data export — the user's OWN history, to their OWN device. Fetches EVERY
+  // session (the in-memory `sessions` prop is capped at 100), mapped through the same mapSessionRow
+  // the app uses, then serialized faithfully (real dates, all set types, cardio + holds, notes).
+  async function fetchAllSessions(uid){
+    const all=[]; const PAGE=100;
+    for(let from=0;;from+=PAGE){
+      const {data,error}=await supabase.from("workout_sessions").select("*, logged_sets(*)").eq("user_id",uid)
+        .order("completed_at",{ascending:false,nullsFirst:false}).range(from,from+PAGE-1);
+      if(error)throw error;
+      if(!data||!data.length)break;
+      all.push(...data);
+      if(data.length<PAGE)break;
+    }
+    return all.map(mapSessionRow);
+  }
+
+  // Hand the file to the user: prefer the native share sheet (reliable in an iOS PWA standalone,
+  // where <a download> is inert), fall back to an anchor download (desktop / Android browser).
+  async function deliverFile(filename,mime,content){
+    try{
+      const blob=new Blob([content],{type:mime});
+      try{
+        if(navigator.canShare&&typeof File!=="undefined"){
+          const file=new File([blob],filename,{type:mime});
+          if(navigator.canShare({files:[file]})){await navigator.share({files:[file],title:filename});return"shared";}
+        }
+      }catch(e){if(e&&e.name==="AbortError")return"cancelled";/* else fall through to download */}
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement("a");
+      a.href=url;a.download=filename;
+      document.body.appendChild(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),1500);
+      return"downloaded";
+    }catch(e){console.error("deliverFile:",e);return"error";}
+  }
+
+  async function downloadMyData(fmt){
+    if(dlBusy)return;
+    setDlBusy(true);setDlMsg("Preparing your data…");
+    try{
+      const {data:{user:u}}=await supabase.auth.getUser();
+      if(!u){setDlMsg("Sign in to export.");setDlBusy(false);return;}
+      const allSessions=await fetchAllSessions(u.id);
+      if(!allSessions.length){setDlMsg("No sessions to export yet.");setDlBusy(false);setTimeout(()=>setDlMsg(""),4000);return;}
+      const trackOf=n=>trackFor({name:n});
+      const stamp=new Date().toLocaleDateString("en-CA");
+      const isCsv=fmt==="csv";
+      const filename=`iron-training-${stamp}.${isCsv?"csv":"json"}`;
+      const mime=isCsv?"text/csv;charset=utf-8":"application/json";
+      const content=isCsv?buildPersonalCSV(allSessions,{trackOf}):JSON.stringify(buildPersonalExport(allSessions,{trackOf}),null,2);
+      const result=await deliverFile(filename,mime,content);
+      if(result==="cancelled"){setDlMsg("");}
+      else if(result==="error"){setDlMsg("Export failed — try again.");}
+      else{setDlMsg(`Exported ${allSessions.length} session${allSessions.length!==1?"s":""}.`);setTimeout(()=>setDlMsg(""),4000);}
+    }catch(e){console.error("downloadMyData:",e);setDlMsg("Export failed — try again.");}
+    finally{setDlBusy(false);}
   }
 
   async function handleHealthToggle(){
@@ -5632,6 +5693,19 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
           <Btn onClick={copyTrainingExport} C={C} size="sm" variant="ghost">Copy</Btn>
         </div>
         {exportMsg&&<Mono style={{fontSize:11,color:C.neonInk,display:"block",marginTop:6}}>{exportMsg}</Mono>}
+      </div>
+      <div style={{padding:"13px 0",borderBottom:`1px solid ${C.border}`}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12}}>
+          <div style={{flex:1}}>
+            <div style={{fontSize:14}}>Download my data</div>
+            <div style={{fontSize:11,color:C.muted,marginTop:2}}>Your complete history — real dates, every set, notes. JSON to back up, CSV for spreadsheets.</div>
+          </div>
+          <div style={{display:"flex",gap:8,flexShrink:0}}>
+            <Btn onClick={()=>downloadMyData("json")} C={C} size="sm" variant="ghost" disabled={dlBusy}>JSON</Btn>
+            <Btn onClick={()=>downloadMyData("csv")} C={C} size="sm" variant="ghost" disabled={dlBusy}>CSV</Btn>
+          </div>
+        </div>
+        {dlMsg&&<Mono style={{fontSize:11,color:C.neonInk,display:"block",marginTop:6}}>{dlMsg}</Mono>}
       </div>
       <div style={{marginTop:18}}><SectionLabel C={C}>Features</SectionLabel></div>
       {features.map(f=>(
