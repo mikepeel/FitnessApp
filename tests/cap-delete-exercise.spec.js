@@ -37,6 +37,9 @@ test.describe("cap-delete-exercise single-target delete", () => {
     await expect(page.getByText("Added", { exact: true }).first()).toBeVisible();
     await page.getByRole("button", { name: /Done/i }).first().click();
     await expect(page.getByText("Add Exercises")).toHaveCount(0);
+    // Let this add's write commit before the next action, so the two adds + the delete don't race
+    // (this spec isolates the single-target delete, not the save-concurrency handled separately).
+    await page.waitForLoadState("networkidle", { timeout: 8000 }).catch(() => {});
   }
 
   test("deleting one duplicate leaves the other (not both)", async ({ page }) => {
