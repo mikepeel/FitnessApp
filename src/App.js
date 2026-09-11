@@ -1561,6 +1561,35 @@ function AuthScreen({C,onAuth,themeMode,toggleTheme}){
   </div>;
 }
 
+// Sessions self-healed this page load — guards against the concurrent double-heal that would
+// otherwise duplicate rows, since loadUserData runs twice on startup (initial getSession + the
+// SIGNED_IN event). Added synchronously in the heal loop before the await, so a concurrent run
+// skips an already-claimed session. Fresh per page load; a healed session isn't empty next load.
+const HEALED_SESSION_IDS = new Set();
+// Rebuild logged_sets rows from the durable sets_data blob — same row shape saveSessions writes
+// (cardio stores level in `reps` + minutes; strength stores reps). Skips prepop/empty leaves. Used
+// by the load-time self-heal below. Pure.
+function loggedSetsFromBlob(setsData, sessionId, uid){
+  const rows=[];
+  for(const exName in (setsData||{})){
+    const sets=setsData[exName]||{};
+    for(const setNum in sets){
+      const leaf=sets[setNum]||{};
+      if(leaf.prepop) continue;
+      if(!(leaf.weight||leaf.reps||leaf.minutes)) continue;
+      rows.push({
+        session_id:sessionId, user_id:uid,
+        exercise_name:exName, set_number:parseInt(setNum)||0,
+        weight:parseFloat(leaf.weight)||null,
+        reps:leaf.minutes?(parseInt(leaf.level)||null):(parseInt(leaf.reps)||null),
+        minutes:parseFloat(leaf.minutes)||null,
+        is_pr:leaf.isPR||false, set_type:leaf.type||"working",
+      });
+    }
+  }
+  return rows;
+}
+
 // ── MAIN APP ──────────────────────────────────────────────────────────────────
 export default function ForgeApp(){
   const [plans,setPlans]=useState({});
@@ -1811,6 +1840,24 @@ export default function ForgeApp(){
       if(sessData){
         const mapped=sessData.map(mapSessionRow);
         setSessions(mapped);
+        // Self-heal: a session whose durable sets_data has real sets but whose logged_sets are
+        // EMPTY (the signature of a rare non-atomic double-failure in saveEdit, or a saveSessions
+        // partial) is rebuilt from sets_data — so PRs, recap, and per-set badges stay consistent.
+        // Only touches clearly-broken rows (zero logged_sets), never re-points healthy data, and is
+        // idempotent (healed rows aren't empty next load). Best-effort; never blocks the load.
+        try{
+          const healRows=[];
+          for(const row of sessData){
+            if((row.logged_sets||[]).length>0) continue;
+            if(HEALED_SESSION_IDS.has(row.id)) continue; // already healed/claimed this page load (concurrent-run guard)
+            const rebuilt=loggedSetsFromBlob(row.sets_data,row.id,u.id);
+            if(rebuilt.length){ HEALED_SESSION_IDS.add(row.id); healRows.push(...rebuilt); }
+          }
+          if(healRows.length){
+            const{error:healErr}=await supabase.from("logged_sets").insert(healRows);
+            if(healErr) console.error("loadUserData self-heal logged_sets:",JSON.stringify(healErr));
+          }
+        }catch(e){console.error("loadUserData self-heal:",e);}
       }
       // Program-week anchor: the user's TRUE earliest completed session (full history, not the
       // capped load). Targeted 1-row query; best-effort — on error leave it null so the
