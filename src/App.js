@@ -1614,6 +1614,14 @@ export default function ForgeApp(){
   const [authUser,setAuthUser]=useState(null);
   const [authChecked,setAuthChecked]=useState(false);
   const [isOnline,setIsOnline]=useState(navigator.onLine);
+  // Plan-save reliability (see savePlans): serialize saves so a create's insert always resolves before
+  // the next call reads its id (no duplicate rows), remember each key's id + a fingerprint to skip
+  // unchanged writes, and remember the last failed payload so it can be retried on reconnect.
+  const planIdsRef=useRef({});                        // plan_key -> supabaseId (recorded the instant an insert resolves)
+  const planSnapshotRef=useRef({});                   // plan_key -> fingerprint of the last successfully-saved fields
+  const insertingRef=useRef({});                      // plan_key -> in-flight insert's id-promise (so a concurrent save awaits it, never re-inserts)
+  const pendingPlanSaveRef=useRef(null);              // last payload whose write failed / was made offline
+  const [planSaveFailed,setPlanSaveFailed]=useState(false);
   const [bodyStatsGlobal,setBodyStatsGlobal]=useState([]);
   const [tab,setTab]=useState("today");
   const [planInitialView,setPlanInitialView]=useState(null); // one-shot sub-view for PlanTab (from the block-summary next-step)
@@ -1628,36 +1636,63 @@ export default function ForgeApp(){
   const [workoutSummary,setWorkoutSummary]=useState(null);
   const C=useTheme(themeMode);
 
-  const savePlans=async(p)=>{
+  // Fingerprint of exactly the fields that get persisted, so an unchanged plan can be skipped (⑤).
+  const planFingerprint=(plan)=>JSON.stringify({n:plan.name,s:plan.subtitle,d:plan.description,dj:plan.days||[],sd:plan.startDate||null,dw:plan.durationWeeks||10});
+
+  // Persist the plans map. Optimistic in memory; the write fires immediately (updates aren't gated, so
+  // rapid edits still commit fast). A NEW plan (no id yet) publishes its insert's id-promise in
+  // insertingRef synchronously, so a fast follow-up edit for the same key AWAITS that id and UPDATEs
+  // the new row instead of INSERTing a duplicate (②). Unchanged plans are skipped (⑤). If offline or a
+  // write fails, the payload is queued and a banner shown; the reconnect handler retries it (①).
+  const savePlans=(p)=>{
     setPlans(p);
-    try{
-      const {data:{user:u}}=await supabase.auth.getUser();
-      if(!u)return;
-      const patchedPlans={...p};
-      let patched=false;
-      for(const[key,plan]of Object.entries(p)){
-        const base={user_id:u.id,plan_key:key,name:plan.name,subtitle:plan.subtitle,description:plan.description,days_json:plan.days||[]};
-        const full={...base,start_date:plan.startDate||null,duration_weeks:plan.durationWeeks||10};
-        if(plan.supabaseId){
-          // existing row — update by primary key, no unique constraint needed
-          const{error}=await supabase.from("plans").update(full).eq("id",plan.supabaseId);
-          if(error?.code==="42703"||error?.code==="PGRST204"){
-            const{error:e2}=await supabase.from("plans").update(base).eq("id",plan.supabaseId);
-            if(e2)console.error("savePlans:",e2);
-          }else if(error)console.error("savePlans:",error);
-        }else{
-          // new row — insert and capture generated id for future updates
-          const{data:ins,error}=await supabase.from("plans").insert(full).select("id").single();
-          if(error?.code==="42703"||error?.code==="PGRST204"){
-            const{data:ins2,error:e2}=await supabase.from("plans").insert(base).select("id").single();
-            if(e2)console.error("savePlans:",e2);
-            else if(ins2?.id){patchedPlans[key]={...plan,supabaseId:ins2.id};patched=true;}
-          }else if(error)console.error("savePlans:",error);
-          else if(ins?.id){patchedPlans[key]={...plan,supabaseId:ins.id};patched=true;}
+    (async()=>{
+      // Offline: don't attempt (the fetch would fail anyway) — queue it and surface the banner.
+      if(!navigator.onLine){pendingPlanSaveRef.current=p;setPlanSaveFailed(true);return;}
+      try{
+        const {data:{user:u}}=await supabase.auth.getUser();
+        if(!u)return;
+        const patched={};
+        let anyPatched=false, anyFailed=false;
+        for(const[key,plan]of Object.entries(p)){
+          const fp=planFingerprint(plan);
+          let knownId=plan.supabaseId||planIdsRef.current[key];
+          // A create for this key already in flight → wait for its id rather than insert again (②).
+          if(!knownId&&insertingRef.current[key]){try{knownId=await insertingRef.current[key];}catch{knownId=planIdsRef.current[key];}}
+          // Skip a plan unchanged since its last successful save (⑤) — but still backfill a missing id.
+          if(knownId&&planSnapshotRef.current[key]===fp){
+            if(!plan.supabaseId){planIdsRef.current[key]=knownId;patched[key]=knownId;anyPatched=true;}
+            continue;
+          }
+          const base={user_id:u.id,plan_key:key,name:plan.name,subtitle:plan.subtitle,description:plan.description,days_json:plan.days||[]};
+          const full={...base,start_date:plan.startDate||null,duration_weeks:plan.durationWeeks||10};
+          if(knownId){
+            let{error}=await supabase.from("plans").update(full).eq("id",knownId);
+            if(error?.code==="42703"||error?.code==="PGRST204"){({error}=await supabase.from("plans").update(base).eq("id",knownId));}
+            if(error){anyFailed=true;console.error("savePlans update:",JSON.stringify(error));}
+            else{planSnapshotRef.current[key]=fp;if(!plan.supabaseId){planIdsRef.current[key]=knownId;patched[key]=knownId;anyPatched=true;}}
+          }else{
+            // Publish the id-promise SYNCHRONOUSLY (no await before this) so a concurrent save for this
+            // key sees it and awaits instead of racing a second insert.
+            let resolveId; insertingRef.current[key]=new Promise(r=>{resolveId=r;});
+            let{data:ins,error}=await supabase.from("plans").insert(full).select("id").single();
+            if(error?.code==="42703"||error?.code==="PGRST204"){({data:ins,error}=await supabase.from("plans").insert(base).select("id").single());}
+            if(error){anyFailed=true;console.error("savePlans insert:",JSON.stringify(error));resolveId(null);}
+            else if(ins?.id){planIdsRef.current[key]=ins.id;planSnapshotRef.current[key]=fp;patched[key]=ins.id;anyPatched=true;resolveId(ins.id);}
+            else resolveId(null);
+            delete insertingRef.current[key];
+          }
         }
-      }
-      if(patched)setPlans(patchedPlans);
-    }catch(e){console.error("savePlans:",e);}
+        // Backfill new supabaseIds WITHOUT clobbering any newer edit that landed while we wrote.
+        if(anyPatched)setPlans(cur=>{
+          let changed=false;const merged={...cur};
+          for(const k of Object.keys(patched)){if(cur[k]&&!cur[k].supabaseId){merged[k]={...cur[k],supabaseId:patched[k]};changed=true;}}
+          return changed?merged:cur;
+        });
+        if(anyFailed){pendingPlanSaveRef.current=p;setPlanSaveFailed(true);}
+        else{pendingPlanSaveRef.current=null;setPlanSaveFailed(false);}
+      }catch(e){console.error("savePlans:",JSON.stringify(e));pendingPlanSaveRef.current=p;setPlanSaveFailed(true);}
+    })();
   };
 
   const persistActivePlanKey=(k)=>{
@@ -2031,6 +2066,8 @@ export default function ForgeApp(){
   useEffect(()=>{
     const goOnline=()=>{
       setIsOnline(true);
+      // Flush a plan save that failed / was queued while offline.
+      if(pendingPlanSaveRef.current)savePlans(pendingPlanSaveRef.current);
     };
     const goOffline=()=>setIsOnline(false);
     window.addEventListener("online",goOnline);
@@ -2200,6 +2237,10 @@ export default function ForgeApp(){
   return <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:C.serif,paddingBottom:72,userSelect:"none",scrollBehavior:"smooth"}}>
     {!isOnline&&<div style={{background:"#f7c948",color:"#1a202c",padding:"8px 18px",fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"center",letterSpacing:"0.04em"}}>
       ⚠ Offline — workouts will sync when connection is restored
+    </div>}
+    {planSaveFailed&&<div style={{background:isOnline?C.danger:"#f7c948",color:isOnline?"#fff":"#1a202c",padding:"8px 18px",fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"center",letterSpacing:"0.04em",display:"flex",alignItems:"center",justifyContent:"center",gap:12,flexWrap:"wrap"}}>
+      <span>{isOnline?"Couldn't save your plan changes":"Plan changes will save when you're back online"}</span>
+      {isOnline&&<button onClick={()=>{if(pendingPlanSaveRef.current)savePlans(pendingPlanSaveRef.current);}} style={{background:"rgba(255,255,255,0.2)",border:"1px solid rgba(255,255,255,0.55)",borderRadius:6,color:"#fff",cursor:"pointer",padding:"3px 12px",fontSize:11,fontFamily:"'SF Mono','Courier New',monospace",fontWeight:700}}>Retry</button>}
     </div>}
     {minimizedWorkout&&<div onClick={()=>{setWorkoutDraft({loggedSets:minimizedWorkout.loggedSets,elapsed:bannerElapsed,startedAt:minimizedWorkout.startedAt,workout:minimizedWorkout.workout,exercises:minimizedWorkout.exercises,completedExIds:minimizedWorkout.completedExIds});setActiveWorkout(minimizedWorkout.workout);setMinimizedWorkout(null);}} style={{position:"fixed",top:"env(safe-area-inset-top,0px)",left:0,right:0,zIndex:100,background:C.neon,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",minHeight:44,cursor:"pointer",userSelect:"none"}}>
       <Mono style={{fontSize:12,color:ONACCENT,fontWeight:700}}>🔴 {minimizedWorkout.workout.label} in progress · {Math.floor(bannerElapsed/60)}:{String(bannerElapsed%60).padStart(2,"0")}</Mono>
