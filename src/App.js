@@ -1129,6 +1129,130 @@ const EXERCISE_LIBRARY = [
   {name:"Scissor Jumps",muscle:"Cardio",equipment:"Bodyweight",track:"cardio",cue:"Alternate the front foot with each jump, quick and rhythmic",img:["Scissors_Jump/0.jpg","Scissors_Jump/1.jpg"]},
 ];
 
+const EXERCISE_ALIASES = {
+  "21s Curl": "Barbell 21s Curl",
+  "Arnold Press": "Dumbbell Arnold Press",
+  "Assisted Pull-Up": "Machine-Assisted Pull-Up",
+  "Back Extension (Weighted)": "Weighted Back Extension",
+  "Band Assisted Pull-Up": "Band-Assisted Pull-Up",
+  "Bayesian Curl": "Cable Bayesian Curl",
+  "Bent Over Barbell Row": "Barbell Bent-Over Row",
+  "Box Step-Up": "Dumbbell Step-Up",
+  "Bradford Press": "Barbell Bradford Press",
+  "Bulgarian Split Squat": "Dumbbell Bulgarian Split Squat",
+  "Cable Bar Pressdown": "Cable Bar Pushdown",
+  "Cable Flye": "Cable Fly",
+  "Cable Kickback": "Cable Triceps Kickback",
+  "Cable Rope Pressdown": "Cable Rope Pushdown",
+  "Chin-Up (Bicep Focus)": "Chin-Up",
+  "Close-Grip Bench Press": "Barbell Close-Grip Bench Press",
+  "Close-Grip Lat Pulldown": "Cable Close-Grip Lat Pulldown",
+  "Concentration Curl": "Dumbbell Concentration Curl",
+  "Cross-Body Hammer Curl": "Dumbbell Cross-Body Hammer Curl",
+  "Curtsy Lunge": "Dumbbell Curtsy Lunge",
+  "DB Romanian Deadlift": "Dumbbell Romanian Deadlift",
+  "Decline Barbell Press": "Barbell Decline Bench Press",
+  "Decline Dumbbell Press": "Dumbbell Decline Bench Press",
+  "Drag Curl": "Barbell Drag Curl",
+  "Dumbbell Flye": "Dumbbell Fly",
+  "Dumbbell Kickback": "Dumbbell Triceps Kickback",
+  "Floor Press": "Dumbbell Floor Press",
+  "Front Squat": "Barbell Front Squat",
+  "Goblet Squat": "Dumbbell Goblet Squat",
+  "Good Morning": "Barbell Good Morning",
+  "Gorilla Row": "Dumbbell Gorilla Row",
+  "Hack Squat": "Machine Hack Squat",
+  "Hammer Curl": "Dumbbell Hammer Curl",
+  "Hex Press": "Dumbbell Hex Press",
+  "High Cable Curl": "Cable High Curl",
+  "High-to-Low Cable Fly": "Cable High-to-Low Fly",
+  "Hip Abductor Machine": "Machine Hip Abduction",
+  "Hip Adductor Machine": "Machine Hip Adduction",
+  "Hip Thrust": "Barbell Hip Thrust",
+  "Incline Barbell Press": "Barbell Incline Bench Press",
+  "Incline Dumbbell Curl": "Dumbbell Incline Curl",
+  "Incline Dumbbell Flye": "Dumbbell Incline Fly",
+  "Incline Dumbbell Press": "Dumbbell Incline Bench Press",
+  "Incline Machine Press": "Machine Incline Chest Press",
+  "Incline Tricep Extension": "Dumbbell Incline Triceps Extension",
+  "JM Press": "Barbell JM Press",
+  "Kneeling Single Arm Pulldown": "Cable Kneeling Single-Arm Pulldown",
+  "Landmine Press": "Barbell Landmine Press",
+  "Landmine Twist": "Barbell Landmine Twist",
+  "Leaning Lateral Raise": "Dumbbell Leaning Lateral Raise",
+  "Leg Extension": "Machine Leg Extension",
+  "Leg Press": "Machine Leg Press",
+  "Low-to-High Cable Fly": "Cable Low-to-High Fly",
+  "Lying Leg Curl": "Machine Lying Leg Curl",
+  "Lying Tricep Extension": "Dumbbell Lying Triceps Extension",
+  "Machine Tricep Extension": "Machine Triceps Extension",
+  "Meadows Row": "Barbell Meadows Row",
+  "Overhead Cable Extension": "Cable Overhead Triceps Extension",
+  "Overhead Tricep Extension (DB)": "Dumbbell Overhead Triceps Extension",
+  "Pallof Press": "Cable Pallof Press",
+  "Pec Deck": "Machine Pec Deck",
+  "Pendulum Squat": "Machine Pendulum Squat",
+  "Preacher Curl": "Barbell Preacher Curl",
+  "Push Press": "Barbell Push Press",
+  "Rack Pull": "Barbell Rack Pull",
+  "Rear Delt Cable Fly": "Cable Rear Delt Fly",
+  "Rear Delt Flye": "Dumbbell Rear Delt Fly",
+  "Rear Delt Machine": "Machine Rear Delt Fly",
+  "Resistance Band Press": "Band Chest Press",
+  "Reverse Curl": "Barbell Reverse Curl",
+  "Reverse Grip Barbell Row": "Barbell Reverse-Grip Row",
+  "Reverse Grip Bench Press": "Barbell Reverse-Grip Bench Press",
+  "Reverse Grip Lat Pulldown": "Cable Reverse-Grip Lat Pulldown",
+  "Reverse Grip Pressdown": "Cable Reverse-Grip Pushdown",
+  "Romanian Deadlift": "Barbell Romanian Deadlift",
+  "Romanian Deadlift (Barbell)": "Barbell Romanian Deadlift",
+  "Rope Hammer Curl": "Cable Rope Hammer Curl",
+  "Rope Straight Arm Pulldown": "Cable Rope Straight-Arm Pulldown",
+  "Seal Row": "Barbell Seal Row",
+  "Seated Alternating Curl": "Dumbbell Seated Alternating Curl",
+  "Seated Calf Raise": "Machine Seated Calf Raise",
+  "Seated Dumbbell Press": "Dumbbell Shoulder Press",
+  "Seated Leg Curl": "Machine Seated Leg Curl",
+  "Side Lunge": "Dumbbell Side Lunge",
+  "Single Arm Cable Row": "Cable Single-Arm Row",
+  "Single Arm Dumbbell Row": "Dumbbell Single-Arm Row",
+  "Single Arm Overhead Extension": "Cable Single-Arm Overhead Extension",
+  "Skull Crusher": "Barbell Skull Crusher",
+  "Spider Curl": "Dumbbell Spider Curl",
+  "Standing Calf Raise": "Machine Standing Calf Raise",
+  "Straight Arm Pulldown": "Cable Straight-Arm Pulldown",
+  "Sumo Goblet Squat": "Dumbbell Sumo Goblet Squat",
+  "Tate Press": "Dumbbell Tate Press",
+  "Tricep Dip": "Triceps Dip",
+  "Tricep Pushdown (Straight Bar)": "Cable Straight-Bar Pushdown",
+  "Upright Row (Cable)": "Cable Upright Row",
+  "Upright Row (Dumbbell)": "Dumbbell Upright Row",
+  "V-Bar Pressdown": "Cable V-Bar Pushdown",
+  "Waiter Curl": "Dumbbell Waiter Curl",
+  "Walking Lunge": "Dumbbell Walking Lunge",
+  "Wide Grip Seated Row": "Cable Wide-Grip Seated Row",
+  "Wide-Grip Barbell Curl": "Barbell Wide-Grip Curl",
+  "Wide-Grip Lat Pulldown": "Cable Wide-Grip Lat Pulldown",
+  "Wood Chop": "Cable Wood Chop",
+  "Y-Raise (Cable)": "Cable Y-Raise",
+  "Zottman Curl": "Dumbbell Zottman Curl",
+};
+
+
+// Resolve an exercise's data-entry tracking type. Plan/session exercises may carry an OLD (pre-
+// normalization) name — EXERCISE_ALIASES maps those to the canonical catalog name; customs fall
+// back to the coarse muscle tag. Types: weight (load×reps) | reps (bodyweight, optional +lbs) |
+// time (isometric hold, seconds) | cardio (minutes).
+const EX_TRACK = (() => { const m = {}; for (const e of EXERCISE_LIBRARY) m[e.name.toLowerCase()] = e.track; return m; })();
+function trackFor(ex) {
+  if (!ex) return "weight";
+  let t = EX_TRACK[(ex.name || "").toLowerCase()];
+  if (!t && EXERCISE_ALIASES[ex.name]) t = EX_TRACK[EXERCISE_ALIASES[ex.name].toLowerCase()];
+  if (t) return t;
+  return (ex.muscle === "Cardio" || ex.muscle === "Recovery") ? "cardio" : "weight";
+}
+
+
 const DEFAULT_SETTINGS = {
   restTimer:true, restSeconds:90, prDetection:true, lastRef:true,
   deloadReminder:true, streakTracking:true, plateCalc:true,
@@ -2622,7 +2746,9 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
 
       <div ref={topRef}/>
       {workoutDisplayOrder(exercises,{completedIds:[...completedExIds],loggedSets,lastActive:lastActiveExRef.current}).map((ex,exIdx)=>{
-        const isCardio=ex.muscle==="Cardio"||ex.muscle==="Recovery";
+        const track=trackFor(ex);
+        const isCardio=track==="cardio";
+        const isReps=track==="reps"; // bodyweight: reps primary, weight optional (added load)
         const myLog=loggedSets[ex.name]||{};
         const last=settings.lastRef?lastSets[ex.name]:null;
         const myPR=(!isCardio&&settings.prDetection)?prs[ex.name]:null;
@@ -2645,7 +2771,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
               </div>
               <Mono style={{fontSize:11,color:C.muted}}>{isCardio?"Duration goal:":ex.sets+" sets ."} {ex.reps}{!isCardio&&ex.muscle?` . ${ex.muscle}`:""}</Mono>
               {ex.note&&<div style={{fontSize:11,color:C.muted,marginTop:2}}>{ex.note}</div>}
-              {!isCardio&&last&&<Mono style={{fontSize:11,color:C.muted,display:"block",marginTop:2}}>Last: {last[1]?.weight||"--"}lbs × {last[1]?.reps||"--"}</Mono>}
+              {!isCardio&&last&&<Mono style={{fontSize:11,color:C.muted,display:"block",marginTop:2}}>{isReps?`Last: ${last[1]?.reps||"--"} reps${last[1]?.weight?` +${last[1].weight} lbs`:""}`:`Last: ${last[1]?.weight||"--"}lbs × ${last[1]?.reps||"--"}`}</Mono>}
               {isCardio&&last&&last[1]?.minutes&&<Mono style={{fontSize:11,color:C.muted,display:"block",marginTop:2}}>Last: {last[1].minutes} min</Mono>}
               {myPR&&<Mono style={{fontSize:11,color:C.redInk,display:"block"}}>PR: {myPR.weight}lbs</Mono>}
               {!isCardio&&settings.plateCalc&&w0&&<PlateCalc weight={w0} C={C}/>}
@@ -2724,8 +2850,8 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
           {!isCardio&&<div style={{display:"grid",gridTemplateColumns:"28px 24px 1fr 1fr 34px",gap:"4px 8px",alignItems:"center"}}>
             <div/>
             <Mono style={{fontSize:10,color:C.muted}}>#</Mono>
-            <Mono style={{fontSize:10,color:C.muted}}>WEIGHT</Mono>
-            <Mono style={{fontSize:10,color:C.muted}}>REPS</Mono>
+            <Mono style={{fontSize:10,color:C.muted}}>{isReps?"REPS":"WEIGHT"}</Mono>
+            <Mono style={{fontSize:10,color:C.muted}}>{isReps?"+LBS":"REPS"}</Mono>
             <div/>
             {Array.from({length:numSets},(_,i)=>i+1).map(n=>{
               const typ=(setTypes[ex.name]?.[n])||"working";
@@ -2742,17 +2868,17 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
                   ?[<div key={`confirmed${n}`} onClick={()=>{setSetStates(prev=>{const u={...prev};delete u[stateKey];return u;});}} style={{gridColumn:"span 4",background:C.neon+"12",border:`1px solid ${C.neon}22`,borderRadius:6,display:"flex",alignItems:"center",gap:8,padding:"8px 10px",cursor:"pointer"}}>
                       <span style={{color:C.neonInk,display:"inline-flex",alignItems:"center"}}><Check size={ICON.sm} strokeWidth={1.75}/></span>
                       <Mono style={{color:C.neonInk,fontSize:12,fontWeight:700}}>{n}</Mono>
-                      <Mono style={{color:C.text,fontSize:13,fontWeight:600,flex:1}}>{myLog[n]?.weight} lbs × {myLog[n]?.reps}</Mono>
+                      <Mono style={{color:C.text,fontSize:13,fontWeight:600,flex:1}}>{isReps?`${myLog[n]?.reps} reps${myLog[n]?.weight?` +${myLog[n]?.weight} lbs`:""}`:`${myLog[n]?.weight} lbs × ${myLog[n]?.reps}`}</Mono>
                       <Mono style={{color:C.muted,fontSize:11}}>tap to edit</Mono>
                     </div>]
                   :[
                     <Mono key={`n${n}`} style={{fontSize:12,color:setRowState==="inprogress"?C.text:C.muted,textAlign:"center",fontWeight:setRowState==="inprogress"?700:400}}>{n}</Mono>,
-                    <input key={`w${n}`} type="number" placeholder={last?.[n]?.weight||"lbs"} value={myLog[n]?.weight||""} onChange={e=>logSet(ex.name,n,"weight",e.target.value)} onFocus={()=>{if(isPrepop)setLoggedSets(prev=>({...prev,[ex.name]:{...prev[ex.name],[n]:{...prev[ex.name]?.[n],prepop:false}}}));}} style={{...inputStyle,color:setRowState==="suggested"?C.muted:C.text,fontStyle:setRowState==="suggested"?"italic":"normal",background:setRowState==="inprogress"?C.accent+"12":C.surface}}/>,
-                    <input key={`r${n}`} type="number" placeholder={last?.[n]?.reps||"reps"} value={myLog[n]?.reps||""} onChange={e=>logSet(ex.name,n,"reps",e.target.value)} onFocus={()=>{if(isPrepop)setLoggedSets(prev=>({...prev,[ex.name]:{...prev[ex.name],[n]:{...prev[ex.name]?.[n],prepop:false}}}));}} style={{...inputStyle,color:setRowState==="suggested"?C.muted:C.text,fontStyle:setRowState==="suggested"?"italic":"normal",background:setRowState==="inprogress"?C.accent+"12":C.surface}}/>,
+                    <input key={`c1${n}`} type="number" inputMode="numeric" placeholder={isReps?(last?.[n]?.reps||"reps"):(last?.[n]?.weight||"lbs")} value={(isReps?myLog[n]?.reps:myLog[n]?.weight)||""} onChange={e=>logSet(ex.name,n,isReps?"reps":"weight",e.target.value)} onFocus={()=>{if(isPrepop)setLoggedSets(prev=>({...prev,[ex.name]:{...prev[ex.name],[n]:{...prev[ex.name]?.[n],prepop:false}}}));}} style={{...inputStyle,color:setRowState==="suggested"?C.muted:C.text,fontStyle:setRowState==="suggested"?"italic":"normal",background:setRowState==="inprogress"?C.accent+"12":C.surface}}/>,
+                    <input key={`c2${n}`} type="number" inputMode="numeric" placeholder={isReps?"+lbs":(last?.[n]?.reps||"reps")} value={(isReps?myLog[n]?.weight:myLog[n]?.reps)||""} onChange={e=>logSet(ex.name,n,isReps?"weight":"reps",e.target.value)} onFocus={()=>{if(isPrepop)setLoggedSets(prev=>({...prev,[ex.name]:{...prev[ex.name],[n]:{...prev[ex.name]?.[n],prepop:false}}}));}} style={{...inputStyle,color:setRowState==="suggested"?C.muted:C.text,fontStyle:setRowState==="suggested"?"italic":"normal",background:setRowState==="inprogress"?C.accent+"12":C.surface,opacity:isReps&&!(myLog[n]?.weight)?0.8:1}}/>,
                     <button key={`d${n}`} onClick={()=>{
-                      const w=myLog[n]?.weight;
-                      const r=myLog[n]?.reps;
-                      if(!w||!r){setSetError(prev=>({...prev,[ex.name]:"Enter weight and reps first"}));return;}
+                      const w=myLog[n]?.weight||"";
+                      const r=myLog[n]?.reps||"";
+                      if(isReps?!r:(!w||!r)){setSetError(prev=>({...prev,[ex.name]:isReps?"Enter reps first":"Enter weight and reps first"}));return;}
                       setSetError(prev=>({...prev,[ex.name]:""}));
                       lastActiveExRef.current=ex.name;
                       const isWarmup=typ==="warmup";
@@ -2766,7 +2892,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
                       });
                       setSetStates(prev=>({...prev,[stateKey]:"confirmed"}));
                       const myL=draftSets[ex.name]||{};
-                      const allFilled=Array.from({length:numSets},(_,i)=>i+1).every(s=>myL[s]?.weight&&myL[s]?.reps);
+                      const allFilled=Array.from({length:numSets},(_,i)=>i+1).every(s=>isReps?myL[s]?.reps:(myL[s]?.weight&&myL[s]?.reps));
                       if(n===numSets&&allFilled){markExerciseDone(ex.id,ex.name,!isWarmup);}
                       // REST TIMER: only triggered here, on explicit set confirmation
                       else if(!isWarmup){setShowRest(true);setRestKey(k=>k+1);setTimeout(()=>restAnchorRef.current?.scrollIntoView({behavior:"smooth",block:"start"}),100);}
