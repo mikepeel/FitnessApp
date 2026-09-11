@@ -2759,6 +2759,8 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
         const track=trackFor(ex);
         const isCardio=track==="cardio";
         const isReps=track==="reps"; // bodyweight: reps primary, weight optional (added load)
+        const isTime=track==="time"; // isometric hold: SECONDS primary (stored in `reps`)
+        const isRL=isReps||isTime;   // reps-like layout: col1 = primary (reps/seconds), col2 = optional +lbs
         const myLog=loggedSets[ex.name]||{};
         const last=settings.lastRef?lastSets[ex.name]:null;
         const myPR=(!isCardio&&settings.prDetection)?prs[ex.name]:null;
@@ -2781,7 +2783,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
               </div>
               <Mono style={{fontSize:11,color:C.muted}}>{isCardio?"Duration goal:":ex.sets+" sets ."} {ex.reps}{!isCardio&&ex.muscle?` . ${ex.muscle}`:""}</Mono>
               {ex.note&&<div style={{fontSize:11,color:C.muted,marginTop:2}}>{ex.note}</div>}
-              {!isCardio&&last&&<Mono style={{fontSize:11,color:C.muted,display:"block",marginTop:2}}>{isReps?`Last: ${last[1]?.reps||"--"} reps${last[1]?.weight?` +${last[1].weight} lbs`:""}`:`Last: ${last[1]?.weight||"--"}lbs × ${last[1]?.reps||"--"}`}</Mono>}
+              {!isCardio&&last&&<Mono style={{fontSize:11,color:C.muted,display:"block",marginTop:2}}>{isTime?`Last: ${last[1]?.reps||"--"}s`:isReps?`Last: ${last[1]?.reps||"--"} reps${last[1]?.weight?` +${last[1].weight} lbs`:""}`:`Last: ${last[1]?.weight||"--"}lbs × ${last[1]?.reps||"--"}`}</Mono>}
               {isCardio&&last&&last[1]?.minutes&&<Mono style={{fontSize:11,color:C.muted,display:"block",marginTop:2}}>Last: {last[1].minutes} min</Mono>}
               {myPR&&<Mono style={{fontSize:11,color:C.redInk,display:"block"}}>PR: {myPR.weight}lbs</Mono>}
               {!isCardio&&settings.plateCalc&&w0&&<PlateCalc weight={w0} C={C}/>}
@@ -2860,8 +2862,8 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
           {!isCardio&&<div style={{display:"grid",gridTemplateColumns:"28px 24px 1fr 1fr 34px",gap:"4px 8px",alignItems:"center"}}>
             <div/>
             <Mono style={{fontSize:10,color:C.muted}}>#</Mono>
-            <Mono style={{fontSize:10,color:C.muted}}>{isReps?"REPS":"WEIGHT"}</Mono>
-            <Mono style={{fontSize:10,color:C.muted}}>{isReps?"+LBS":"REPS"}</Mono>
+            <Mono style={{fontSize:10,color:C.muted}}>{isTime?"SECONDS":isReps?"REPS":"WEIGHT"}</Mono>
+            <Mono style={{fontSize:10,color:C.muted}}>{isRL?"+LBS":"REPS"}</Mono>
             <div/>
             {Array.from({length:numSets},(_,i)=>i+1).map(n=>{
               const typ=(setTypes[ex.name]?.[n])||"working";
@@ -2878,17 +2880,17 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
                   ?[<div key={`confirmed${n}`} onClick={()=>{setSetStates(prev=>{const u={...prev};delete u[stateKey];return u;});}} style={{gridColumn:"span 4",background:C.neon+"12",border:`1px solid ${C.neon}22`,borderRadius:6,display:"flex",alignItems:"center",gap:8,padding:"8px 10px",cursor:"pointer"}}>
                       <span style={{color:C.neonInk,display:"inline-flex",alignItems:"center"}}><Check size={ICON.sm} strokeWidth={1.75}/></span>
                       <Mono style={{color:C.neonInk,fontSize:12,fontWeight:700}}>{n}</Mono>
-                      <Mono style={{color:C.text,fontSize:13,fontWeight:600,flex:1}}>{isReps?`${myLog[n]?.reps} reps${myLog[n]?.weight?` +${myLog[n]?.weight} lbs`:""}`:`${myLog[n]?.weight} lbs × ${myLog[n]?.reps}`}</Mono>
+                      <Mono style={{color:C.text,fontSize:13,fontWeight:600,flex:1}}>{isTime?`${myLog[n]?.reps}s${myLog[n]?.weight?` +${myLog[n]?.weight} lbs`:""}`:isReps?`${myLog[n]?.reps} reps${myLog[n]?.weight?` +${myLog[n]?.weight} lbs`:""}`:`${myLog[n]?.weight} lbs × ${myLog[n]?.reps}`}</Mono>
                       <Mono style={{color:C.muted,fontSize:11}}>tap to edit</Mono>
                     </div>]
                   :[
                     <Mono key={`n${n}`} style={{fontSize:12,color:setRowState==="inprogress"?C.text:C.muted,textAlign:"center",fontWeight:setRowState==="inprogress"?700:400}}>{n}</Mono>,
-                    <input key={`c1${n}`} type="number" inputMode="numeric" placeholder={isReps?(last?.[n]?.reps||"reps"):(last?.[n]?.weight||"lbs")} value={(isReps?myLog[n]?.reps:myLog[n]?.weight)||""} onChange={e=>logSet(ex.name,n,isReps?"reps":"weight",e.target.value)} onFocus={()=>{if(isPrepop)setLoggedSets(prev=>({...prev,[ex.name]:{...prev[ex.name],[n]:{...prev[ex.name]?.[n],prepop:false}}}));}} style={{...inputStyle,color:setRowState==="suggested"?C.muted:C.text,fontStyle:setRowState==="suggested"?"italic":"normal",background:setRowState==="inprogress"?C.accent+"12":C.surface}}/>,
-                    <input key={`c2${n}`} type="number" inputMode="numeric" placeholder={isReps?"+lbs":(last?.[n]?.reps||"reps")} value={(isReps?myLog[n]?.weight:myLog[n]?.reps)||""} onChange={e=>logSet(ex.name,n,isReps?"weight":"reps",e.target.value)} onFocus={()=>{if(isPrepop)setLoggedSets(prev=>({...prev,[ex.name]:{...prev[ex.name],[n]:{...prev[ex.name]?.[n],prepop:false}}}));}} style={{...inputStyle,color:setRowState==="suggested"?C.muted:C.text,fontStyle:setRowState==="suggested"?"italic":"normal",background:setRowState==="inprogress"?C.accent+"12":C.surface,opacity:isReps&&!(myLog[n]?.weight)?0.8:1}}/>,
+                    <input key={`c1${n}`} type="number" inputMode="numeric" placeholder={isTime?(last?.[n]?.reps||"secs"):isReps?(last?.[n]?.reps||"reps"):(last?.[n]?.weight||"lbs")} value={(isRL?myLog[n]?.reps:myLog[n]?.weight)||""} onChange={e=>logSet(ex.name,n,isRL?"reps":"weight",e.target.value)} onFocus={()=>{if(isPrepop)setLoggedSets(prev=>({...prev,[ex.name]:{...prev[ex.name],[n]:{...prev[ex.name]?.[n],prepop:false}}}));}} style={{...inputStyle,color:setRowState==="suggested"?C.muted:C.text,fontStyle:setRowState==="suggested"?"italic":"normal",background:setRowState==="inprogress"?C.accent+"12":C.surface}}/>,
+                    <input key={`c2${n}`} type="number" inputMode="numeric" placeholder={isRL?"+lbs":(last?.[n]?.reps||"reps")} value={(isRL?myLog[n]?.weight:myLog[n]?.reps)||""} onChange={e=>logSet(ex.name,n,isRL?"weight":"reps",e.target.value)} onFocus={()=>{if(isPrepop)setLoggedSets(prev=>({...prev,[ex.name]:{...prev[ex.name],[n]:{...prev[ex.name]?.[n],prepop:false}}}));}} style={{...inputStyle,color:setRowState==="suggested"?C.muted:C.text,fontStyle:setRowState==="suggested"?"italic":"normal",background:setRowState==="inprogress"?C.accent+"12":C.surface,opacity:isRL&&!(myLog[n]?.weight)?0.8:1}}/>,
                     <button key={`d${n}`} onClick={()=>{
                       const w=myLog[n]?.weight||"";
                       const r=myLog[n]?.reps||"";
-                      if(isReps?!r:(!w||!r)){setSetError(prev=>({...prev,[ex.name]:isReps?"Enter reps first":"Enter weight and reps first"}));return;}
+                      if(isRL?!r:(!w||!r)){setSetError(prev=>({...prev,[ex.name]:isTime?"Enter seconds first":isReps?"Enter reps first":"Enter weight and reps first"}));return;}
                       setSetError(prev=>({...prev,[ex.name]:""}));
                       lastActiveExRef.current=ex.name;
                       const isWarmup=typ==="warmup";
@@ -2902,7 +2904,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
                       });
                       setSetStates(prev=>({...prev,[stateKey]:"confirmed"}));
                       const myL=draftSets[ex.name]||{};
-                      const allFilled=Array.from({length:numSets},(_,i)=>i+1).every(s=>isReps?myL[s]?.reps:(myL[s]?.weight&&myL[s]?.reps));
+                      const allFilled=Array.from({length:numSets},(_,i)=>i+1).every(s=>isRL?myL[s]?.reps:(myL[s]?.weight&&myL[s]?.reps));
                       if(n===numSets&&allFilled){markExerciseDone(ex.id,ex.name,!isWarmup);}
                       // REST TIMER: only triggered here, on explicit set confirmation
                       else if(!isWarmup){setShowRest(true);setRestKey(k=>k+1);setTimeout(()=>restAnchorRef.current?.scrollIntoView({behavior:"smooth",block:"start"}),100);}
@@ -5227,7 +5229,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
                     <tr><th style={{...thSt,textAlign:"left"}}>DATE</th><th style={{...thSt,textAlign:"left"}}>SETS</th></tr>
                     {sessionRows.map((s,i)=>{const hi=i===0;return <tr key={s.sessionId}>
                       <td style={{...tdSt,whiteSpace:"nowrap",verticalAlign:"top",color:hi?C.neonInk:C.text,fontWeight:hi?700:400}}>{s.date?s.date.slice(5):"—"}</td>
-                      <td style={{...tdSt,color:hi?C.neonInk:C.text,fontWeight:hi?700:400}}>{s.groups.map(g=>`${g.count}×${g.reps} @ ${g.weight}`).join(", ")}</td>
+                      <td style={{...tdSt,color:hi?C.neonInk:C.text,fontWeight:hi?700:400}}>{(()=>{const et=trackFor({name:selEx});return s.groups.map(g=>`${g.count}×${g.reps}${et==="time"?"s":(g.weight?` @ ${g.weight}`:"")}`).join(", ");})()}</td>
                     </tr>;})}
                   </tbody></table>
                 </div>:<div style={emptySt}>Log weighted sessions of {selEx} to see data.</div>)}
