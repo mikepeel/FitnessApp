@@ -5252,6 +5252,23 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
             <div style={{position:"sticky",top:0,zIndex:10,background:C.bg,paddingBottom:12}}>
               <button onClick={()=>setSelEx(null)} aria-label="Back to all exercises" style={{display:"flex",alignItems:"center",gap:8,width:"100%",minHeight:44,background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,color:C.accentInk,fontFamily:mono,fontSize:13,fontWeight:600,letterSpacing:"0.04em",cursor:"pointer",padding:"0 14px"}}>← All exercises</button>
             </div>
+            {/* Trend hero — progress as a story, always on (not gated). Top-set weight first→last,
+                direction shown by glyph + word (not colour alone) so it's accessible. */}
+            {chartData.length>=1&&(()=>{
+              const f=chartData[0], l=chartData[chartData.length-1];
+              const fw=parseFloat(f.weight)||0, lw=parseFloat(l.weight)||0, delta=Math.round(lw-fw);
+              const days=Math.max(0,Math.round((new Date(l.date)-new Date(f.date))/86400000));
+              const wks=Math.max(1,Math.round(days/7));
+              const single=chartData.length<2;
+              const col=single?C.muted:delta>0?C.neon:delta<0?C.red:C.gold;
+              const head=single?`${l.weight} lb`:delta>0?`▲ Up ${delta} lb`:delta<0?`▼ Down ${Math.abs(delta)} lb`:`Holding at ${l.weight} lb`;
+              const sub=single?"one session so far":`${f.weight} → ${l.weight} lb · over ${wks} week${wks!==1?"s":""}`;
+              return <div style={{background:C.card,border:`1px solid ${col}44`,borderRadius:RADIUS.card,padding:"16px 18px",marginBottom:12}}>
+                <Mono style={{fontSize:10,color:C.muted,letterSpacing:"0.14em",textTransform:"uppercase",display:"block",marginBottom:7}}>{selEx} · Top Set</Mono>
+                <div style={{fontSize:30,fontWeight:800,letterSpacing:"-0.02em",color:col,fontFamily:mono,lineHeight:1.05}}>{head}</div>
+                <Mono style={{fontSize:12,color:C.muted,display:"block",marginTop:6}}>{sub}</Mono>
+              </div>;
+            })()}
             {view==="chart"
               ? (chartData.length>1?<div>
                   <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"14px 8px",marginBottom:12}}>
