@@ -1254,6 +1254,10 @@ function libMuscleFor(name) {
   if (!g && EXERCISE_ALIASES[name]) g = EX_MUSCLE[EXERCISE_ALIASES[name].toLowerCase()];
   return (g && g !== "Cardio") ? g : null;
 }
+// Movement photos (public-domain, free-exercise-db) served via jsDelivr, pinned to a commit for
+// stability. Catalog entries carry `img` = [startFrame, endFrame] paths (or null). Full URL =
+// EX_IMG_BASE + path.
+const EX_IMG_BASE = "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@a859101d633a01c4a1a920d6a8ce41dabba0705f/exercises/";
 function trackFor(ex) {
   if (!ex) return "weight";
   let t = EX_TRACK[(ex.name || "").toLowerCase()];
@@ -2336,6 +2340,7 @@ function ExerciseLibraryModal({onSelect,onClose,C,multiAdd=false,initialMuscle=n
   const [muscleFilter,setMuscleFilter]=useState(initialMuscle||null); // preset when opened by tapping a muscle on the plan-day BodyMap
   const [tab,setTab]=useState("library");
   const [custom,setCustom]=useState({name:"",sets:"3",reps:"10-12",note:"",muscle:""});
+  const [preview,setPreview]=useState(null); // exercise whose movement photos are enlarged (tap a thumbnail)
   // multiAdd: keep the picker open across selections so a whole day is built in one session. `added`
   // (names added THIS session) drives the per-row "Added" state and no-ops a second tap of the same
   // row — guarding accidental dupes while feedback stays visible; a genuine repeat is still reachable
@@ -2388,6 +2393,11 @@ function ExerciseLibraryModal({onSelect,onClose,C,multiAdd=false,initialMuscle=n
         return <div key={i} onClick={()=>handleSelect({name:ex.name,muscle:ex.muscle,sets:ex.muscle==="Cardio"?"--":"3",reps:ex.muscle==="Cardio"?"30 min":"10-12",note:ex.cue})}
           style={{background:isAdded?C.neon+"14":C.card,border:`1px solid ${isAdded?C.neon+"55":C.border}`,borderRadius:8,padding:"10px 12px",marginBottom:6,cursor:isAdded?"default":"pointer"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+            {/* Movement thumbnail (public-domain photo); tap to enlarge. Falls back to a muscle-tag tile when no image / load fails. */}
+            <div onClick={e=>{e.stopPropagation();if(ex.img)setPreview(ex);}} style={{width:46,height:46,borderRadius:8,flexShrink:0,overflow:"hidden",background:C.card,border:`1px solid ${C.border}`,cursor:ex.img?"zoom-in":"default"}}>
+              {ex.img&&<img src={EX_IMG_BASE+ex.img[0]} alt="" loading="lazy" onError={e=>{e.currentTarget.style.display="none";if(e.currentTarget.nextSibling)e.currentTarget.nextSibling.style.display="flex";}} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>}
+              <div style={{display:ex.img?"none":"flex",width:"100%",height:"100%",alignItems:"center",justifyContent:"center",background:C.surface,color:C.faint,fontFamily:C.mono,fontSize:8.5,letterSpacing:"0.03em",textAlign:"center",padding:2,boxSizing:"border-box"}}>{(ex.muscle||"").toUpperCase()}</div>
+            </div>
             <div style={{flex:1,minWidth:0}}>
               <div style={{fontSize:13,fontWeight:600,marginBottom:3}}>{ex.name}</div>
               <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:5,lineHeight:1.4}}>{ex.cue}</Mono>
@@ -2415,6 +2425,23 @@ function ExerciseLibraryModal({onSelect,onClose,C,multiAdd=false,initialMuscle=n
     </div>}
     {multiAdd&&<div style={{position:"sticky",bottom:0,marginTop:12,paddingTop:10,background:C.surface,borderTop:`1px solid ${C.border}`}}>
       <Btn onClick={onClose} C={C} style={{width:"100%",fontWeight:800,letterSpacing:"0.08em"}}>{addedCount>0?`Done — ${addedCount} added`:"Done"}</Btn>
+    </div>}
+    {/* Tap-to-enlarge: the movement's start + end photos, cue, and a direct Add. */}
+    {preview&&<div onClick={()=>setPreview(null)} style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.82)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:RADIUS.modal,padding:16,maxWidth:360,width:"100%",maxHeight:"90vh",overflowY:"auto"}}>
+        <div style={{fontSize:16,fontWeight:700,marginBottom:10}}>{preview.name}</div>
+        <div style={{display:"flex",gap:8,marginBottom:10}}>
+          {(preview.img||[]).map((p,idx)=><img key={idx} src={EX_IMG_BASE+p} alt="" style={{flex:1,minWidth:0,width:"100%",borderRadius:RADIUS.card,border:`1px solid ${C.border}`,objectFit:"cover",background:C.card}}/>)}
+        </div>
+        {preview.cue&&<Mono style={{fontSize:11,color:C.muted,display:"block",lineHeight:1.5,marginBottom:10}}>{preview.cue}</Mono>}
+        <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
+          <Pill color={C.accentInk}>{preview.muscle}</Pill><Pill color={equipColor[preview.equipment]||C.faint}>{preview.equipment}</Pill>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <Btn variant="ghost" C={C} style={{flex:1}} onClick={()=>setPreview(null)}>Close</Btn>
+          <Btn C={C} style={{flex:1}} onClick={()=>{handleSelect({name:preview.name,muscle:preview.muscle,sets:preview.muscle==="Cardio"?"--":"3",reps:preview.muscle==="Cardio"?"30 min":"10-12",note:preview.cue});setPreview(null);}}>Add</Btn>
+        </div>
+      </div>
     </div>}
   </Modal>;
 }
