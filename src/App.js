@@ -4081,19 +4081,23 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
   async function saveManualSession(){
     if(!manualSession.dayLabel){return;}
     const dt=new Date(manualSession.date+"T12:00:00").toISOString();
+    // Store each exercise in line with data entry: cardio → minutes/level; bodyweight/hold →
+    // reps (= seconds for holds) + optional weight; weighted → weight+reps. The two value inputs
+    // are relabelled per type in the row above (min/secs/reps, lvl/+lbs/lbs).
     const setsArr=manualSession.exercises
       .filter(e=>e.name)
-      .flatMap(e=>Array.from({length:parseInt(e.sets)||1},(_,si)=>({
-        exName:e.name, setNum:si+1,
-        weight:parseFloat(e.weight)||0,
-        reps:parseInt(e.reps)||0,
-        muscle:"", isPR:false
-      })));
+      .flatMap(e=>{
+        const tk=trackFor({name:e.name});
+        return Array.from({length:parseInt(e.sets)||1},(_,si)=>tk==="cardio"
+          ?{exName:e.name,setNum:si+1,minutes:parseFloat(e.reps)||0,level:e.weight||"",weight:"",reps:"",muscle:"",isPR:false}
+          :{exName:e.name,setNum:si+1,weight:parseFloat(e.weight)||0,reps:parseInt(e.reps)||0,muscle:"",isPR:false});
+      });
     const setsMap={};
     manualSession.exercises.filter(e=>e.name).forEach(e=>{
-      setsMap[e.name]=Array.from({length:parseInt(e.sets)||1},(_,si)=>({
-        setNum:si+1, weight:e.weight, reps:e.reps, done:true
-      }));
+      const tk=trackFor({name:e.name});
+      setsMap[e.name]=Array.from({length:parseInt(e.sets)||1},(_,si)=>tk==="cardio"
+        ?{setNum:si+1,minutes:e.reps,level:e.weight,done:true}
+        :{setNum:si+1,weight:e.weight,reps:e.reps,done:true});
     });
     const newSess={
       id:Date.now().toString(),
@@ -4329,19 +4333,19 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
           <button onClick={()=>setManualSession(p=>({...p,exercises:[...p.exercises,{name:"",sets:"3",reps:"10",weight:""}]}))}
             style={{background:"transparent",border:"none",color:C.neonInk,cursor:"pointer",fontSize:12,fontFamily:"'SF Mono','Courier New',monospace"}}>+ Add Exercise</button>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr auto",gap:5,marginBottom:4}}>
+        <div style={{display:"grid",gridTemplateColumns:"minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) auto",gap:5,marginBottom:4}}>
           {["Exercise","Sets","Reps","lbs",""].map(h=><Mono key={h} style={{fontSize:9,color:C.muted,textAlign:"center"}}>{h}</Mono>)}
         </div>
         {manualSession.exercises.map((ex,ei)=>(
-          <div key={ei} style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr auto",gap:5,marginBottom:6,alignItems:"center"}}>
+          <div key={ei} style={{display:"grid",gridTemplateColumns:"minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) auto",gap:5,marginBottom:6,alignItems:"center"}}>
             <input value={ex.name} onChange={e=>setManualSession(p=>({...p,exercises:p.exercises.map((x,i)=>i===ei?{...x,name:e.target.value}:x)}))}
-              placeholder="Exercise name" style={{padding:"7px 8px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace"}}/>
+              placeholder="Exercise name" style={{padding:"7px 8px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",minWidth:0,width:"100%",boxSizing:"border-box"}}/>
             <input value={ex.sets} onChange={e=>setManualSession(p=>({...p,exercises:p.exercises.map((x,i)=>i===ei?{...x,sets:e.target.value}:x)}))}
-              style={{padding:"7px 4px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"center"}}/>
-            <input value={ex.reps} onChange={e=>setManualSession(p=>({...p,exercises:p.exercises.map((x,i)=>i===ei?{...x,reps:e.target.value}:x)}))}
-              style={{padding:"7px 4px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"center"}}/>
-            <input value={ex.weight} onChange={e=>setManualSession(p=>({...p,exercises:p.exercises.map((x,i)=>i===ei?{...x,weight:e.target.value}:x)}))}
-              style={{padding:"7px 4px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"center"}}/>
+              style={{padding:"7px 4px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"center",minWidth:0,width:"100%",boxSizing:"border-box"}}/>
+            <input value={ex.reps} inputMode="numeric" placeholder={(t=>t==="cardio"?"min":t==="time"?"secs":"reps")(trackFor({name:ex.name}))} onChange={e=>setManualSession(p=>({...p,exercises:p.exercises.map((x,i)=>i===ei?{...x,reps:e.target.value}:x)}))}
+              style={{padding:"7px 4px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"center",minWidth:0,width:"100%",boxSizing:"border-box"}}/>
+            <input value={ex.weight} inputMode="numeric" placeholder={(t=>t==="cardio"?"lvl":t==="reps"||t==="time"?"+lbs":"lbs")(trackFor({name:ex.name}))} onChange={e=>setManualSession(p=>({...p,exercises:p.exercises.map((x,i)=>i===ei?{...x,weight:e.target.value}:x)}))}
+              style={{padding:"7px 4px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"center",minWidth:0,width:"100%",boxSizing:"border-box"}}/>
             {manualSession.exercises.length>1
               ?<button onClick={()=>setManualSession(p=>({...p,exercises:p.exercises.filter((_,i)=>i!==ei)}))}
                 style={{background:"transparent",border:"none",color:C.redInk,cursor:"pointer",fontSize:14,padding:"0 2px"}}>✕</button>
