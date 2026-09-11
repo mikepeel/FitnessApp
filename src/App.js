@@ -1367,7 +1367,7 @@ function BodyMap({intensities={},focus=null,onSelect,C,figMax=150}){
   </div>;
 }
 
-function RestTimer({seconds,onDone,onSkip,C}){
+function RestTimer({seconds,onDone,onSkip,C,next}){
   const startTs=useRef(Date.now());
   const [rem,setRem]=useState(seconds);
   useEffect(()=>{
@@ -1378,15 +1378,25 @@ function RestTimer({seconds,onDone,onSkip,C}){
     },1000);
     return()=>clearTimeout(t);
   },[rem]); // eslint-disable-line react-hooks/exhaustive-deps
-  return <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"8px 12px",marginBottom:8,display:"flex",alignItems:"center",gap:12}}>
-    <Mono style={{fontSize:9,color:C.muted,letterSpacing:"0.12em",flexShrink:0}}>REST</Mono>
-    <div style={{fontSize:20,fontFamily:"'SF Mono','Courier New',monospace",color:rem<10?C.redInk:C.neonInk,fontWeight:700,minWidth:42}}>
-      {Math.floor(rem/60)}:{String(rem%60).padStart(2,"0")}
+  // Make the rest the most useful 15 seconds: show the NEXT set's target + last week's number to beat.
+  const targetTxt=next?(next.track==="time"?`${next.targetReps||"—"}s hold`:next.track==="reps"?`${next.targetReps||"—"} reps`:`${next.targetReps||"—"} reps${next.weight?` @ ${next.weight} lb`:""}`):null;
+  const lastTxt=next?(next.track==="time"?(next.lastR?`${next.lastR}s`:""):next.track==="reps"?(next.lastR?`${next.lastR} reps`:""):((next.lastW||next.lastR)?`${next.lastW||"–"} lb × ${next.lastR||"–"}`:"")):null;
+  return <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"8px 12px",marginBottom:8}}>
+    <div style={{display:"flex",alignItems:"center",gap:12}}>
+      <Mono style={{fontSize:9,color:C.muted,letterSpacing:"0.12em",flexShrink:0}}>REST</Mono>
+      <div style={{fontSize:20,fontFamily:"'SF Mono','Courier New',monospace",color:rem<10?C.redInk:C.neonInk,fontWeight:700,minWidth:42}}>
+        {Math.floor(rem/60)}:{String(rem%60).padStart(2,"0")}
+      </div>
+      <div style={{flex:1,height:3,background:C.border,borderRadius:2}}>
+        <div style={{height:"100%",background:C.neon,borderRadius:2,width:`${(rem/seconds)*100}%`,transition:"width 1s linear"}}/>
+      </div>
+      <Btn onClick={onSkip} variant="ghost" size="sm" C={C} style={{fontSize:10,padding:"4px 8px"}}>Skip</Btn>
     </div>
-    <div style={{flex:1,height:3,background:C.border,borderRadius:2}}>
-      <div style={{height:"100%",background:C.neon,borderRadius:2,width:`${(rem/seconds)*100}%`,transition:"width 1s linear"}}/>
-    </div>
-    <Btn onClick={onSkip} variant="ghost" size="sm" C={C} style={{fontSize:10,padding:"4px 8px"}}>Skip</Btn>
+    {next&&<div style={{display:"flex",alignItems:"center",gap:8,marginTop:8,paddingTop:8,borderTop:`1px solid ${C.border}`,flexWrap:"wrap"}}>
+      <Mono style={{fontSize:9,color:C.neonInk,letterSpacing:"0.12em",flexShrink:0}}>NEXT</Mono>
+      <Mono style={{fontSize:12,color:C.text,fontWeight:600}}>Set {next.setNum} · {targetTxt}</Mono>
+      {lastTxt&&<Mono style={{fontSize:11,color:C.muted,marginLeft:"auto"}}>Last: {lastTxt}</Mono>}
+    </div>}
   </div>;
 }
 
@@ -2532,6 +2542,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   const [completedExIds,setCompletedExIds]=useState(()=>new Set(workoutDraft?.completedExIds||[]));
   const [showRest,setShowRest]=useState(false);
   const [restKey,setRestKey]=useState(0);
+  const [restNext,setRestNext]=useState(null); // {exName,setNum,track,targetReps,weight,lastW,lastR} — the rest-timer "next up" context
   const [notes,setNotes]=useState("");
   const [startTime]=useState(workoutDraft?.startedAt||new Date().toISOString());
   const startMs=useRef(workoutDraft?.elapsed ? Date.now()-(workoutDraft.elapsed*1000) : Date.now());
@@ -2672,7 +2683,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   // When all sets for an exercise are ticked, move it to the bottom
   function markExerciseDone(exId,exName,withRest=true){
     const isLastExercise=exercises.filter(e=>!completedExIds.has(e.id)).length===1;
-    if(withRest&&!isLastExercise){setShowRest(true);setRestKey(k=>k+1);}
+    if(withRest&&!isLastExercise){setRestNext(null);setShowRest(true);setRestKey(k=>k+1);}
     else if(!withRest){setShowRest(false);}
     setCompletedExIds(prev=>{
       const next=new Set(prev);
@@ -2826,7 +2837,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
     <div style={{padding:"14px 18px"}}>
       {/* Scroll target so set-confirm brings the rest timer + active exercise into view */}
       <div ref={restAnchorRef} style={{scrollMarginTop:80}}/>
-      {showRest&&settings.restTimer&&<RestTimer key={restKey} seconds={settings.restSeconds||90} onDone={()=>setShowRest(false)} onSkip={()=>setShowRest(false)} C={C}/>}
+      {showRest&&settings.restTimer&&<RestTimer key={restKey} seconds={settings.restSeconds||90} onDone={()=>setShowRest(false)} onSkip={()=>setShowRest(false)} C={C} next={restNext}/>}
 
       <div ref={topRef}/>
       {workoutDisplayOrder(exercises,{completedIds:[...completedExIds],loggedSets,lastActive:lastActiveExRef.current}).map((ex,exIdx)=>{
@@ -2981,7 +2992,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
                       const allFilled=Array.from({length:numSets},(_,i)=>i+1).every(s=>isRL?myL[s]?.reps:(myL[s]?.weight&&myL[s]?.reps));
                       if(n===numSets&&allFilled){markExerciseDone(ex.id,ex.name,!isWarmup);}
                       // REST TIMER: only triggered here, on explicit set confirmation
-                      else if(!isWarmup){setShowRest(true);setRestKey(k=>k+1);setTimeout(()=>restAnchorRef.current?.scrollIntoView({behavior:"smooth",block:"start"}),100);}
+                      else if(!isWarmup){setRestNext({exName:ex.name,setNum:n+1,track,targetReps:ex.reps,weight:track==="weight"?w:"",lastW:last?.[n+1]?.weight,lastR:last?.[n+1]?.reps});setShowRest(true);setRestKey(k=>k+1);setTimeout(()=>restAnchorRef.current?.scrollIntoView({behavior:"smooth",block:"start"}),100);}
                     }} aria-label="Confirm set" style={{padding:"9px 4px",background:"transparent",border:`1px solid ${C.neon}44`,borderRadius:7,color:C.neonInk,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Check size={ICON.md} strokeWidth={1.75}/></button>
                   ])
               ];
