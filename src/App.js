@@ -1394,7 +1394,7 @@ function RestTimer({seconds,onDone,onSkip,C,next}){
     </div>
     {next&&<div style={{display:"flex",alignItems:"center",gap:8,marginTop:8,paddingTop:8,borderTop:`1px solid ${C.border}`,flexWrap:"wrap"}}>
       <Mono style={{fontSize:9,color:C.neonInk,letterSpacing:"0.12em",flexShrink:0}}>NEXT</Mono>
-      <Mono style={{fontSize:12,color:C.text,fontWeight:600}}>Set {next.setNum} · {targetTxt}</Mono>
+      <Mono style={{fontSize:12,color:C.text,fontWeight:600}}>{next.exName?`${next.exName} · `:""}Set {next.setNum} · {targetTxt}</Mono>
       {lastTxt&&<Mono style={{fontSize:11,color:C.muted,marginLeft:"auto"}}>Last: {lastTxt}</Mono>}
     </div>}
   </div>;
@@ -2684,7 +2684,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   function markExerciseDone(exId,exName,withRest=true){
     const isLastExercise=exercises.filter(e=>!completedExIds.has(e.id)).length===1;
     if(withRest&&!isLastExercise){setRestNext(null);setShowRest(true);setRestKey(k=>k+1);}
-    else if(!withRest){setShowRest(false);}
+    else if(!withRest||isLastExercise){setRestNext(null);setShowRest(false);}
     setCompletedExIds(prev=>{
       const next=new Set(prev);
       next.add(exId);

@@ -58,6 +58,27 @@ test.describe("rest timer", () => {
     expect(timerText).toBeTruthy();
   });
 
+  test("rest timer NEXT line names the exercise (not a bare 'Set N')", async ({ page }) => {
+    // Regression: when logging across exercises, "Set 2" alone is ambiguous —
+    // the NEXT line must name the exercise so the target is unmistakable.
+    await page.getByRole("button", { name: "START" }).first().click();
+    await expect(page.getByText(/exercises/)).toBeVisible();
+
+    const weightInputs = page.getByPlaceholder("lbs");
+    const repsInputs = page.getByPlaceholder("reps");
+    await weightInputs.first().fill("175");
+    await repsInputs.first().fill("8");
+    await page.getByRole("button", { name: /confirm set/i }).first().click();
+
+    await expect(page.getByText("REST")).toBeVisible({ timeout: 3000 });
+    // The NEXT line reads "{Exercise} · Set N · {target}" — a non-empty name
+    // must precede "· Set N ·". A bare "Set N · …" (the old bug) would not match.
+    const nextLine = page.getByText(/\S.* · Set \d+ · /);
+    await expect(nextLine).toBeVisible();
+    const txt = await nextLine.textContent();
+    expect(txt).toMatch(/^\S.* · Set \d+ · /);
+  });
+
   test("confirming next set mid-countdown resets rest timer to full duration", async ({ page }) => {
     await page.getByRole("button", { name: "START" }).first().click();
     await expect(page.getByText(/exercises/)).toBeVisible();
