@@ -1244,6 +1244,16 @@ const EXERCISE_ALIASES = {
 // back to the coarse muscle tag. Types: weight (load×reps) | reps (bodyweight, optional +lbs) |
 // time (isometric hold, seconds) | cardio (minutes).
 const EX_TRACK = (() => { const m = {}; for (const e of EXERCISE_LIBRARY) m[e.name.toLowerCase()] = e.track; return m; })();
+const EX_MUSCLE = (() => { const m = {}; for (const e of EXERCISE_LIBRARY) m[e.name.toLowerCase()] = e.muscle; return m; })();
+// The exercise's coarse muscle GROUP, resolving old (aliased) and new catalog names. Used as the
+// muscle-view fallback so every library lift — including bodyweight, which carries no tonnage — is
+// credited to its group (set count) instead of falling into the hidden "Other" bucket. Cardio → null
+// (handled separately as minutes).
+function libMuscleFor(name) {
+  let g = EX_MUSCLE[(name || "").toLowerCase()];
+  if (!g && EXERCISE_ALIASES[name]) g = EX_MUSCLE[EXERCISE_ALIASES[name].toLowerCase()];
+  return (g && g !== "Cardio") ? g : null;
+}
 function trackFor(ex) {
   if (!ex) return "weight";
   let t = EX_TRACK[(ex.name || "").toLowerCase()];
@@ -4952,12 +4962,12 @@ function StatsTab({sessions,programStart,prs,settings,C,activePlan,toggleTheme,t
       // Tonnage = primary mover, resolved by the SAME resolver as set credit (muscleContributions
       // → rollupToGroup) so the bar and the set count in a row never come from different maps; the
       // coarse muscleMap is the fallback. Missing weight contributes 0 tonnage (not reps×1).
-      const m=primaryMoverGroup(x.exName,muscleMap[x.exName]);
+      const m=primaryMoverGroup(x.exName,muscleMap[x.exName]||libMuscleFor(x.exName));
       if(!muscleVolMapped[m])muscleVolMapped[m]=0;
       muscleVolMapped[m]+=(parseFloat(x.weight)||0)*(parseInt(x.reps)||0);
       // Sets are fractionalized via the resolver: 1.0 each primary muscle, 0.5 each
       // secondary. Cardio-by-name and unmapped-without-coarse-tag don't count.
-      const res=muscleContributions(x.exName,muscleMap[x.exName]);
+      const res=muscleContributions(x.exName,muscleMap[x.exName]||libMuscleFor(x.exName));
       if(res.counted)res.contributions.forEach(c=>{fineSets[c.muscle]=(fineSets[c.muscle]||0)+c.factor;});
     });
   });
@@ -4968,6 +4978,9 @@ function StatsTab({sessions,programStart,prs,settings,C,activePlan,toggleTheme,t
   // Scale bars to the displayed groups only — "Other" (unresolved lifts) isn't rendered, so it
   // must not be the scaling denominator (it would understate every visible bar).
   const maxMuscleVol=Math.max(...muscleOrder.map(m=>muscleVolMapped[m]||0),1);
+  // Set count per group (credits bodyweight/holds that carry no tonnage) — the "how much worked"
+  // signal the body map + bars scale to, so bodyweight-trained muscles read as worked, not gray.
+  const maxGroupSets=Math.max(...muscleOrder.map(m=>groupSets[m]||0),1);
 
 
   async function loadTrainerInsight(){
@@ -5230,7 +5243,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
             glance — gray = unused, red deepens with volume. Tap a muscle to focus its detail. The
             numeric bars/insight below remain as the precise breakdown. */}
         <SectionLabel C={C}>Muscles Worked — Last 7 Days</SectionLabel>
-        {(()=>{const bi={};muscleOrder.forEach(m=>{bi[m]=maxMuscleVol>0?(muscleVolMapped[m]||0)/maxMuscleVol:0;});return <div style={{marginBottom:16}}>
+        {(()=>{const bi={};muscleOrder.forEach(m=>{bi[m]=(groupSets[m]||0)/maxGroupSets;});return <div style={{marginBottom:16}}>
           <BodyMap intensities={bi} focus={focusMuscle} onSelect={m=>setFocusMuscle(f=>f===m?null:m)} C={C}/>
           <div style={{display:"flex",alignItems:"center",gap:8,margin:"14px 2px 0"}}>
             <Mono style={{fontSize:9,color:C.muted,letterSpacing:"0.1em"}}>UNUSED</Mono>
@@ -5238,7 +5251,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
             <Mono style={{fontSize:9,color:C.muted,letterSpacing:"0.1em"}}>HEAVY</Mono>
           </div>
           <div style={{minHeight:20,marginTop:10}}>{focusMuscle
-            ?<Mono style={{fontSize:13,color:C.text,fontWeight:700}}><span style={{display:"inline-block",width:9,height:9,borderRadius:5,background:bodyHeatColor(bi[focusMuscle]||0,C),marginRight:8,verticalAlign:"middle"}}/>{focusMuscle.toUpperCase()} — {Math.round((muscleVolMapped[focusMuscle]||0)/1000*10)/10}k lbs · {Math.round((groupSets[focusMuscle]||0)*2)/2} set{Math.round((groupSets[focusMuscle]||0)*2)/2!==1?"s":""} this week</Mono>
+            ?<Mono style={{fontSize:13,color:C.text,fontWeight:700}}><span style={{display:"inline-block",width:9,height:9,borderRadius:5,background:bodyHeatColor(bi[focusMuscle]||0,C),marginRight:8,verticalAlign:"middle"}}/>{focusMuscle.toUpperCase()} — {(()=>{const sn=Math.round((groupSets[focusMuscle]||0)*2)/2;const kl=Math.round((muscleVolMapped[focusMuscle]||0)/1000*10)/10;return `${sn} set${sn!==1?"s":""} this week${kl>0?` · ${kl}k lbs`:""}`;})()}</Mono>
             :<Mono style={{fontSize:12,color:C.muted}}>Tap a muscle to inspect its volume.</Mono>}</div>
         </div>;})()}
         {settings.showVolumeTargets&&settings.showCoaching&&<RealizedVolumeInsight sessions={sessions} settings={settings} C={C}/>}
@@ -5248,7 +5261,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
           const vol=muscleVolMapped[muscle]||0;
           const sets=Math.round((groupSets[muscle]||0)*2)/2;
           if(!vol&&!sets)return null;
-          const pct=Math.round((vol/maxMuscleVol)*100);
+          const pct=Math.round(((groupSets[muscle]||0)/maxGroupSets)*100); // set-based width so bodyweight (0 tonnage) still fills
           const colors={"Chest":C.accent,"Back":C.blue,"Shoulders":C.gold,"Biceps":C.neon,"Triceps":C.neon,"Legs":C.red,"Abs":C.muted,"Cardio":C.green};
           return <div key={muscle} style={{marginBottom:12}}>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
