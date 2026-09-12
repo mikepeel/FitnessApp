@@ -77,23 +77,27 @@ const programWeek = (sessions=[]) => {
 const THEMES = {
   dark: {
     bg:"#161b22", surface:"#1e2530", card:"#252d3a", border:"#3a4456",
-    accent:"#4f8ef7", neon:"#3ecf8e", red:"#f06584", gold:"#f7c948",
-    blue:"#4f8ef7", green:"#3ecf8e", danger:"#f06584",
+    accent:"#4f8ef7", neon:"#22c98a", red:"#f06584", gold:"#f7c948",
+    blue:"#4f8ef7", green:"#22c98a", danger:"#f06584",
+    // Day-type categorical palette (semantic-safe: never reuse green/gold/red). Push→blue, Pull→violet, Legs→sky, Rest→gray.
+    violet:"#a78bfa", sky:"#38bdf8", dayRest:"#5b6675",
     // "ink" = accent colors used as TEXT. On dark backgrounds the vivid tokens read fine,
     // so ink == vivid here; in light mode (below) ink is darkened to meet WCAG AA on white.
-    accentInk:"#66a0ff", blueInk:"#66a0ff", neonInk:"#3ecf8e", greenInk:"#3ecf8e", goldInk:"#f7c948", redInk:"#ff8099", dangerInk:"#ff8099",
+    accentInk:"#66a0ff", blueInk:"#66a0ff", neonInk:"#33d69f", greenInk:"#33d69f", goldInk:"#f7c948", redInk:"#ff8099", dangerInk:"#ff8099",
     // Solid-fill button/selector colors — deep enough for white text in BOTH modes
     accentBtn:"#2b6cb0", neonBtn:"#0a7a4f",
     text:"#e8edf4", muted:"#b0bac8", faint:"#9aa3b2", cardText:"#f2f5fa",
     bodyUnused:"#444b59", bodyStruct:"#2b323e", bodyStructOp:0.7, // muscle heat-map: unused-muscle gray / faint non-muscle structure
     mono:"'SF Mono','Courier New',monospace",
     sans:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif", // prose/UI; metrics use `mono`
-    navBg:"#1a2130", gradTop:"linear-gradient(135deg,#4f8ef715 0%,#3ecf8e08 100%)",
+    navBg:"#1a2130", gradTop:"linear-gradient(135deg,#4f8ef715 0%,#22c98a08 100%)",
   },
   light: {
     bg:"#f7f9fc", surface:"#ffffff", card:"#ffffff", border:"#e2e8f0",
     accent:"#4f8ef7", neon:"#0ea66e", red:"#e53e6a", gold:"#d4a017",
     blue:"#4f8ef7", green:"#0ea66e", danger:"#e53e6a",
+    // Day-type categorical palette (light-mode: darker so it reads on white)
+    violet:"#7c5cf5", sky:"#0284c7", dayRest:"#94a3b8",
     // Darkened accent text colors — all meet WCAG AA (>=4.5:1) on white; vivid tokens above
     // stay for fills/borders/buttons/glows so the UI keeps its pop.
     accentInk:"#2b6cb0", blueInk:"#2b6cb0", neonInk:"#076b42", greenInk:"#076b42", goldInk:"#8a6d0a", redInk:"#c01f4d", dangerInk:"#c01f4d",
@@ -2664,17 +2668,17 @@ export default function ForgeApp(){
 }
 
 function getDayColor(day, C){
-  // Every day color is one of the 4 THEMES accents, theme-aware via C, determined ENTIRELY by the day type
-  // (label). We do NOT read day.color: saved plans carry legacy off-brand colors (e.g. Arms #f0b429 amber
-  // that clashes with Legs gold), so leaking the stored value re-introduces off-brand + near-duplicate hues.
-  // Push/Upper/Chest -> blue · Pull/Arms -> red · Legs/Lower -> gold · Rest -> neon · anything else -> blue.
+  // Day color = a CATEGORICAL palette by day type (label), theme-aware via C. Kept clear of the semantic
+  // colors so a day never reads as "danger"/"success"/"achievement": Push/Upper/Chest → blue · Pull/Arms →
+  // violet · Legs/Lower → sky · Rest → gray · anything else → blue. We do NOT read day.color (saved plans
+  // carry legacy off-brand hues). Green/gold/red are reserved for brand/achievement/danger, never day type.
   const A = C || THEMES.dark;
   if(!day) return A.accent;
-  if(day.isRest) return A.neon;
+  if(day.isRest) return A.dayRest;
   const lbl=(day.label||"").toLowerCase();
   if(lbl.startsWith("push")||lbl.startsWith("upper")||lbl.startsWith("chest")) return A.accent;
-  if(lbl.startsWith("pull")||lbl.startsWith("arm")) return A.red;
-  if(lbl.startsWith("legs")||lbl.startsWith("lower")) return A.gold;
+  if(lbl.startsWith("pull")||lbl.startsWith("arm")) return A.violet;
+  if(lbl.startsWith("legs")||lbl.startsWith("lower")) return A.sky;
   return A.accent;
 }
 
