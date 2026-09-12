@@ -3237,6 +3237,13 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
 
 
   return <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:C.sans,paddingBottom:100,scrollBehavior:"smooth"}}>
+    <style>{`
+      @keyframes ironPop{0%{transform:scale(1)}40%{transform:scale(1.05)}100%{transform:scale(1)}}
+      @keyframes ironCele{0%{transform:scale(1) rotate(0)}25%{transform:scale(1.18) rotate(-5deg)}55%{transform:scale(1.08) rotate(4deg)}100%{transform:scale(1) rotate(0)}}
+      .iron-pop{animation:ironPop .32s ease-out}
+      .iron-cele{display:inline-flex;animation:ironCele .5s ease-out}
+      @media (prefers-reduced-motion: reduce){.iron-pop,.iron-cele{animation:none}}
+    `}</style>
     <div onPointerDown={e=>{dragStartYRef.current=e.clientY;setDragDelta(0);e.currentTarget.setPointerCapture(e.pointerId);}} onPointerMove={e=>{if(dragStartYRef.current===null)return;const d=e.clientY-dragStartYRef.current;setDragDelta(d>0?d:0);}} onPointerUp={async e=>{const d=dragStartYRef.current!==null?e.clientY-dragStartYRef.current:0;dragStartYRef.current=null;setDragDelta(0);if(d>80){await saveDraft();onMinimize({workout,loggedSets,elapsed,startedAt:startTime,exercises,completedExIds:[...completedExIds]});}}} onPointerCancel={()=>{dragStartYRef.current=null;setDragDelta(0);}} style={{height:28,display:"flex",alignItems:"center",justifyContent:"center",cursor:"grab",touchAction:"none",background:C.bg}}>
       <div style={{width:40,height:4,borderRadius:2,background:dragDelta>60?C.neon:C.border,transition:"background 0.15s"}}/>
     </div>
@@ -3290,7 +3297,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
               <div style={{fontSize:15,fontWeight:700,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                 {ex.name}
                 {isCardio&&<Pill color={C.greenInk}>Cardio</Pill>}
-                {isPRNow&&<PRMark C={C}/>}
+                {isPRNow&&<span className="iron-cele"><PRMark C={C}/></span>}
                 {hasAnyLog&&<span style={{fontSize:9,color:C.neonInk,fontFamily:"'SF Mono','Courier New',monospace",letterSpacing:"0.08em"}}>LOGGED</span>}
               </div>
               <Mono style={{fontSize:11,color:C.muted}}>{isCardio?"Duration goal:":ex.sets+" sets ."} {ex.reps}{!isCardio&&ex.muscle?` . ${ex.muscle}`:""}</Mono>
@@ -3318,7 +3325,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
               const hasVal=!!rowLog.minutes;
               const setRowState=isConfirmed?"confirmed":isPrepop?"suggested":hasVal?"inprogress":"suggested";
               if(isConfirmed){
-                return <div key={n} onClick={()=>{setSetStates(prev=>{const u={...prev};delete u[rowKey];return u;});}} style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",background:C.neon+"12",border:`1px solid ${C.neon}22`,borderRadius:8,padding:"10px 12px"}}>
+                return <div key={n} className="iron-pop" onClick={()=>{setSetStates(prev=>{const u={...prev};delete u[rowKey];return u;});}} style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",background:C.neon+"12",border:`1px solid ${C.neon}22`,borderRadius:8,padding:"10px 12px"}}>
                   <span style={{color:C.neonInk,display:"inline-flex",alignItems:"center"}}><Check size={ICON.sm} strokeWidth={1.75}/></span>
                   <Mono style={{color:C.neonInk,fontSize:12,fontWeight:700}}>Interval {n}</Mono>
                   <Mono style={{color:C.text,fontSize:14,fontWeight:700}}>{rowLog.minutes} min{rowLog.level?` · L${rowLog.level}`:""}</Mono>
@@ -3389,7 +3396,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
               return [
                 <button key={`t${n}`} onClick={()=>cycleSetType(ex.name,n)} style={{padding:"3px 0",background:typeColor+"22",border:"none",borderRadius:4,color:typeColor,fontSize:9,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"center",letterSpacing:"0.05em"}}>{typeLabel}</button>,
                 ...(isConfirmed
-                  ?[<div key={`confirmed${n}`} onClick={()=>{setSetStates(prev=>{const u={...prev};delete u[stateKey];return u;});}} style={{gridColumn:"span 4",background:C.neon+"12",border:`1px solid ${C.neon}22`,borderRadius:6,display:"flex",alignItems:"center",gap:8,padding:"8px 10px",cursor:"pointer"}}>
+                  ?[<div key={`confirmed${n}`} className="iron-pop" onClick={()=>{setSetStates(prev=>{const u={...prev};delete u[stateKey];return u;});}} style={{gridColumn:"span 4",background:C.neon+"12",border:`1px solid ${C.neon}22`,borderRadius:6,display:"flex",alignItems:"center",gap:8,padding:"8px 10px",cursor:"pointer"}}>
                       <span style={{color:C.neonInk,display:"inline-flex",alignItems:"center"}}><Check size={ICON.sm} strokeWidth={1.75}/></span>
                       <Mono style={{color:C.neonInk,fontSize:12,fontWeight:700}}>{n}</Mono>
                       <Mono style={{color:C.text,fontSize:13,fontWeight:600,flex:1}}>{isTime?`${myLog[n]?.reps}s${myLog[n]?.weight?` +${myLog[n]?.weight} lbs`:""}`:isReps?`${myLog[n]?.reps} reps${myLog[n]?.weight?` +${myLog[n]?.weight} lbs`:""}`:`${myLog[n]?.weight} lbs × ${myLog[n]?.reps}`}</Mono>
