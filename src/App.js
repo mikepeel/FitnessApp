@@ -4024,7 +4024,7 @@ No explanation, no markdown, just the JSON array.`;
               </div>;
             })()}
             {day.exercises.map((ex,exIdx)=>(
-              <div key={ex.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:`1px solid ${C.border}`,background:reorderMode===day.id?"transparent":"transparent",transition:"background .15s"}}>
+              <div key={ex.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:10,marginBottom:8,transition:"background .15s"}}>
                 {/* Reorder arrows */}
                 {reorderMode===day.id&&<div style={{display:"flex",flexDirection:"column",gap:1,marginRight:8,flexShrink:0}}>
                   <button onClick={()=>exIdx>0&&reorderExercises(day.id,exIdx,exIdx-1)}
@@ -4037,7 +4037,7 @@ No explanation, no markdown, just the JSON array.`;
                 {/* Position badge in reorder mode */}
                 {reorderMode===day.id&&<Mono style={{fontSize:11,color:C.muted,width:18,flexShrink:0,textAlign:"center"}}>{exIdx+1}</Mono>}
                 <div style={{flex:1,marginLeft:reorderMode===day.id?8:0,minWidth:0}}>
-                  <div style={{fontSize:13}}>{ex.name}</div>
+                  <div style={{fontSize:14,fontWeight:600,letterSpacing:"-0.01em"}}>{ex.name}</div>
                   {(()=>{
                     // Inline sets/reps editing on the row (persists via saveExercise — id + order preserved,
                     // same write path as the Edit modal). Only in normal mode and for non-cardio: cardio's
@@ -4060,7 +4060,7 @@ No explanation, no markdown, just the JSON array.`;
                       <input key={ex.reps} defaultValue={ex.reps} aria-label="Reps"
                         onKeyDown={e=>{if(e.key==="Enter")e.currentTarget.blur();}}
                         onBlur={e=>{const v=e.target.value.trim();if(v&&v!==ex.reps)saveExercise(day.id,{...ex,reps:v});}}
-                        style={{width:52,padding:"3px 6px",background:C.card,border:`1px solid ${C.border}`,borderRadius:6,color:C.text,fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
+                        style={{width:52,padding:"3px 6px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,color:C.text,fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
                       {ex.muscle&&<Mono style={{fontSize:11,color:C.muted}}> . {ex.muscle}</Mono>}
                     </div>;
                   })()}
