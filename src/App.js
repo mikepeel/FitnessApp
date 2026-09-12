@@ -546,7 +546,7 @@ async function callAI({action,messages,maxTokens=800}){
 // -- PRESET TEMPLATES ----------------------------------------------------------
 const PRESET_TEMPLATES = [
   {
-    id:"preset_strength", emoji:"🏋️", name:"Strength Builder", tag:"4 days . Full Body Power",
+    id:"preset_strength", emoji:"🏋️", name:"Strength Builder", tag:"4 days . Full Body Power", goal:"Get Stronger", dpw:4,
     desc:"Classic powerlifting-inspired split focused on compound lifts and progressive overload. Great for building raw strength.",
     days:[
       { label:"Upper Strength", tag:"Chest . Back . Shoulders", color:"#4f8ef7", isRest:false, exercises:[
@@ -590,7 +590,7 @@ const PRESET_TEMPLATES = [
     ]
   },
   {
-    id:"preset_hiit", emoji:"⚡", name:"Athletic Performance", tag:"5 days . Functional + Cardio",
+    id:"preset_hiit", emoji:"⚡", name:"Athletic Performance", tag:"5 days . Functional + Cardio", goal:"Athletic", dpw:5,
     desc:"Combines resistance training with metabolic conditioning. Builds muscle, burns fat, and improves cardiovascular fitness.",
     days:[
       { label:"Push + Cardio", tag:"Chest . Shoulders . Triceps", color:"#4f8ef7", isRest:false, exercises:[
@@ -641,7 +641,7 @@ const PRESET_TEMPLATES = [
     ]
   },
   {
-    id:"preset_beginner", emoji:"🌱", name:"Beginner Foundations", tag:"3 days . Full Body",
+    id:"preset_beginner", emoji:"🌱", name:"Beginner Foundations", tag:"3 days . Full Body", goal:"General Fitness", dpw:3,
     desc:"Three full-body sessions per week. Perfect starting point -- teaches movement patterns, builds baseline strength, low injury risk.",
     days:[
       { label:"Full Body A", tag:"Total Body", color:"#3ecf8e", isRest:false, exercises:[
@@ -683,7 +683,7 @@ const PRESET_TEMPLATES = [
     ]
   },
   {
-    id:"preset_ppl", emoji:"💪", name:"Custom PPL", tag:"5 days . Push/Pull/Legs",
+    id:"preset_ppl", emoji:"💪", name:"Custom PPL", tag:"5 days . Push/Pull/Legs", goal:"Build Muscle", dpw:5,
     desc:"Arms built into Push/Pull days. High frequency, clean structure. Great for intermediate lifters.",
     days:[
       { name:"Monday", label:"Push", tag:"Chest . Shoulders . Triceps", color:"#4f8ef7", isRest:false, exercises:[
@@ -738,7 +738,7 @@ const PRESET_TEMPLATES = [
     ]
   },
   {
-    id:"preset_antagonist", emoji:"🔄", name:"Antagonist Split", tag:"5 days . Chest+Back / Arms / Legs",
+    id:"preset_antagonist", emoji:"🔄", name:"Antagonist Split", tag:"5 days . Chest+Back / Arms / Legs", goal:"Build Muscle", dpw:5,
     desc:"Chest/Back paired for maximum pump and efficiency. Standalone Arm day for full specialization.",
     days:[
       { name:"Monday", label:"Chest + Back", tag:"Antagonist Pair", color:"#4f8ef7", isRest:false, exercises:[
@@ -795,6 +795,388 @@ const PRESET_TEMPLATES = [
       { name:"Sunday", label:"Rest", tag:"Full Rest", color:"#3ecf8e", isRest:true, exercises:[
         {name:"Full Rest",sets:"--",reps:"--",note:"Recovery is where you grow",muscle:"Recovery"},
       ]},
+    ]
+  },
+  {
+    id:"preset_fbhyper", emoji:"🧬", name:"Full-Body Hypertrophy", tag:"3 days . Build Muscle", goal:"Build Muscle", dpw:3,
+    desc:"Three full-body sessions that train every major muscle twice a week in the 8-15 rep range. An efficient, proven way to add size on limited days.",
+    days:[
+      { label:"Full Body A", tag:"Push emphasis", color:"#4f8ef7", isRest:false, exercises:[
+        {name:"Barbell Bench Press",sets:"4",reps:"8-10",note:"Main press",muscle:"Chest"},
+        {name:"Barbell Row",sets:"4",reps:"8-10",note:"",muscle:"Back"},
+        {name:"Goblet Squat",sets:"3",reps:"10-12",note:"",muscle:"Legs"},
+        {name:"Dumbbell Shoulder Press",sets:"3",reps:"10-12",note:"",muscle:"Shoulders"},
+        {name:"Cable Curl",sets:"3",reps:"12-15",note:"",muscle:"Biceps"},
+      ]},
+      { label:"Rest", tag:"Recovery", color:"#3ecf8e", isRest:true, exercises:[{name:"Walk / Stretch",sets:"--",reps:"20-30 min",note:"",muscle:"Recovery"}]},
+      { label:"Full Body B", tag:"Pull emphasis", color:"#4f8ef7", isRest:false, exercises:[
+        {name:"Romanian Deadlift",sets:"4",reps:"8-10",note:"Hip hinge",muscle:"Legs"},
+        {name:"Lat Pulldown",sets:"4",reps:"10-12",note:"",muscle:"Back"},
+        {name:"Incline Dumbbell Press",sets:"3",reps:"10-12",note:"",muscle:"Chest"},
+        {name:"Leg Press",sets:"3",reps:"12-15",note:"",muscle:"Legs"},
+        {name:"Triceps Pushdown",sets:"3",reps:"12-15",note:"",muscle:"Triceps"},
+      ]},
+      { label:"Rest", tag:"Recovery", color:"#3ecf8e", isRest:true, exercises:[{name:"Walk / Stretch",sets:"--",reps:"20-30 min",note:"",muscle:"Recovery"}]},
+      { label:"Full Body C", tag:"Balanced", color:"#4f8ef7", isRest:false, exercises:[
+        {name:"Squat",sets:"4",reps:"8-10",note:"",muscle:"Legs"},
+        {name:"Seated Cable Row",sets:"3",reps:"10-12",note:"",muscle:"Back"},
+        {name:"Dumbbell Bench Press",sets:"3",reps:"10-12",note:"",muscle:"Chest"},
+        {name:"Lateral Raise",sets:"3",reps:"15-20",note:"",muscle:"Shoulders"},
+        {name:"Hanging Knee Raise",sets:"3",reps:"12-15",note:"",muscle:"Abs"},
+      ]},
+      { label:"Rest", tag:"Weekend", color:"#3ecf8e", isRest:true, exercises:[{name:"Rest",sets:"--",reps:"--",note:"",muscle:"Recovery"}]},
+      { label:"Rest", tag:"Weekend", color:"#3ecf8e", isRest:true, exercises:[{name:"Rest",sets:"--",reps:"--",note:"",muscle:"Recovery"}]},
+    ]
+  },
+  {
+    id:"preset_ulhyper", emoji:"🧱", name:"Upper / Lower Hypertrophy", tag:"4 days . Build Muscle", goal:"Build Muscle", dpw:4,
+    desc:"The classic 4-day upper/lower split — each half trained twice a week for a strong balance of volume and recovery. A go-to for steady muscle gain.",
+    days:[
+      { label:"Upper A", tag:"Strength focus", color:"#4f8ef7", isRest:false, exercises:[
+        {name:"Barbell Bench Press",sets:"4",reps:"6-8",note:"",muscle:"Chest"},
+        {name:"Barbell Row",sets:"4",reps:"6-8",note:"",muscle:"Back"},
+        {name:"Overhead Press",sets:"3",reps:"8-10",note:"",muscle:"Shoulders"},
+        {name:"Lat Pulldown",sets:"3",reps:"10-12",note:"",muscle:"Back"},
+        {name:"Skull Crusher",sets:"3",reps:"10-12",note:"",muscle:"Triceps"},
+      ]},
+      { label:"Lower A", tag:"Strength focus", color:"#f7c948", isRest:false, exercises:[
+        {name:"Squat",sets:"4",reps:"6-8",note:"",muscle:"Legs"},
+        {name:"Romanian Deadlift",sets:"3",reps:"8-10",note:"",muscle:"Legs"},
+        {name:"Leg Press",sets:"3",reps:"12-15",note:"",muscle:"Legs"},
+        {name:"Leg Curl",sets:"3",reps:"12-15",note:"",muscle:"Legs"},
+        {name:"Calf Raise",sets:"4",reps:"15-20",note:"",muscle:"Legs"},
+      ]},
+      { label:"Rest", tag:"Recovery", color:"#3ecf8e", isRest:true, exercises:[{name:"Walk / Stretch",sets:"--",reps:"20-30 min",note:"",muscle:"Recovery"}]},
+      { label:"Upper B", tag:"Volume focus", color:"#4f8ef7", isRest:false, exercises:[
+        {name:"Incline Dumbbell Press",sets:"4",reps:"10-12",note:"",muscle:"Chest"},
+        {name:"Seated Cable Row",sets:"4",reps:"10-12",note:"",muscle:"Back"},
+        {name:"Lateral Raise",sets:"4",reps:"15-20",note:"",muscle:"Shoulders"},
+        {name:"Cable Fly",sets:"3",reps:"12-15",note:"",muscle:"Chest"},
+        {name:"Hammer Curl",sets:"3",reps:"12-15",note:"",muscle:"Biceps"},
+      ]},
+      { label:"Lower B", tag:"Volume focus", color:"#f7c948", isRest:false, exercises:[
+        {name:"Deadlift",sets:"3",reps:"5-6",note:"Brace hard",muscle:"Legs"},
+        {name:"Bulgarian Split Squat",sets:"3",reps:"10 each",note:"",muscle:"Legs"},
+        {name:"Leg Extension",sets:"3",reps:"15-20",note:"",muscle:"Legs"},
+        {name:"Hip Thrust",sets:"3",reps:"10-12",note:"",muscle:"Legs"},
+        {name:"Hanging Knee Raise",sets:"3",reps:"12-15",note:"",muscle:"Abs"},
+      ]},
+      { label:"Rest", tag:"Weekend", color:"#3ecf8e", isRest:true, exercises:[{name:"Rest",sets:"--",reps:"--",note:"",muscle:"Recovery"}]},
+      { label:"Rest", tag:"Weekend", color:"#3ecf8e", isRest:true, exercises:[{name:"Rest",sets:"--",reps:"--",note:"",muscle:"Recovery"}]},
+    ]
+  },
+  {
+    id:"preset_ppl6", emoji:"🔁", name:"Push Pull Legs ×2", tag:"6 days . Build Muscle", goal:"Build Muscle", dpw:6,
+    desc:"High-frequency, high-volume PPL run twice through the week. Built for experienced lifters who recover well and want maximum growth stimulus.",
+    days:[
+      { label:"Push A", tag:"Chest . Shoulders . Triceps", color:"#4f8ef7", isRest:false, exercises:[
+        {name:"Barbell Bench Press",sets:"4",reps:"6-8",note:"",muscle:"Chest"},
+        {name:"Overhead Press",sets:"3",reps:"8-10",note:"",muscle:"Shoulders"},
+        {name:"Incline Dumbbell Press",sets:"3",reps:"10-12",note:"",muscle:"Chest"},
+        {name:"Lateral Raise",sets:"4",reps:"15-20",note:"",muscle:"Shoulders"},
+        {name:"Triceps Pushdown",sets:"3",reps:"12-15",note:"",muscle:"Triceps"},
+      ]},
+      { label:"Pull A", tag:"Back . Biceps", color:"#4f8ef7", isRest:false, exercises:[
+        {name:"Deadlift",sets:"3",reps:"5-6",note:"",muscle:"Legs"},
+        {name:"Pull-Up",sets:"4",reps:"6-10",note:"",muscle:"Back"},
+        {name:"Barbell Row",sets:"3",reps:"8-10",note:"",muscle:"Back"},
+        {name:"Face Pull",sets:"3",reps:"15-20",note:"",muscle:"Shoulders"},
+        {name:"Cable Curl",sets:"3",reps:"12-15",note:"",muscle:"Biceps"},
+      ]},
+      { label:"Legs A", tag:"Quads . Hams . Calves", color:"#f7c948", isRest:false, exercises:[
+        {name:"Squat",sets:"4",reps:"6-8",note:"",muscle:"Legs"},
+        {name:"Romanian Deadlift",sets:"3",reps:"8-10",note:"",muscle:"Legs"},
+        {name:"Leg Press",sets:"3",reps:"12-15",note:"",muscle:"Legs"},
+        {name:"Leg Curl",sets:"3",reps:"12-15",note:"",muscle:"Legs"},
+        {name:"Calf Raise",sets:"4",reps:"15-20",note:"",muscle:"Legs"},
+      ]},
+      { label:"Push B", tag:"Volume", color:"#4f8ef7", isRest:false, exercises:[
+        {name:"Incline Dumbbell Press",sets:"4",reps:"10-12",note:"",muscle:"Chest"},
+        {name:"Arnold Press",sets:"3",reps:"10-12",note:"",muscle:"Shoulders"},
+        {name:"Cable Fly",sets:"3",reps:"12-15",note:"",muscle:"Chest"},
+        {name:"Lateral Raise",sets:"4",reps:"15-20",note:"",muscle:"Shoulders"},
+        {name:"Overhead Triceps Extension",sets:"3",reps:"12-15",note:"",muscle:"Triceps"},
+      ]},
+      { label:"Pull B", tag:"Volume", color:"#4f8ef7", isRest:false, exercises:[
+        {name:"Lat Pulldown",sets:"4",reps:"10-12",note:"",muscle:"Back"},
+        {name:"Seated Cable Row",sets:"4",reps:"10-12",note:"",muscle:"Back"},
+        {name:"Dumbbell Row",sets:"3",reps:"10-12",note:"",muscle:"Back"},
+        {name:"Face Pull",sets:"3",reps:"15-20",note:"",muscle:"Shoulders"},
+        {name:"Hammer Curl",sets:"3",reps:"12-15",note:"",muscle:"Biceps"},
+      ]},
+      { label:"Legs B", tag:"Volume", color:"#f7c948", isRest:false, exercises:[
+        {name:"Front Squat",sets:"4",reps:"8-10",note:"",muscle:"Legs"},
+        {name:"Bulgarian Split Squat",sets:"3",reps:"10 each",note:"",muscle:"Legs"},
+        {name:"Leg Extension",sets:"3",reps:"15-20",note:"",muscle:"Legs"},
+        {name:"Hip Thrust",sets:"3",reps:"10-12",note:"",muscle:"Legs"},
+        {name:"Hanging Knee Raise",sets:"3",reps:"12-15",note:"",muscle:"Abs"},
+      ]},
+      { label:"Rest", tag:"Full Rest", color:"#3ecf8e", isRest:true, exercises:[{name:"Rest",sets:"--",reps:"--",note:"Recover fully",muscle:"Recovery"}]},
+    ]
+  },
+  {
+    id:"preset_5x5", emoji:"🏋️", name:"5×5 Strength", tag:"3 days . Get Stronger", goal:"Get Stronger", dpw:3,
+    desc:"A barbell 5×5 program built on the big compound lifts. Add a little weight each session and get measurably stronger — ideal for beginners to intermediates.",
+    days:[
+      { label:"Workout A", tag:"Squat . Bench . Row", color:"#f7c948", isRest:false, exercises:[
+        {name:"Squat",sets:"5",reps:"5",note:"Add weight when all 5×5 hit",muscle:"Legs"},
+        {name:"Barbell Bench Press",sets:"5",reps:"5",note:"",muscle:"Chest"},
+        {name:"Barbell Row",sets:"5",reps:"5",note:"",muscle:"Back"},
+        {name:"Plank",sets:"3",reps:"45-60 sec",note:"",muscle:"Abs"},
+      ]},
+      { label:"Rest", tag:"Recovery", color:"#3ecf8e", isRest:true, exercises:[{name:"Walk / Mobility",sets:"--",reps:"20 min",note:"",muscle:"Recovery"}]},
+      { label:"Workout B", tag:"Squat . Press . Deadlift", color:"#f7c948", isRest:false, exercises:[
+        {name:"Squat",sets:"5",reps:"5",note:"",muscle:"Legs"},
+        {name:"Overhead Press",sets:"5",reps:"5",note:"",muscle:"Shoulders"},
+        {name:"Deadlift",sets:"1",reps:"5",note:"One heavy top set",muscle:"Legs"},
+        {name:"Hanging Knee Raise",sets:"3",reps:"12-15",note:"",muscle:"Abs"},
+      ]},
+      { label:"Rest", tag:"Recovery", color:"#3ecf8e", isRest:true, exercises:[{name:"Walk / Mobility",sets:"--",reps:"20 min",note:"",muscle:"Recovery"}]},
+      { label:"Workout A", tag:"Squat . Bench . Row", color:"#f7c948", isRest:false, exercises:[
+        {name:"Squat",sets:"5",reps:"5",note:"",muscle:"Legs"},
+        {name:"Barbell Bench Press",sets:"5",reps:"5",note:"",muscle:"Chest"},
+        {name:"Barbell Row",sets:"5",reps:"5",note:"",muscle:"Back"},
+        {name:"Plank",sets:"3",reps:"45-60 sec",note:"",muscle:"Abs"},
+      ]},
+      { label:"Rest", tag:"Weekend", color:"#3ecf8e", isRest:true, exercises:[{name:"Rest",sets:"--",reps:"--",note:"",muscle:"Recovery"}]},
+      { label:"Rest", tag:"Weekend", color:"#3ecf8e", isRest:true, exercises:[{name:"Rest",sets:"--",reps:"--",note:"",muscle:"Recovery"}]},
+    ]
+  },
+  {
+    id:"preset_powerbuild", emoji:"⚡", name:"Powerbuilding Split", tag:"5 days . Get Stronger", goal:"Get Stronger", dpw:5,
+    desc:"Heavy compound lifts up front for strength, hypertrophy accessories after for size. The best of both worlds for intermediate lifters chasing PRs and muscle.",
+    days:[
+      { label:"Heavy Bench", tag:"Chest . Triceps", color:"#4f8ef7", isRest:false, exercises:[
+        {name:"Barbell Bench Press",sets:"5",reps:"3-5",note:"Work up to a heavy top set",muscle:"Chest"},
+        {name:"Incline Dumbbell Press",sets:"4",reps:"8-10",note:"",muscle:"Chest"},
+        {name:"Cable Fly",sets:"3",reps:"12-15",note:"",muscle:"Chest"},
+        {name:"Skull Crusher",sets:"3",reps:"10-12",note:"",muscle:"Triceps"},
+      ]},
+      { label:"Heavy Squat", tag:"Legs", color:"#f7c948", isRest:false, exercises:[
+        {name:"Squat",sets:"5",reps:"3-5",note:"Heavy",muscle:"Legs"},
+        {name:"Leg Press",sets:"4",reps:"10-12",note:"",muscle:"Legs"},
+        {name:"Leg Curl",sets:"3",reps:"12-15",note:"",muscle:"Legs"},
+        {name:"Calf Raise",sets:"4",reps:"15-20",note:"",muscle:"Legs"},
+      ]},
+      { label:"Rest", tag:"Recovery", color:"#3ecf8e", isRest:true, exercises:[{name:"Walk / Mobility",sets:"--",reps:"20 min",note:"",muscle:"Recovery"}]},
+      { label:"Heavy Deadlift", tag:"Back . Biceps", color:"#4f8ef7", isRest:false, exercises:[
+        {name:"Deadlift",sets:"5",reps:"3-5",note:"Heavy",muscle:"Legs"},
+        {name:"Pull-Up",sets:"4",reps:"6-10",note:"",muscle:"Back"},
+        {name:"Seated Cable Row",sets:"3",reps:"10-12",note:"",muscle:"Back"},
+        {name:"Barbell Curl",sets:"3",reps:"10-12",note:"",muscle:"Biceps"},
+      ]},
+      { label:"Shoulders + Arms", tag:"Hypertrophy", color:"#4f8ef7", isRest:false, exercises:[
+        {name:"Overhead Press",sets:"4",reps:"6-8",note:"",muscle:"Shoulders"},
+        {name:"Lateral Raise",sets:"4",reps:"15-20",note:"",muscle:"Shoulders"},
+        {name:"Hammer Curl",sets:"3",reps:"12-15",note:"",muscle:"Biceps"},
+        {name:"Triceps Pushdown",sets:"3",reps:"12-15",note:"",muscle:"Triceps"},
+      ]},
+      { label:"Rest", tag:"Weekend", color:"#3ecf8e", isRest:true, exercises:[{name:"Rest",sets:"--",reps:"--",note:"",muscle:"Recovery"}]},
+      { label:"Rest", tag:"Weekend", color:"#3ecf8e", isRest:true, exercises:[{name:"Rest",sets:"--",reps:"--",note:"",muscle:"Recovery"}]},
+    ]
+  },
+  {
+    id:"preset_metabolic", emoji:"🔥", name:"Metabolic Full Body", tag:"3 days . Lose Fat", goal:"Lose Fat", dpw:3,
+    desc:"Full-body strength circuits paced to keep your heart rate up, capped with a short conditioning finisher. Preserves muscle while burning serious calories.",
+    days:[
+      { label:"Circuit A", tag:"Full Body + Finisher", color:"#f06584", isRest:false, exercises:[
+        {name:"Goblet Squat",sets:"3",reps:"12-15",note:"Move between exercises with little rest",muscle:"Legs"},
+        {name:"Dumbbell Bench Press",sets:"3",reps:"12-15",note:"",muscle:"Chest"},
+        {name:"Dumbbell Row",sets:"3",reps:"12-15",note:"",muscle:"Back"},
+        {name:"Kettlebell Swing",sets:"3",reps:"15-20",note:"",muscle:"Legs"},
+        {name:"Rowing Machine",sets:"--",reps:"8 min",note:"Intervals to finish",muscle:"Cardio"},
+      ]},
+      { label:"Rest", tag:"Active Recovery", color:"#3ecf8e", isRest:true, exercises:[{name:"Walk / Yoga",sets:"--",reps:"30 min",note:"",muscle:"Recovery"}]},
+      { label:"Circuit B", tag:"Full Body + Finisher", color:"#f06584", isRest:false, exercises:[
+        {name:"Romanian Deadlift",sets:"3",reps:"12-15",note:"",muscle:"Legs"},
+        {name:"Overhead Press",sets:"3",reps:"12-15",note:"",muscle:"Shoulders"},
+        {name:"Lat Pulldown",sets:"3",reps:"12-15",note:"",muscle:"Back"},
+        {name:"Walking Lunge",sets:"3",reps:"12 each",note:"",muscle:"Legs"},
+        {name:"Stair Stepper",sets:"--",reps:"10 min",note:"30s hard / 30s easy",muscle:"Cardio"},
+      ]},
+      { label:"Rest", tag:"Active Recovery", color:"#3ecf8e", isRest:true, exercises:[{name:"Walk / Yoga",sets:"--",reps:"30 min",note:"",muscle:"Recovery"}]},
+      { label:"Circuit C", tag:"Full Body + Finisher", color:"#f06584", isRest:false, exercises:[
+        {name:"Squat",sets:"3",reps:"12-15",note:"",muscle:"Legs"},
+        {name:"Incline Dumbbell Press",sets:"3",reps:"12-15",note:"",muscle:"Chest"},
+        {name:"Seated Cable Row",sets:"3",reps:"12-15",note:"",muscle:"Back"},
+        {name:"Mountain Climber",sets:"3",reps:"40 sec",note:"",muscle:"Cardio"},
+        {name:"Plank",sets:"3",reps:"45-60 sec",note:"",muscle:"Abs"},
+      ]},
+      { label:"Rest", tag:"Weekend", color:"#3ecf8e", isRest:true, exercises:[{name:"Rest / Walk",sets:"--",reps:"--",note:"",muscle:"Recovery"}]},
+      { label:"Rest", tag:"Weekend", color:"#3ecf8e", isRest:true, exercises:[{name:"Rest / Walk",sets:"--",reps:"--",note:"",muscle:"Recovery"}]},
+    ]
+  },
+  {
+    id:"preset_leanul", emoji:"💧", name:"Lean Upper / Lower", tag:"4 days . Lose Fat", goal:"Lose Fat", dpw:4,
+    desc:"Four lifting days that keep strength high while dropping fat, each ending with cardio intervals. Lift to hold muscle, condition to lean out.",
+    days:[
+      { label:"Upper Strength", tag:"Push . Pull", color:"#4f8ef7", isRest:false, exercises:[
+        {name:"Barbell Bench Press",sets:"4",reps:"8-10",note:"Keep the weights honest",muscle:"Chest"},
+        {name:"Barbell Row",sets:"4",reps:"8-10",note:"",muscle:"Back"},
+        {name:"Overhead Press",sets:"3",reps:"10-12",note:"",muscle:"Shoulders"},
+        {name:"Lat Pulldown",sets:"3",reps:"10-12",note:"",muscle:"Back"},
+        {name:"Rowing Machine",sets:"--",reps:"10 min",note:"Intervals",muscle:"Cardio"},
+      ]},
+      { label:"Lower Strength", tag:"Legs + Cardio", color:"#f7c948", isRest:false, exercises:[
+        {name:"Squat",sets:"4",reps:"8-10",note:"",muscle:"Legs"},
+        {name:"Romanian Deadlift",sets:"3",reps:"10-12",note:"",muscle:"Legs"},
+        {name:"Walking Lunge",sets:"3",reps:"12 each",note:"",muscle:"Legs"},
+        {name:"Calf Raise",sets:"3",reps:"15-20",note:"",muscle:"Legs"},
+        {name:"Bike",sets:"--",reps:"12 min",note:"Steady moderate pace",muscle:"Cardio"},
+      ]},
+      { label:"Rest", tag:"Active Recovery", color:"#3ecf8e", isRest:true, exercises:[{name:"Walk / Yoga",sets:"--",reps:"30 min",note:"",muscle:"Recovery"}]},
+      { label:"Upper Pump", tag:"Volume + Cardio", color:"#4f8ef7", isRest:false, exercises:[
+        {name:"Incline Dumbbell Press",sets:"3",reps:"12-15",note:"",muscle:"Chest"},
+        {name:"Seated Cable Row",sets:"3",reps:"12-15",note:"",muscle:"Back"},
+        {name:"Lateral Raise",sets:"3",reps:"15-20",note:"",muscle:"Shoulders"},
+        {name:"Cable Curl",sets:"2",reps:"15",note:"",muscle:"Biceps"},
+        {name:"Stair Stepper",sets:"--",reps:"10 min",note:"Intervals",muscle:"Cardio"},
+      ]},
+      { label:"Lower Pump", tag:"Volume + Cardio", color:"#f7c948", isRest:false, exercises:[
+        {name:"Leg Press",sets:"3",reps:"15",note:"",muscle:"Legs"},
+        {name:"Leg Curl",sets:"3",reps:"15",note:"",muscle:"Legs"},
+        {name:"Hip Thrust",sets:"3",reps:"12-15",note:"",muscle:"Legs"},
+        {name:"Hanging Knee Raise",sets:"3",reps:"15",note:"",muscle:"Abs"},
+        {name:"Rowing Machine",sets:"--",reps:"10 min",note:"Intervals",muscle:"Cardio"},
+      ]},
+      { label:"Rest", tag:"Weekend", color:"#3ecf8e", isRest:true, exercises:[{name:"Rest / Walk",sets:"--",reps:"--",note:"",muscle:"Recovery"}]},
+      { label:"Rest", tag:"Weekend", color:"#3ecf8e", isRest:true, exercises:[{name:"Rest / Walk",sets:"--",reps:"--",note:"",muscle:"Recovery"}]},
+    ]
+  },
+  {
+    id:"preset_athletic3", emoji:"🤸", name:"Athletic Foundations", tag:"3 days . Athletic", goal:"Athletic", dpw:3,
+    desc:"Explosive power paired with full-body strength three days a week. Builds a durable, capable body — jump higher, move faster, hit harder.",
+    days:[
+      { label:"Power + Push", tag:"Explosive", color:"#f06584", isRest:false, exercises:[
+        {name:"Box Jump",sets:"4",reps:"5",note:"Land soft, reset each rep",muscle:"Legs"},
+        {name:"Barbell Bench Press",sets:"4",reps:"5",note:"",muscle:"Chest"},
+        {name:"Squat",sets:"4",reps:"6",note:"",muscle:"Legs"},
+        {name:"Medicine Ball Slam",sets:"3",reps:"10",note:"Full extension, explosive",muscle:"Shoulders"},
+      ]},
+      { label:"Rest", tag:"Recovery", color:"#3ecf8e", isRest:true, exercises:[{name:"Mobility / Walk",sets:"--",reps:"20-30 min",note:"",muscle:"Recovery"}]},
+      { label:"Power + Pull", tag:"Explosive", color:"#f06584", isRest:false, exercises:[
+        {name:"Kettlebell Swing",sets:"4",reps:"12",note:"Hip-hinge power",muscle:"Legs"},
+        {name:"Deadlift",sets:"4",reps:"5",note:"",muscle:"Legs"},
+        {name:"Pull-Up",sets:"4",reps:"6-8",note:"",muscle:"Back"},
+        {name:"Overhead Press",sets:"3",reps:"6-8",note:"",muscle:"Shoulders"},
+      ]},
+      { label:"Rest", tag:"Recovery", color:"#3ecf8e", isRest:true, exercises:[{name:"Mobility / Walk",sets:"--",reps:"20-30 min",note:"",muscle:"Recovery"}]},
+      { label:"Conditioning", tag:"Total Body", color:"#f06584", isRest:false, exercises:[
+        {name:"Walking Lunge",sets:"3",reps:"12 each",note:"",muscle:"Legs"},
+        {name:"Dumbbell Row",sets:"3",reps:"10-12",note:"",muscle:"Back"},
+        {name:"Battle Ropes",sets:"4",reps:"30 sec",note:"",muscle:"Cardio"},
+        {name:"Plank",sets:"3",reps:"45-60 sec",note:"",muscle:"Abs"},
+      ]},
+      { label:"Rest", tag:"Weekend", color:"#3ecf8e", isRest:true, exercises:[{name:"Rest / Sport",sets:"--",reps:"--",note:"Play something fun",muscle:"Recovery"}]},
+      { label:"Rest", tag:"Weekend", color:"#3ecf8e", isRest:true, exercises:[{name:"Rest / Sport",sets:"--",reps:"--",note:"",muscle:"Recovery"}]},
+    ]
+  },
+  {
+    id:"preset_powercond", emoji:"🏃", name:"Power & Conditioning", tag:"4 days . Athletic", goal:"Athletic", dpw:4,
+    desc:"Two power-focused lower/upper days and two conditioning days. For athletes who need strength, speed, and a gas tank that doesn't quit.",
+    days:[
+      { label:"Lower Power", tag:"Explosive Legs", color:"#f7c948", isRest:false, exercises:[
+        {name:"Box Jump",sets:"5",reps:"3",note:"Max height, full recovery",muscle:"Legs"},
+        {name:"Squat",sets:"5",reps:"3-5",note:"",muscle:"Legs"},
+        {name:"Romanian Deadlift",sets:"3",reps:"6-8",note:"",muscle:"Legs"},
+        {name:"Walking Lunge",sets:"3",reps:"10 each",note:"",muscle:"Legs"},
+      ]},
+      { label:"Upper Power", tag:"Explosive Push/Pull", color:"#4f8ef7", isRest:false, exercises:[
+        {name:"Barbell Bench Press",sets:"5",reps:"3-5",note:"",muscle:"Chest"},
+        {name:"Pull-Up",sets:"4",reps:"6-8",note:"",muscle:"Back"},
+        {name:"Overhead Press",sets:"3",reps:"6-8",note:"",muscle:"Shoulders"},
+        {name:"Medicine Ball Slam",sets:"3",reps:"10",note:"",muscle:"Shoulders"},
+      ]},
+      { label:"Rest", tag:"Recovery", color:"#3ecf8e", isRest:true, exercises:[{name:"Mobility / Walk",sets:"--",reps:"30 min",note:"",muscle:"Recovery"}]},
+      { label:"Conditioning A", tag:"Intervals", color:"#f06584", isRest:false, exercises:[
+        {name:"Kettlebell Swing",sets:"5",reps:"15",note:"",muscle:"Legs"},
+        {name:"Battle Ropes",sets:"5",reps:"30 sec",note:"",muscle:"Cardio"},
+        {name:"Rowing Machine",sets:"--",reps:"12 min",note:"1 min hard / 1 min easy",muscle:"Cardio"},
+        {name:"Plank",sets:"3",reps:"60 sec",note:"",muscle:"Abs"},
+      ]},
+      { label:"Conditioning B", tag:"Total Body", color:"#f06584", isRest:false, exercises:[
+        {name:"Goblet Squat",sets:"4",reps:"15",note:"",muscle:"Legs"},
+        {name:"Dumbbell Bench Press",sets:"4",reps:"12",note:"",muscle:"Chest"},
+        {name:"Dumbbell Row",sets:"4",reps:"12",note:"",muscle:"Back"},
+        {name:"Stair Stepper",sets:"--",reps:"12 min",note:"Intervals",muscle:"Cardio"},
+      ]},
+      { label:"Rest", tag:"Weekend", color:"#3ecf8e", isRest:true, exercises:[{name:"Rest / Sport",sets:"--",reps:"--",note:"",muscle:"Recovery"}]},
+      { label:"Rest", tag:"Weekend", color:"#3ecf8e", isRest:true, exercises:[{name:"Rest / Sport",sets:"--",reps:"--",note:"",muscle:"Recovery"}]},
+    ]
+  },
+  {
+    id:"preset_balancedul", emoji:"⚖️", name:"Balanced Upper / Lower", tag:"4 days . General Fitness", goal:"General Fitness", dpw:4,
+    desc:"A well-rounded four-day split that builds strength, muscle, and health in equal measure. A sustainable default for staying fit long-term.",
+    days:[
+      { label:"Upper", tag:"Push . Pull", color:"#4f8ef7", isRest:false, exercises:[
+        {name:"Dumbbell Bench Press",sets:"3",reps:"8-12",note:"",muscle:"Chest"},
+        {name:"Lat Pulldown",sets:"3",reps:"8-12",note:"",muscle:"Back"},
+        {name:"Dumbbell Shoulder Press",sets:"3",reps:"10-12",note:"",muscle:"Shoulders"},
+        {name:"Seated Cable Row",sets:"3",reps:"10-12",note:"",muscle:"Back"},
+        {name:"Cable Curl",sets:"2",reps:"12-15",note:"",muscle:"Biceps"},
+      ]},
+      { label:"Lower", tag:"Legs . Core", color:"#f7c948", isRest:false, exercises:[
+        {name:"Goblet Squat",sets:"3",reps:"10-12",note:"",muscle:"Legs"},
+        {name:"Romanian Deadlift",sets:"3",reps:"10-12",note:"",muscle:"Legs"},
+        {name:"Leg Press",sets:"3",reps:"12-15",note:"",muscle:"Legs"},
+        {name:"Calf Raise",sets:"3",reps:"15-20",note:"",muscle:"Legs"},
+        {name:"Plank",sets:"3",reps:"45 sec",note:"",muscle:"Abs"},
+      ]},
+      { label:"Rest", tag:"Recovery", color:"#3ecf8e", isRest:true, exercises:[{name:"Walk / Stretch",sets:"--",reps:"20-30 min",note:"",muscle:"Recovery"}]},
+      { label:"Upper", tag:"Push . Pull", color:"#4f8ef7", isRest:false, exercises:[
+        {name:"Incline Dumbbell Press",sets:"3",reps:"10-12",note:"",muscle:"Chest"},
+        {name:"Dumbbell Row",sets:"3",reps:"10-12",note:"",muscle:"Back"},
+        {name:"Lateral Raise",sets:"3",reps:"15",note:"",muscle:"Shoulders"},
+        {name:"Face Pull",sets:"3",reps:"15-20",note:"",muscle:"Shoulders"},
+        {name:"Triceps Pushdown",sets:"2",reps:"12-15",note:"",muscle:"Triceps"},
+      ]},
+      { label:"Lower", tag:"Legs . Core", color:"#f7c948", isRest:false, exercises:[
+        {name:"Squat",sets:"3",reps:"10-12",note:"",muscle:"Legs"},
+        {name:"Leg Curl",sets:"3",reps:"12-15",note:"",muscle:"Legs"},
+        {name:"Walking Lunge",sets:"3",reps:"12 each",note:"",muscle:"Legs"},
+        {name:"Hanging Knee Raise",sets:"3",reps:"12-15",note:"",muscle:"Abs"},
+      ]},
+      { label:"Rest", tag:"Weekend", color:"#3ecf8e", isRest:true, exercises:[{name:"Rest / Walk",sets:"--",reps:"--",note:"",muscle:"Recovery"}]},
+      { label:"Rest", tag:"Weekend", color:"#3ecf8e", isRest:true, exercises:[{name:"Rest / Walk",sets:"--",reps:"--",note:"",muscle:"Recovery"}]},
+    ]
+  },
+  {
+    id:"preset_balanced5", emoji:"📅", name:"Balanced Weekly Split", tag:"5 days . General Fitness", goal:"General Fitness", dpw:5,
+    desc:"One focused muscle group per day, Monday to Friday — simple to follow, easy to recover from, and covers the whole body every week.",
+    days:[
+      { label:"Chest + Triceps", tag:"Push", color:"#4f8ef7", isRest:false, exercises:[
+        {name:"Barbell Bench Press",sets:"4",reps:"8-12",note:"",muscle:"Chest"},
+        {name:"Incline Dumbbell Press",sets:"3",reps:"10-12",note:"",muscle:"Chest"},
+        {name:"Cable Fly",sets:"3",reps:"12-15",note:"",muscle:"Chest"},
+        {name:"Triceps Pushdown",sets:"3",reps:"12-15",note:"",muscle:"Triceps"},
+      ]},
+      { label:"Back + Biceps", tag:"Pull", color:"#4f8ef7", isRest:false, exercises:[
+        {name:"Lat Pulldown",sets:"4",reps:"10-12",note:"",muscle:"Back"},
+        {name:"Barbell Row",sets:"3",reps:"8-10",note:"",muscle:"Back"},
+        {name:"Seated Cable Row",sets:"3",reps:"12-15",note:"",muscle:"Back"},
+        {name:"Cable Curl",sets:"3",reps:"12-15",note:"",muscle:"Biceps"},
+      ]},
+      { label:"Legs", tag:"Lower Body", color:"#f7c948", isRest:false, exercises:[
+        {name:"Squat",sets:"4",reps:"8-12",note:"",muscle:"Legs"},
+        {name:"Romanian Deadlift",sets:"3",reps:"10-12",note:"",muscle:"Legs"},
+        {name:"Leg Press",sets:"3",reps:"12-15",note:"",muscle:"Legs"},
+        {name:"Calf Raise",sets:"4",reps:"15-20",note:"",muscle:"Legs"},
+      ]},
+      { label:"Shoulders + Abs", tag:"Delts . Core", color:"#4f8ef7", isRest:false, exercises:[
+        {name:"Overhead Press",sets:"4",reps:"8-10",note:"",muscle:"Shoulders"},
+        {name:"Lateral Raise",sets:"4",reps:"15-20",note:"",muscle:"Shoulders"},
+        {name:"Face Pull",sets:"3",reps:"15-20",note:"",muscle:"Shoulders"},
+        {name:"Hanging Knee Raise",sets:"3",reps:"15",note:"",muscle:"Abs"},
+        {name:"Plank",sets:"3",reps:"45-60 sec",note:"",muscle:"Abs"},
+      ]},
+      { label:"Full Body + Cardio", tag:"Conditioning", color:"#f06584", isRest:false, exercises:[
+        {name:"Goblet Squat",sets:"3",reps:"15",note:"",muscle:"Legs"},
+        {name:"Dumbbell Bench Press",sets:"3",reps:"12",note:"",muscle:"Chest"},
+        {name:"Dumbbell Row",sets:"3",reps:"12",note:"",muscle:"Back"},
+        {name:"Rowing Machine",sets:"--",reps:"12 min",note:"Steady or intervals",muscle:"Cardio"},
+      ]},
+      { label:"Rest", tag:"Weekend", color:"#3ecf8e", isRest:true, exercises:[{name:"Rest / Walk",sets:"--",reps:"--",note:"",muscle:"Recovery"}]},
+      { label:"Rest", tag:"Weekend", color:"#3ecf8e", isRest:true, exercises:[{name:"Rest / Walk",sets:"--",reps:"--",note:"",muscle:"Recovery"}]},
     ]
   }
 ];
@@ -3330,6 +3712,8 @@ function PlanAnalysisView({plan,goalRaw,C,onBack}){
 
 function PlanTab({plans,activePlanKey,setActivePlanKey,savePlans,settings,C,toggleTheme,themeMode,adherenceAnchor,initialView,onInitialViewConsumed}){
   const [view,setView]=useState(initialView||"mine"); // mine | presets | ai
+  const [presetGoal,setPresetGoal]=useState(null); // Templates filter: goal
+  const [presetDays,setPresetDays]=useState(null); // Templates filter: days/week
   useEffect(()=>{if(initialView&&onInitialViewConsumed)onInitialViewConsumed();},[]);// eslint-disable-line react-hooks/exhaustive-deps
   const [expandedDay,setExpandedDay]=useState(null);
   const [editEx,setEditEx]=useState(null);
@@ -3717,34 +4101,50 @@ No explanation, no markdown, just the JSON array.`;
     </div>}
 
     {/* PRESET TEMPLATES */}
-    {view==="presets"&&<div style={{padding:"14px 18px"}}>
-      <SectionLabel C={C}>Popular Programs</SectionLabel>
-      {PRESET_TEMPLATES.map(t=>(
-        <div key={t.id} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"16px",marginBottom:10}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
-            <div>
-              <div style={{fontSize:16}}>{t.emoji} <span style={{fontWeight:700,fontSize:15}}>{t.name}</span></div>
-              <Pill color={C.accentInk}>{t.tag}</Pill>
-            </div>
-          </div>
-          <div style={{fontSize:13,color:C.muted,lineHeight:1.6,marginBottom:12}}>{t.desc}</div>
-          <div style={{marginBottom:12}}>
-            {t.days.filter(d=>!d.isRest).map((d,i)=>(
-              <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:`1px solid ${C.border}`}}>
-                <div style={{width:8,height:8,borderRadius:4,background:getDayColor(d,C),flexShrink:0}}/>
-                <Mono style={{fontSize:11,color:C.muted,flex:1}}>{d.label}</Mono>
-                <Mono style={{fontSize:10,color:C.muted}}>{d.exercises.length} ex</Mono>
-              </div>
-            ))}
-          </div>
-          <Mono style={{fontSize:10,color:C.faint,display:"block",marginBottom:8}}>✎ Becomes your own plan — rename it, swap exercises, change anything.</Mono>
-          <div style={{display:"flex",gap:8}}>
-            <Btn size="sm" variant="ghost" onClick={()=>setPresetPreview(t)} C={C}>Preview</Btn>
-            <Btn size="sm" onClick={()=>{setModalStartDate(new Date().toLocaleDateString("en-CA"));setModalDuration(10);setStartPlanModal(t);}} C={C}>Use &amp; Customize</Btn>
-          </div>
+    {view==="presets"&&(()=>{
+      const mono="'SF Mono','Courier New',monospace";
+      const GOALS=["Build Muscle","Get Stronger","Lose Fat","Athletic","General Fitness"];
+      const DAYS=[3,4,5,6];
+      const filtered=PRESET_TEMPLATES.filter(t=>(!presetGoal||t.goal===presetGoal)&&(!presetDays||t.dpw===presetDays));
+      const chip=(active,label,onClick)=><button key={label} onClick={onClick} style={{padding:"6px 12px",borderRadius:20,border:active?"none":`1px solid ${C.border}`,background:active?C.accentBtn:"transparent",color:active?"#fff":C.muted,fontFamily:mono,fontSize:11,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,fontWeight:active?700:400}}>{label}</button>;
+      return <div style={{padding:"14px 18px"}}>
+        <Mono style={{fontSize:12,color:C.muted,lineHeight:1.6,display:"block",marginBottom:12}}>Start from a proven program — pick one, then make it yours. Every template is fully editable.</Mono>
+        <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:8,WebkitOverflowScrolling:"touch"}}>
+          {chip(!presetGoal,"All goals",()=>setPresetGoal(null))}
+          {GOALS.map(g=>chip(presetGoal===g,g,()=>setPresetGoal(presetGoal===g?null:g)))}
         </div>
-      ))}
-    </div>}
+        <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:10,WebkitOverflowScrolling:"touch"}}>
+          {chip(!presetDays,"Any days",()=>setPresetDays(null))}
+          {DAYS.map(d=>chip(presetDays===d,`${d} days`,()=>setPresetDays(presetDays===d?null:d)))}
+        </div>
+        <Mono style={{fontSize:10,color:C.faint,display:"block",marginBottom:10}}>{filtered.length} program{filtered.length!==1?"s":""}</Mono>
+        {filtered.length===0&&<div style={{textAlign:"center",padding:"24px",color:C.muted,fontSize:13}}>No templates match — <button onClick={()=>{setPresetGoal(null);setPresetDays(null);}} style={{background:"none",border:"none",color:C.accentInk,cursor:"pointer",fontSize:13,textDecoration:"underline",fontFamily:"inherit"}}>clear filters</button></div>}
+        {filtered.map(t=>{
+          const trainingDays=t.days.filter(d=>!d.isRest);
+          return <div key={t.id} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"16px",marginBottom:12}}>
+            <div style={{display:"flex",gap:12,alignItems:"flex-start",marginBottom:10}}>
+              <div style={{fontSize:26,width:46,height:46,borderRadius:12,background:C.surface,border:`1px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{t.emoji}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:700,fontSize:16,letterSpacing:"-0.01em"}}>{t.name}</div>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:5}}>
+                  <span style={{fontSize:10,fontFamily:mono,color:C.accentInk,background:C.accent+"1a",border:`1px solid ${C.accent}33`,borderRadius:5,padding:"2px 7px"}}>{t.goal}</span>
+                  <span style={{fontSize:10,fontFamily:mono,color:C.muted,background:C.surface,border:`1px solid ${C.border}`,borderRadius:5,padding:"2px 7px"}}>{trainingDays.length} days/wk</span>
+                </div>
+              </div>
+            </div>
+            <div style={{fontSize:12.5,color:C.muted,lineHeight:1.6,marginBottom:12}}>{t.desc}</div>
+            <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:12}}>
+              {trainingDays.map((d,i)=><span key={i} style={{display:"inline-flex",alignItems:"center",gap:5,background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:"3px 8px"}}><span style={{width:7,height:7,borderRadius:4,background:getDayColor(d,C)}}/><Mono style={{fontSize:10,color:C.muted}}>{d.label}</Mono></span>)}
+            </div>
+            <Mono style={{fontSize:10,color:C.faint,display:"block",marginBottom:8}}>✎ Becomes your own plan — rename it, swap exercises, change anything.</Mono>
+            <div style={{display:"flex",gap:8}}>
+              <Btn size="sm" variant="ghost" onClick={()=>setPresetPreview(t)} C={C}>Preview</Btn>
+              <Btn size="sm" onClick={()=>{setModalStartDate(new Date().toLocaleDateString("en-CA"));setModalDuration(10);setStartPlanModal(t);}} C={C}>Use &amp; Customize</Btn>
+            </div>
+          </div>;
+        })}
+      </div>;
+    })()}
 
     {/* AI BUILDER */}
     {view==="ai"&&<div style={{padding:"14px 18px"}}>
