@@ -3348,6 +3348,8 @@ function PlanTab({plans,activePlanKey,setActivePlanKey,savePlans,settings,C,togg
   const [saveToast,setSaveToast]=useState("");
   const [newPlanSheet,setNewPlanSheet]=useState(false); // true when showing name-input step
   const [newPlanName,setNewPlanName]=useState("");
+  const [blankSheet,setBlankSheet]=useState(false); // "Build from scratch" name-input sheet
+  const [blankName,setBlankName]=useState("");
   const [startPlanModal,setStartPlanModal]=useState(null);
   const [modalStartDate,setModalStartDate]=useState("");
   const [modalDuration,setModalDuration]=useState(10);
@@ -3500,6 +3502,24 @@ No explanation, no markdown, just the JSON array.`;
     setExpandedDay(null);
   }
 
+  // Build-from-scratch: create a fresh plan (a 3 training-day scaffold to fill in) and drop the user
+  // straight into its editor — the whole point is designing your own plan start to finish.
+  function createBlankPlan(){
+    const name=(blankName.trim())||"My Plan";
+    const newKey=`custom_${Date.now()}`;
+    const today=new Date().toLocaleDateString("en-CA");
+    const palette=[C.accent,C.gold,C.neon];
+    const scaffold=[1,2,3].map((n,i)=>({id:mkId(),label:`Day ${n}`,tag:"",color:palette[i%palette.length],isRest:false,exercises:[]}));
+    savePlans({...plans,[newKey]:{key:newKey,name,subtitle:"Your custom plan",description:"",startDate:today,durationWeeks:10,days:scaffold}});
+    setActivePlanKey(newKey);
+    setView("mine");
+    setBlankSheet(false);
+    setBlankName("");
+    setExpandedDay(0); // day cards track expansion by INDEX, so open the first day
+    setSaveToast(`"${name}" created — start adding exercises`);
+    setTimeout(()=>setSaveToast(""),3000);
+  }
+
   if(analysisOpen&&plan&&settings.showPlanAnalysis&&settings.showCoaching)return <PlanAnalysisView plan={plan} goalRaw={(settings.aiGoal||"").toLowerCase()} C={C} onBack={()=>setAnalysisOpen(false)}/>;
 
   return <div>
@@ -3522,6 +3542,7 @@ No explanation, no markdown, just the JSON array.`;
             {plans[k]?.name||plans[k]?.name?.slice(0,18)}
           </button>
         ))}
+        <button onClick={()=>{setBlankName("");setBlankSheet(true);}} style={{padding:"5px 11px",borderRadius:6,fontFamily:"'SF Mono','Courier New',monospace",fontSize:10,cursor:"pointer",border:`1px dashed ${C.neon}66`,background:"transparent",color:C.neonInk,fontWeight:700}}>＋ New</button>
       </div>}
     </div>
 
@@ -3530,10 +3551,13 @@ No explanation, no markdown, just the JSON array.`;
     </div>}
     {/* MY PLANS */}
     {view==="mine"&&<div style={{padding:"14px 18px"}}>
-      {!plan&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"20px",textAlign:"center",marginBottom:14}}>
-        <div style={{fontSize:15,fontWeight:700,marginBottom:6}}>No plan yet</div>
-        <Mono style={{fontSize:11,color:C.muted,display:"block",marginBottom:14}}>Go to Templates to pick a plan and get started.</Mono>
-        <Btn onClick={()=>setView("presets")} C={C} style={{fontWeight:700}}>Browse Templates</Btn>
+      {!plan&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"22px 20px",textAlign:"center",marginBottom:14}}>
+        <div style={{fontSize:15,fontWeight:700,marginBottom:6}}>Create your first plan</div>
+        <Mono style={{fontSize:11,color:C.muted,display:"block",marginBottom:16,lineHeight:1.6}}>Start from a ready-made template and tweak it, or build your own from scratch.</Mono>
+        <div style={{display:"flex",gap:8,flexDirection:"column"}}>
+          <Btn onClick={()=>setView("presets")} C={C} style={{fontWeight:700}}>Browse Templates</Btn>
+          <Btn onClick={()=>{setBlankName("");setBlankSheet(true);}} variant="ghost" C={C}>Build from scratch</Btn>
+        </div>
       </div>}
       {plan&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"13px 14px",marginBottom:12}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
@@ -3713,9 +3737,10 @@ No explanation, no markdown, just the JSON array.`;
               </div>
             ))}
           </div>
+          <Mono style={{fontSize:10,color:C.faint,display:"block",marginBottom:8}}>✎ Becomes your own plan — rename it, swap exercises, change anything.</Mono>
           <div style={{display:"flex",gap:8}}>
             <Btn size="sm" variant="ghost" onClick={()=>setPresetPreview(t)} C={C}>Preview</Btn>
-            <Btn size="sm" onClick={()=>{setModalStartDate(new Date().toLocaleDateString("en-CA"));setModalDuration(10);setStartPlanModal(t);}} C={C}>Use This Plan</Btn>
+            <Btn size="sm" onClick={()=>{setModalStartDate(new Date().toLocaleDateString("en-CA"));setModalDuration(10);setStartPlanModal(t);}} C={C}>Use &amp; Customize</Btn>
           </div>
         </div>
       ))}
@@ -3755,6 +3780,17 @@ No explanation, no markdown, just the JSON array.`;
           <button onClick={saveAsNewPlan} style={{width:"100%",padding:"13px 16px",background:C.neon+"22",border:`1px solid ${C.neon}44`,borderRadius:10,color:C.neonInk,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}><span style={{display:"inline-flex",alignItems:"center",gap:8}}><Check size={ICON.md} strokeWidth={1.75}/>Create &amp; Activate</span></button>
           <button onClick={()=>setNewPlanSheet(false)} style={{width:"100%",padding:"11px 16px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",letterSpacing:"0.04em",marginTop:2}}>← Back</button>
         </>}
+      </div>
+    </div>}
+    {/* Build-from-scratch: name the new plan, then drop into the editor */}
+    {blankSheet&&<div onClick={()=>setBlankSheet(false)} style={{position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,0.55)",display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:"16px 16px 0 0",padding:"20px 18px calc(32px + env(safe-area-inset-bottom,0px)) 18px",display:"flex",flexDirection:"column",gap:10}}>
+        <div style={{width:36,height:4,borderRadius:2,background:C.border,alignSelf:"center",marginTop:-8,marginBottom:4}}/>
+        <Mono style={{fontSize:11,color:C.muted,letterSpacing:"0.1em",marginBottom:2}}>BUILD FROM SCRATCH</Mono>
+        <div style={{fontSize:13,color:C.muted,lineHeight:1.5,marginBottom:6}}>Name your plan — we'll start you with three empty training days. Add, rename, or remove days and exercises however you like.</div>
+        <input type="text" value={blankName} onChange={e=>setBlankName(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")createBlankPlan();}} autoFocus placeholder="My Plan" style={{padding:"11px 12px",background:C.card,border:`1px solid ${C.accent}44`,borderRadius:8,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",width:"100%",boxSizing:"border-box"}}/>
+        <button onClick={createBlankPlan} style={{width:"100%",padding:"13px 16px",background:C.neon+"22",border:`1px solid ${C.neon}44`,borderRadius:10,color:C.neonInk,fontSize:14,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}><span style={{display:"inline-flex",alignItems:"center",gap:8}}><Check size={ICON.md} strokeWidth={1.75}/>Create &amp; Start Building</span></button>
+        <button onClick={()=>setBlankSheet(false)} style={{width:"100%",padding:"11px 16px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",letterSpacing:"0.04em",marginTop:2}}>Cancel</button>
       </div>
     </div>}
     {/* Copy-day: pick a SOURCE day to copy into the target (copyFromDay) */}
@@ -3848,7 +3884,8 @@ No explanation, no markdown, just the JSON array.`;
           ))}
         </div>
       ))}
-      <Btn style={{width:"100%",marginTop:16}} onClick={()=>{setModalStartDate(new Date().toLocaleDateString("en-CA"));setModalDuration(10);setStartPlanModal(presetPreview);setPresetPreview(null);}} C={C}>Use This Plan</Btn>
+      <Btn style={{width:"100%",marginTop:16}} onClick={()=>{setModalStartDate(new Date().toLocaleDateString("en-CA"));setModalDuration(10);setStartPlanModal(presetPreview);setPresetPreview(null);}} C={C}>Use &amp; Customize</Btn>
+      <Mono style={{fontSize:10,color:C.faint,display:"block",textAlign:"center",marginTop:8}}>You can edit every day and exercise afterwards.</Mono>
     </Modal>}
     {goalModal&&<GoalBuilderModal onAdd={addAIPlan} onClose={()=>setGoalModal(false)} C={C}/>}
     {sequenceUpgrade&&<Modal onClose={()=>setSequenceUpgrade(null)} C={C}><UpgradePrompt {...sequenceUpgrade} C={C}/><Btn style={{width:"100%",marginTop:16}} onClick={()=>setSequenceUpgrade(null)} C={C}>OK</Btn></Modal>}

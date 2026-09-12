@@ -706,4 +706,13 @@ async function getCopyPlanDays() {
   return data ? data.days_json : null;
 }
 
-module.exports = { seed, seedRename, seedMuscles, seedRecentPR, seedDrill, seedThisWeek, seedDeload, seedLongest, seedMaintenanceVolume, seedDormantPlateau, seedRecencyRank, seedDrillLink, seedStreakBanner, seedPlanResolution, restorePlanResolution, seedPickerDay, restorePicker, seedCopyDay, restoreCopyDay, getCopyPlanDays, seedCompletedBlock, restoreCompletedBlock, getBlockSummaries, seedBlockSummary, getPlans, seedPastBlocks, restorePastBlocks, getUserMeta, setDeloadDismissedAt, setStreakTracking, readCoaching, resetCoaching, setCoaching, cleanup, cleanupPRs, hasKey };
+// Remove plans a from-scratch/create test made (matched by name prefix), so the account stays clean.
+async function deletePlansByNamePrefix(prefix) {
+  if (!hasKey()) return;
+  const sb = admin();
+  const uid = await getUid(sb);
+  if (!uid) return;
+  await sb.from("plans").delete().eq("user_id", uid).like("name", `${prefix}%`);
+}
+
+module.exports = { seed, seedRename, seedMuscles, seedRecentPR, seedDrill, seedThisWeek, seedDeload, seedLongest, seedMaintenanceVolume, seedDormantPlateau, seedRecencyRank, seedDrillLink, seedStreakBanner, seedPlanResolution, restorePlanResolution, seedPickerDay, restorePicker, seedCopyDay, restoreCopyDay, getCopyPlanDays, seedCompletedBlock, restoreCompletedBlock, getBlockSummaries, seedBlockSummary, getPlans, seedPastBlocks, restorePastBlocks, getUserMeta, setDeloadDismissedAt, setStreakTracking, readCoaching, resetCoaching, setCoaching, cleanup, cleanupPRs, deletePlansByNamePrefix, hasKey };
