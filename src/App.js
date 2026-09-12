@@ -2641,7 +2641,7 @@ export default function ForgeApp(){
       adherenceAnchor={activePlan?.startDate||programStart||getProgramStart(sessions)}
       initialView={planInitialView} onInitialViewConsumed={()=>setPlanInitialView(null)}
       savePlans={savePlans} settings={settings} C={C} toggleTheme={toggleTheme} themeMode={themeMode}/></PlanErrorBoundary>}
-    {tab==="log"&&<HistoryTab sessions={sessions} saveSessions={saveSessions} setSessions={setSessions} savePRs={savePRs} prs={prs} plans={plans} C={C} toggleTheme={toggleTheme} themeMode={themeMode} onDrillTo={name=>{setPendingDrill(name);setTab("stats");}} onRerun={sess=>{
+    {tab==="log"&&<HistoryTab sessions={sessions} saveSessions={saveSessions} setSessions={setSessions} savePRs={savePRs} prs={prs} plans={plans} C={C} toggleTheme={toggleTheme} themeMode={themeMode} onGoToWorkout={()=>setTab("today")} onDrillTo={name=>{setPendingDrill(name);setTab("stats");}} onRerun={sess=>{
       const day=(activePlan?.days||[]).find(d=>d.id===sess.dayId)||{...sess,exercises:Object.keys(sess.sets||{}).map(name=>({id:name,name,sets:"3",reps:"",muscle:"",note:""})),label:sess.dayLabel||"Workout"};
       setActiveWorkout({...day,_rerunSets:sess.sets});
       setTab("today");
@@ -4502,7 +4502,7 @@ function DayForm({onSave,onClose,C}){
 // ./lib/renameExercise so the across-history rename is unit-tested and operates uncapped.
 
 // -- HISTORY -------------------------------------------------------------------
-function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggleTheme,themeMode,onRerun,onDrillTo}){
+function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggleTheme,themeMode,onRerun,onDrillTo,onGoToWorkout}){
   const [expanded,setExpanded]=useState(null);
   const [historyFilter,setHistoryFilter]=useState("3m");
   const [editingSession,setEditingSession]=useState(null);
@@ -4861,7 +4861,16 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
     </div>}
 
     <div style={{padding:"14px 18px"}}>
-      {sorted.length===0&&<div style={{textAlign:"center",padding:"40px 20px"}}><div style={{color:C.muted,fontFamily:"'SF Mono','Courier New',monospace",fontSize:13,marginBottom:12}}>No sessions found in your log.</div><div style={{fontSize:12,color:C.muted,fontFamily:"'SF Mono','Courier New',monospace",lineHeight:1.7}}>If you completed a workout and don't see it here,<br/>tap Debug above to inspect your storage.</div></div>}
+      {sorted.length===0&&<div style={{textAlign:"center",padding:"48px 24px"}}>
+        <div style={{fontSize:38,marginBottom:14}}>📖</div>
+        <div style={{fontSize:16,fontWeight:700,marginBottom:8}}>Your training log starts here</div>
+        <div style={{fontSize:13,color:C.muted,lineHeight:1.7,marginBottom:20,maxWidth:300,marginLeft:"auto",marginRight:"auto"}}>Finish a workout and it lands here — every session, set, and PR, kept for good.</div>
+        <div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}>
+          {onGoToWorkout&&<Btn C={C} onClick={onGoToWorkout} style={{fontWeight:700}}>Start a workout</Btn>}
+          <Btn C={C} variant="ghost" onClick={()=>setAddingSession(true)}>+ Log past session</Btn>
+        </div>
+        <Mono style={{fontSize:10,color:C.faint,display:"block",marginTop:20}}>Logged a workout that's missing? Tap Debug above to inspect your storage.</Mono>
+      </div>}
       {Object.entries(grouped).map(([month,msess])=>(
         <div key={month} style={{marginBottom:24}}>
           <SectionLabel C={C}>{new Date(month+"-02").toLocaleDateString("en",{month:"long",year:"numeric"})} . {msess.length} sessions</SectionLabel>
@@ -5842,7 +5851,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
             glance — gray = unused, red deepens with volume. Tap a muscle to focus its detail. The
             numeric bars/insight below remain as the precise breakdown. */}
         <SectionLabel C={C}>Muscles Worked — Last 7 Days</SectionLabel>
-        {(()=>{const bi={};muscleOrder.forEach(m=>{bi[m]=(groupSets[m]||0)/maxGroupSets;});return <div style={{marginBottom:16}}>
+        {(()=>{const bi={};muscleOrder.forEach(m=>{bi[m]=(groupSets[m]||0)/maxGroupSets;});const noData=muscleOrder.filter(m=>muscleVolMapped[m]>0||groupSets[m]>0).length===0&&cardioSets===0;return <div style={{marginBottom:16}}>
           <BodyMap intensities={bi} focus={focusMuscle} onSelect={m=>setFocusMuscle(f=>f===m?null:m)} C={C}/>
           <div style={{display:"flex",alignItems:"center",gap:8,margin:"14px 2px 0"}}>
             <Mono style={{fontSize:9,color:C.muted,letterSpacing:"0.1em"}}>UNUSED</Mono>
@@ -5851,7 +5860,9 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
           </div>
           <div style={{minHeight:20,marginTop:10}}>{focusMuscle
             ?<Mono style={{fontSize:13,color:C.text,fontWeight:700}}><span style={{display:"inline-block",width:9,height:9,borderRadius:5,background:bodyHeatColor(bi[focusMuscle]||0,C),marginRight:8,verticalAlign:"middle"}}/>{focusMuscle.toUpperCase()} — {(()=>{const sn=Math.round((groupSets[focusMuscle]||0)*2)/2;const kl=Math.round((muscleVolMapped[focusMuscle]||0)/1000*10)/10;return `${sn} set${sn!==1?"s":""} this week${kl>0?` · ${kl}k lbs`:""}`;})()}</Mono>
-            :<Mono style={{fontSize:12,color:C.muted}}>Tap a muscle to inspect its volume.</Mono>}</div>
+            :noData
+              ?<Mono style={{fontSize:12.5,color:C.neonInk,fontWeight:600,textAlign:"center",display:"block",lineHeight:1.6}}>Do your first workout — your trained muscles light up here in red.</Mono>
+              :<Mono style={{fontSize:12,color:C.muted}}>Tap a muscle to inspect its volume.</Mono>}</div>
         </div>;})()}
         {settings.showVolumeTargets&&settings.showCoaching&&<RealizedVolumeInsight sessions={sessions} settings={settings} C={C}/>}
         <SectionLabel C={C}>Volume by Muscle — Last 7 Days</SectionLabel>
