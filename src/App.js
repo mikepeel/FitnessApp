@@ -87,7 +87,7 @@ const THEMES = {
     text:"#e8edf4", muted:"#b0bac8", faint:"#9aa3b2", cardText:"#f2f5fa",
     bodyUnused:"#444b59", bodyStruct:"#2b323e", bodyStructOp:0.7, // muscle heat-map: unused-muscle gray / faint non-muscle structure
     mono:"'SF Mono','Courier New',monospace",
-    serif:"'Georgia','Times New Roman',serif",
+    sans:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif", // prose/UI; metrics use `mono`
     navBg:"#1a2130", gradTop:"linear-gradient(135deg,#4f8ef715 0%,#3ecf8e08 100%)",
   },
   light: {
@@ -102,7 +102,7 @@ const THEMES = {
     text:"#1a202c", muted:"#2d3748", faint:"#54637a", cardText:"#0d1117",
     bodyUnused:"#ccd3de", bodyStruct:"#dfe5ec", bodyStructOp:0.9, // muscle heat-map: unused-muscle gray / faint non-muscle structure
     mono:"'SF Mono','Courier New',monospace",
-    serif:"'Georgia','Times New Roman',serif",
+    sans:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif", // prose/UI; metrics use `mono`
     navBg:"#ffffff", gradTop:"linear-gradient(135deg,#4f8ef710 0%,#0ea66e08 100%)",
   }
 };
@@ -2616,7 +2616,7 @@ export default function ForgeApp(){
       onDismiss={()=>{markBlockSummarySeen(activePlanKey);setTab("today");}}/>;
   }
 
-  return <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:C.serif,paddingBottom:72,userSelect:"none",scrollBehavior:"smooth"}}>
+  return <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:C.sans,paddingBottom:72,userSelect:"none",scrollBehavior:"smooth"}}>
     {!isOnline&&<div style={{background:"#f7c948",color:"#1a202c",padding:"8px 18px",fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"center",letterSpacing:"0.04em"}}>
       ⚠ Offline — workouts will sync when connection is restored
     </div>}
@@ -3236,7 +3236,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   const inputStyle={padding:"9px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",width:"100%",boxSizing:"border-box"};
 
 
-  return <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:C.serif,paddingBottom:100,scrollBehavior:"smooth"}}>
+  return <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:C.sans,paddingBottom:100,scrollBehavior:"smooth"}}>
     <div onPointerDown={e=>{dragStartYRef.current=e.clientY;setDragDelta(0);e.currentTarget.setPointerCapture(e.pointerId);}} onPointerMove={e=>{if(dragStartYRef.current===null)return;const d=e.clientY-dragStartYRef.current;setDragDelta(d>0?d:0);}} onPointerUp={async e=>{const d=dragStartYRef.current!==null?e.clientY-dragStartYRef.current:0;dragStartYRef.current=null;setDragDelta(0);if(d>80){await saveDraft();onMinimize({workout,loggedSets,elapsed,startedAt:startTime,exercises,completedExIds:[...completedExIds]});}}} onPointerCancel={()=>{dragStartYRef.current=null;setDragDelta(0);}} style={{height:28,display:"flex",alignItems:"center",justifyContent:"center",cursor:"grab",touchAction:"none",background:C.bg}}>
       <div style={{width:40,height:4,borderRadius:2,background:dragDelta>60?C.neon:C.border,transition:"background 0.15s"}}/>
     </div>
@@ -3438,7 +3438,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
       {settings.workoutNotes&&<div style={{marginTop:4}}>
         <SectionLabel C={C}>Session Notes</SectionLabel>
         <textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Energy, joints, anything notable..."
-          style={{width:"100%",padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,color:C.text,fontSize:16,fontFamily:C.serif,height:72,resize:"none",boxSizing:"border-box"}}/>
+          style={{width:"100%",padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,color:C.text,fontSize:16,fontFamily:C.sans,height:72,resize:"none",boxSizing:"border-box"}}/>
       </div>}
       {saveError&&<div style={{background:"#f06584",padding:"12px 14px",borderRadius:8,marginTop:14}}>
         <Mono style={{fontSize:12,color:"#fff",fontWeight:700,display:"block",marginBottom:8}}>⚠ {saveError}</Mono>
@@ -4400,7 +4400,7 @@ Use 7 days total (fill rest days with isRest:true and minimal exercises array wi
       <div style={{fontSize:15,fontWeight:600,marginBottom:16}}>{q.q}</div>
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
         {q.opts.map(opt=>(
-          <button key={opt} onClick={()=>answer(q.key,opt)} style={{padding:"13px 16px",background:answers[q.key]===opt?C.accentBtn:C.card,border:`1px solid ${answers[q.key]===opt?C.accent:C.border}`,borderRadius:10,color:answers[q.key]===opt?"#fff":C.text,textAlign:"left",fontSize:14,cursor:"pointer",fontFamily:C.serif,transition:"all .15s"}}>
+          <button key={opt} onClick={()=>answer(q.key,opt)} style={{padding:"13px 16px",background:answers[q.key]===opt?C.accentBtn:C.card,border:`1px solid ${answers[q.key]===opt?C.accent:C.border}`,borderRadius:10,color:answers[q.key]===opt?"#fff":C.text,textAlign:"left",fontSize:14,cursor:"pointer",fontFamily:C.sans,transition:"all .15s"}}>
             {opt}
           </button>
         ))}
