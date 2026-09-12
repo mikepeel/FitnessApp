@@ -1891,17 +1891,21 @@ function AuthScreen({C,onAuth,themeMode,toggleTheme}){
       .iron-auth input:-webkit-autofill,.iron-auth input:-webkit-autofill:hover,.iron-auth input:-webkit-autofill:focus{-webkit-box-shadow:0 0 0 1000px #15161a inset;-webkit-text-fill-color:#fff;caret-color:#fff;transition:background-color 9999s ease-in-out 0s;}
       .iron-auth button:focus-visible{outline:2px solid ${GOLD};outline-offset:2px;}
       .iron-auth .footer-link:hover{color:rgba(255,255,255,0.85);}
-      @media (prefers-reduced-motion: no-preference){.iron-auth .ent{animation:ironAuthUp .4s ease-out both;}}
+      @media (prefers-reduced-motion: no-preference){.iron-auth .ent{animation:ironAuthUp .4s ease-out both;}.iron-auth .sheen{animation:ironSheen 9s ease-in-out infinite;}}
       @keyframes ironAuthUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+      @keyframes ironSheen{0%,100%{transform:translateX(-16%);}50%{transform:translateX(16%);}}
     `}</style>
 
     {/* Background layers (clipped to viewport; decorative) */}
     <div style={{position:"absolute",inset:0,overflow:"hidden",zIndex:0}}>
-      <div style={{position:"absolute",inset:0,background:"radial-gradient(ellipse 80% 60% at 15% 8%, #1a2d4a 0%, transparent 55%),radial-gradient(ellipse 60% 50% at 95% 15%, #0f1e32 0%, transparent 50%),radial-gradient(ellipse 70% 55% at 50% 38%, #1c1505 0%, transparent 55%),radial-gradient(ellipse 90% 40% at 10% 70%, #0a1520 0%, transparent 55%),radial-gradient(ellipse 50% 60% at 88% 55%, #12101a 0%, transparent 50%),radial-gradient(ellipse 80% 50% at 50% 100%, #080608 0%, transparent 60%)"}}/>
+      {/* Photo base — dark barbell floor scene (public/auth-bg.jpg) */}
+      <img src={`${process.env.PUBLIC_URL}/auth-bg.jpg`} alt="" aria-hidden="true" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",opacity:0.85}}/>
+      {/* Vignette — darkens the center behind IRON and the edges for legibility */}
+      <div style={{position:"absolute",inset:0,pointerEvents:"none",background:"radial-gradient(125% 95% at 50% 36%, rgba(6,7,10,0.55) 0%, rgba(6,7,10,0.22) 40%, rgba(6,7,10,0.82) 100%)"}}/>
+      {/* Gold glow behind the wordmark */}
       <div style={{position:"absolute",top:"6%",left:"50%",transform:"translateX(-50%)",width:340,height:300,pointerEvents:"none",background:"radial-gradient(ellipse 60% 55% at 50% 45%, rgba(247,201,72,0.13) 0%, rgba(200,140,40,0.06) 45%, transparent 72%)"}}/>
-      <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(-52deg, rgba(255,255,255,0.013) 0px, rgba(255,255,255,0.013) 1px, transparent 1px, transparent 28px)",WebkitMaskImage:"linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.6) 20%, rgba(0,0,0,0.5) 55%, transparent 80%)",maskImage:"linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.6) 20%, rgba(0,0,0,0.5) 55%, transparent 80%)"}}/>
-      <div style={{position:"absolute",top:-80,right:-60,width:260,height:260,border:"1px solid rgba(255,255,255,0.028)",transform:"rotate(22deg)",borderRadius:6,pointerEvents:"none"}}/>
-      <div style={{position:"absolute",top:-40,right:-20,width:160,height:160,border:"1px solid rgba(255,255,255,0.018)",transform:"rotate(22deg)",borderRadius:4,pointerEvents:"none"}}/>
+      {/* Slow gold sheen sweeping the frame (paused under reduced-motion) */}
+      <div className="sheen" style={{position:"absolute",inset:"-40%",pointerEvents:"none",background:"linear-gradient(72deg, transparent 43%, rgba(247,201,72,0.07) 50%, transparent 57%)"}}/>
       <div style={{position:"absolute",inset:0,opacity:0.45,pointerEvents:"none",backgroundImage:"url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.09'/%3E%3C/svg%3E\")",backgroundSize:"200px 200px",mixBlendMode:"overlay"}}/>
       <div style={{position:"absolute",inset:0,pointerEvents:"none",background:"linear-gradient(to bottom, transparent 18%, rgba(7,9,12,0.25) 38%, rgba(7,9,12,0.70) 55%, rgba(7,9,12,0.93) 70%, #07090c 82%)"}}/>
     </div>
@@ -2546,10 +2550,14 @@ export default function ForgeApp(){
 
   // Show loading spinner while checking auth
   if(!authChecked){
-    return <div style={{minHeight:"100vh",background:"#161b22",display:"flex",alignItems:"center",justifyContent:"center"}}>
-      <div style={{textAlign:"center"}}>
-        <div style={{fontSize:20,fontFamily:"'SF Mono','Courier New',monospace",color:"#3ecf8e",letterSpacing:"0.4em",fontWeight:900,marginBottom:24,textShadow:"0 0 20px rgba(62,207,142,0.5)"}}>IRON</div>
-        <div style={{width:32,height:32,border:"2px solid #2e333d",borderTop:"2px solid #4f8ef7",borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto"}}/>
+    return <div style={{minHeight:"100dvh",position:"relative",overflow:"hidden",background:"#06070a",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif"}}>
+      {/* Same photo + vignette as sign-in, so entering the app is one continuous moment */}
+      <img src={`${process.env.PUBLIC_URL}/auth-bg.jpg`} alt="" aria-hidden="true" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",opacity:0.7}}/>
+      <div style={{position:"absolute",inset:0,background:"radial-gradient(120% 90% at 50% 45%, rgba(6,7,10,0.6) 0%, rgba(6,7,10,0.35) 45%, rgba(6,7,10,0.9) 100%)"}}/>
+      <div style={{position:"relative",textAlign:"center"}}>
+        <div style={{fontSize:52,fontWeight:900,letterSpacing:"-0.04em",color:"#fff",lineHeight:0.9,textShadow:"0 0 46px rgba(247,201,72,0.24), 0 2px 20px rgba(0,0,0,0.7)"}}>IRON</div>
+        <div style={{width:38,height:3,background:"#f7c948",borderRadius:2,margin:"16px auto 22px",boxShadow:"0 0 14px rgba(247,201,72,0.7)"}}/>
+        <div style={{width:26,height:26,border:"2px solid rgba(255,255,255,0.14)",borderTopColor:"#f7c948",borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto"}}/>
         <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       </div>
     </div>;
