@@ -2847,7 +2847,7 @@ function ExerciseLibraryModal({onSelect,onClose,C,multiAdd=false,initialMuscle=n
     }
   };
   const muscles=["Chest","Back","Shoulders","Biceps","Triceps","Legs","Abs","Cardio"];
-  const equipColor={"Barbell":C.accent,"Dumbbell":C.neon,"Cable":C.gold,"Machine":C.muted,"Smith Machine":C.muted,"Bodyweight":C.green,"Kettlebell":C.red,"Band":C.blue};
+  const equipColor={"Barbell":C.accent,"Dumbbell":C.sky,"Cable":C.violet,"Machine":C.muted,"Smith Machine":C.muted,"Bodyweight":C.accent,"Kettlebell":C.violet,"Band":C.sky};
   const filtered=EXERCISE_LIBRARY.filter(e=>
     (!muscleFilter||e.muscle===muscleFilter)&&
     (!query||e.name.toLowerCase().includes(query.toLowerCase()))
@@ -5898,7 +5898,8 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
           const sets=Math.round((groupSets[muscle]||0)*2)/2;
           if(!vol&&!sets)return null;
           const pct=Math.round(((groupSets[muscle]||0)/maxGroupSets)*100); // set-based width so bodyweight (0 tonnage) still fills
-          const colors={"Chest":C.accent,"Back":C.blue,"Shoulders":C.gold,"Biceps":C.neon,"Triceps":C.neon,"Legs":C.red,"Abs":C.muted,"Cardio":C.green};
+          // Muscle color = its training-day family (push→blue, pull→violet, legs→sky), so it never reuses the reserved green/gold/red.
+          const colors={"Chest":C.accent,"Back":C.violet,"Shoulders":C.accent,"Biceps":C.violet,"Triceps":C.accent,"Legs":C.sky,"Abs":C.muted,"Cardio":C.muted};
           return <div key={muscle} style={{marginBottom:12}}>
             <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
               <Mono style={{fontSize:12,color:C.text,fontWeight:600}}>{muscle}</Mono>
