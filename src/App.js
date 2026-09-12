@@ -2979,6 +2979,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   const [swapCache,setSwapCache]=useState({});
   const [addExModal,setAddExModal]=useState(false);
   const [editExModal,setEditExModal]=useState(null);
+  const [exMenu,setExMenu]=useState(null); // per-exercise action sheet (AI / edit / swap / remove)
   const [setTypes,setSetTypes]=useState({});
   const [setError,setSetError]=useState({});
   const [extraSets,setExtraSets]=useState({});
@@ -3310,10 +3311,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
               {!isCardio&&settings.plateCalc&&w0&&<PlateCalc weight={w0} C={C}/>}
             </div>
             <div style={{display:"flex",gap:4,marginLeft:8,flexShrink:0}}>
-              {!isCardio&&settings.aiRecs&&<Btn onClick={()=>setAiModal(ex)} variant="ghost" size="sm" C={C} style={{fontSize:12,padding:"5px 8px"}}>✦</Btn>}
-              <Btn onClick={()=>setEditExModal(ex)} variant="ghost" size="sm" C={C} style={{fontSize:12,padding:"5px 8px"}}>✎</Btn>
-              {!isCardio&&<Btn onClick={()=>setSwapModal(ex)} variant="ghost" size="sm" C={C} style={{fontSize:12,padding:"5px 8px",color:C.goldInk,borderColor:C.gold+"44"}}>⇄</Btn>}
-              <Btn onClick={()=>removeExercise(ex.id)} variant="danger" size="sm" C={C} style={{fontSize:12,padding:"5px 8px"}}>✕</Btn>
+              <button onClick={()=>setExMenu(ex)} aria-label={`${ex.name} options`} style={{background:"transparent",border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.muted,cursor:"pointer",fontSize:16,lineHeight:1,padding:"5px 12px",letterSpacing:"0.08em",fontFamily:"'SF Mono','Courier New',monospace"}}>⋯</button>
             </div>
           </div>
 
@@ -3479,6 +3477,21 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
       </div>
     </div>}
 
+    {exMenu&&(()=>{
+      const mCardio=exMenu.muscle==="Cardio"||exMenu.muscle==="Recovery";
+      const row=(icon,label,onClick,danger)=><button onClick={onClick} style={{width:"100%",padding:"13px 14px",background:danger?C.red+"14":C.card,border:`1px solid ${danger?C.red+"44":C.border}`,borderRadius:10,color:danger?C.redInk:C.text,fontSize:14,fontWeight:600,fontFamily:C.sans,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:15,width:20,textAlign:"center",flexShrink:0}}>{icon}</span>{label}</button>;
+      return <div onClick={()=>setExMenu(null)} style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.55)",display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
+        <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:"16px 16px 0 0",padding:"18px 16px calc(28px + env(safe-area-inset-bottom,0px))",display:"flex",flexDirection:"column",gap:8}}>
+          <div style={{width:36,height:4,borderRadius:2,background:C.border,alignSelf:"center",marginBottom:4}}/>
+          <Mono style={{fontSize:11,color:C.muted,letterSpacing:"0.1em",marginBottom:4}}>{(exMenu.name||"").toUpperCase()}</Mono>
+          {!mCardio&&settings.aiRecs&&row("✦","Suggest a swap (AI)",()=>{setAiModal(exMenu);setExMenu(null);})}
+          {row("✎","Edit sets & reps",()=>{setEditExModal(exMenu);setExMenu(null);})}
+          {!mCardio&&row("⇄","Swap exercise",()=>{setSwapModal(exMenu);setExMenu(null);})}
+          {row("✕","Remove from workout",()=>{removeExercise(exMenu.id);setExMenu(null);},true)}
+          <button onClick={()=>setExMenu(null)} style={{width:"100%",padding:"12px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,fontFamily:C.sans,cursor:"pointer",marginTop:2}}>Cancel</button>
+        </div>
+      </div>;
+    })()}
     {swapModal&&<SwapExerciseModal exercise={swapModal} settings={settings} onSwap={(newData)=>swapExercise(swapModal,newData)} onClose={()=>setSwapModal(null)} cachedSuggestions={swapCache[swapModal.name]||null} onCacheSuggestions={(name,data)=>setSwapCache(prev=>({...prev,[name]:data}))} C={C}/>}
 
     {/* Add exercise modal */}
@@ -6009,7 +6022,14 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
   const [dlBusy,setDlBusy]=useState(false);
   const isIOSSafari=typeof navigator!=="undefined"&&/iPhone|iPad|iPod/.test(navigator.userAgent)&&/Safari/.test(navigator.userAgent)&&!/Chrome|CriOS|FxiOS/.test(navigator.userAgent);
 
-  function save(){saveSettings(local);setSaved(true);setTimeout(()=>setSaved(false),2000);}
+  // Auto-save: persist any settings change (debounced) so the iOS-style toggles apply instantly like
+  // users expect — no separate Save step. Skips the initial mount so it never writes on open.
+  const settingsFirst=useRef(true);
+  useEffect(()=>{
+    if(settingsFirst.current){settingsFirst.current=false;return;}
+    const t=setTimeout(()=>{saveSettings(local);setSaved(true);setTimeout(()=>setSaved(false),1600);},400);
+    return()=>clearTimeout(t);
+  },[local]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function saveDisplayName(){
     if(!displayName.trim())return;
@@ -6247,7 +6267,7 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
           style={{width:"100%",padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
       </div>}
 
-      <Btn size="lg" style={{width:"100%",marginTop:20}} onClick={save} C={C}>{saved?"Saved":"Save Settings"}</Btn>
+      <Mono style={{fontSize:11,color:saved?C.neonInk:C.faint,display:"block",textAlign:"center",marginTop:18,transition:"color .3s"}}>{saved?"✓ Saved":"Changes save automatically"}</Mono>
 
       {/* Workout reminders */}
       <div style={{marginTop:16,padding:"14px",background:C.card,border:`1px solid ${C.border}`,borderRadius:12}}>

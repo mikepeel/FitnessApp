@@ -28,12 +28,11 @@ test.describe("cap-cleanup coaching toggles — plumbing + master switch", () =>
     const coachRow = page.getByText("Coach tab", { exact: true }).locator("xpath=../..");
     await expect(coachRow).toHaveCSS("opacity", "1");
 
-    // Flip the MASTER off and save.
+    // Flip the MASTER off — settings now auto-save (debounced), no Save button.
     const masterRow = page.getByText(/interpretive guidance/).locator("xpath=../..");
     await masterRow.locator("xpath=./div[last()]").click(); // the Toggle is the row's last child
-    await page.getByRole("button", { name: /Save Settings|Saved/ }).click();
 
-    // Round-trip part 1: it persisted to user_settings.
+    // Round-trip part 1: the auto-save persisted it to user_settings (poll waits for the debounce).
     await expect.poll(async () => (await seedHistory.readCoaching())?.show_coaching, { timeout: 8000 }).toBe(false);
 
     // Round-trip part 2: reload → the loaded-back OFF state is reflected (sub-rows dimmed).
