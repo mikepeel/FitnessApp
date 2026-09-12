@@ -2682,6 +2682,16 @@ function getDayColor(day, C){
   return A.accent;
 }
 
+// Muscle → its training-day family color (push→blue, pull→violet, legs→sky, else neutral). Keeps
+// muscle chips/bars consistent with getDayColor and clear of the reserved green/gold/red.
+function muscleFamilyColor(m, C){
+  const A = C || THEMES.dark;
+  if(m==="Back"||m==="Biceps") return A.violet;
+  if(m==="Legs") return A.sky;
+  if(m==="Abs"||m==="Cardio"||m==="Recovery") return A.muted;
+  return A.accent; // Chest / Shoulders / Triceps + default
+}
+
 // -- TODAY ---------------------------------------------------------------------
 function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,programStart,streak,complianceStreak,deloadDue,onDeloadDismiss,onStart,C,toggleTheme,themeMode,authUser,todayDay,onGoToPlan,longestStreak=0}){
   const rawDays=plan?.days||[];
@@ -4908,7 +4918,9 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
             const dur=s.completedAt&&s.startedAt?Math.round((new Date(s.completedAt)-new Date(s.startedAt))/60000):null;
             const newPRs=allSets.filter(x=>x.isPR);
             const isExp=expanded===idx;
-            return <div key={s.id} style={{background:C.card,border:`1px solid ${isExp?C.accent+"44":C.border}`,borderLeft:`3px solid ${isExp?C.accentBtn:"transparent"}`,borderRadius:8,padding:"13px 14px",marginBottom:8,transition:"border-color .2s"}}>
+            const dayCol=getDayColor({label:s.dayLabel,isRest:false},C);
+            const muscles=[...new Set(allSets.filter(x=>x.type!=="warmup").map(x=>libMuscleFor(x.exName)).filter(Boolean))];
+            return <div key={s.id} style={{background:C.card,border:`1px solid ${isExp?dayCol+"55":C.border}`,borderLeft:`3px solid ${dayCol}`,borderRadius:8,padding:"13px 14px",marginBottom:8,transition:"border-color .2s"}}>
               {/* Header row */}
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",cursor:"pointer"}} onClick={()=>setExpanded(isExp?null:idx)}>
                 <div style={{flex:1}}>
@@ -4922,6 +4934,9 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
                     {dur?` . ${dur}min`:""}
                   </Mono>
                   {setCount>0&&<Mono style={{fontSize:11,color:C.neonInk,fontWeight:700,marginTop:3,display:"block"}}>{setCount} set{setCount!==1?"s":""}{vol>0?` · ${Math.round(vol).toLocaleString()} lbs`:""}</Mono>}
+                  {muscles.length>0&&<div style={{display:"flex",gap:5,flexWrap:"wrap",marginTop:7}}>
+                    {muscles.slice(0,6).map(m=><span key={m} style={{display:"inline-flex",alignItems:"center",gap:5,background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:"2px 8px"}}><span style={{width:6,height:6,borderRadius:3,background:muscleFamilyColor(m,C),flexShrink:0}}/><Mono style={{fontSize:10,color:C.muted}}>{m}</Mono></span>)}
+                  </div>}
                 </div>
                 <Mono style={{color:C.muted,fontSize:12,marginLeft:8}}>{isExp?"▲":"▼"}</Mono>
               </div>
@@ -6267,9 +6282,21 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
       ))}
 
       {local.restTimer&&<div style={{padding:"14px 0",borderBottom:`1px solid ${C.border}`}}>
-        <SectionLabel C={C}>Rest Duration (seconds)</SectionLabel>
-        <input type="number" value={local.restSeconds||90} onChange={e=>setLocal(p=>({...p,restSeconds:parseInt(e.target.value)||90}))}
-          style={{width:"100%",padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,color:C.text,fontSize:16,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
+        <SectionLabel C={C}>Rest Duration</SectionLabel>
+        {(()=>{
+          const secs=local.restSeconds||90;
+          const set=v=>setLocal(p=>({...p,restSeconds:Math.max(15,Math.min(300,v))}));
+          const fmt=s=>s>=60?`${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`:`${s}s`;
+          const step=(d,dis)=><button aria-label={d<0?"Less rest":"More rest"} onClick={()=>set(secs+d)} disabled={dis} style={{width:44,height:44,borderRadius:12,border:`1px solid ${C.border}`,background:C.card,color:dis?C.faint:C.neonInk,fontSize:22,lineHeight:1,cursor:dis?"default":"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{d<0?"−":"+"}</button>;
+          return <div style={{display:"flex",alignItems:"center",gap:12,marginTop:8}}>
+            {step(-15,secs<=15)}
+            <div style={{flex:1,textAlign:"center"}}>
+              <div style={{fontSize:28,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",color:C.text,lineHeight:1}}>{fmt(secs)}</div>
+              <Mono style={{fontSize:10,color:C.faint,marginTop:5,display:"block"}}>between sets</Mono>
+            </div>
+            {step(15,secs>=300)}
+          </div>;
+        })()}
       </div>}
 
       <Mono style={{fontSize:11,color:saved?C.neonInk:C.faint,display:"block",textAlign:"center",marginTop:18,transition:"color .3s"}}>{saved?"✓ Saved":"Changes save automatically"}</Mono>
