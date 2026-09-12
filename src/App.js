@@ -3042,7 +3042,9 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
     return()=>clearInterval(t);
   },[]);// eslint-disable-line
 
-  const lastSessionForDay=sessions.filter(s=>s.dayId===workout.id&&s.completedAt).sort((a,b)=>new Date(b.completedAt)-new Date(a.completedAt))[0];
+  // Match the previous session by dayLabel — saved sessions store day_id:null, so matching on dayId
+  // never hit and Last Session Reference (+ the rest-timer's "last time") silently showed nothing.
+  const lastSessionForDay=sessions.filter(s=>s.dayLabel===workout.label&&s.completedAt).sort((a,b)=>new Date(b.completedAt)-new Date(a.completedAt))[0];
   const lastSets=lastSessionForDay?.sets||{};
 
   function logSet(exName,setNum,field,value){
@@ -3304,7 +3306,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
               {ex.note&&<div style={{fontSize:11,color:C.muted,marginTop:2}}>{ex.note}</div>}
               {!isCardio&&last&&<Mono style={{fontSize:11,color:C.muted,display:"block",marginTop:2}}>{isTime?`Last: ${last[1]?.reps||"--"}s`:isReps?`Last: ${last[1]?.reps||"--"} reps${last[1]?.weight?` +${last[1].weight} lbs`:""}`:`Last: ${last[1]?.weight||"--"}lbs × ${last[1]?.reps||"--"}`}</Mono>}
               {isCardio&&last&&last[1]?.minutes&&<Mono style={{fontSize:11,color:C.muted,display:"block",marginTop:2}}>Last: {last[1].minutes} min</Mono>}
-              {myPR&&<Mono style={{fontSize:11,color:C.redInk,display:"block"}}>PR: {myPR.weight}lbs</Mono>}
+              {myPR&&<Mono style={{fontSize:11,color:C.goldInk,display:"block"}}>PR: {myPR.weight}lbs</Mono>}
               {!isCardio&&settings.plateCalc&&w0&&<PlateCalc weight={w0} C={C}/>}
             </div>
             <div style={{display:"flex",gap:4,marginLeft:8,flexShrink:0}}>
@@ -4880,7 +4882,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
       </div>}
       {Object.entries(grouped).map(([month,msess])=>(
         <div key={month} style={{marginBottom:24}}>
-          <SectionLabel C={C}>{new Date(month+"-02").toLocaleDateString("en",{month:"long",year:"numeric"})} . {msess.length} sessions</SectionLabel>
+          <SectionLabel C={C}>{new Date(month+"-02").toLocaleDateString("en",{month:"long",year:"numeric"})} . {msess.length} session{msess.length!==1?"s":""}</SectionLabel>
           {msess.map((s,i)=>{
             const idx=`${month}-${i}`;
             const allSets=s.setsArr||[];
@@ -4938,7 +4940,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
                     </div>
                     <div style={{display:"grid",gap:6}}>
                       {groups.map((g,j)=>(
-                        <Mono key={j} style={{fontSize:11,background:C.surface,padding:"8px 10px",borderRadius:8,color:g.isPR?C.redInk:g.cardio?C.greenInk:C.muted,opacity:g.type==="warmup"?0.6:1}}>
+                        <Mono key={j} style={{fontSize:11,background:C.surface,padding:"8px 10px",borderRadius:8,color:g.isPR?C.goldInk:g.cardio?C.greenInk:C.muted,opacity:g.type==="warmup"?0.6:1}}>
                           {g.type==="warmup"?"W ":""}{g.cardio?`Interval ${g.setNum}: ${g.minutes} min${g.level?` · L${g.level}`:""}`:""}{!g.cardio&&g.count>1?`${g.count} × `:""}{!g.cardio&&g.weight?`${g.weight}lbs`:""}{!g.cardio&&g.weight&&g.reps?" × ":""}{!g.cardio&&g.reps?`${g.reps}${et==="time"?"s":"r"}`:""}{g.isPR?<> <PRMark C={C}/></>:""}
                         </Mono>
                       ))}
