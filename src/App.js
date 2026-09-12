@@ -2618,7 +2618,7 @@ export default function ForgeApp(){
 
   return <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:C.sans,paddingBottom:72,userSelect:"none",scrollBehavior:"smooth"}}>
     {!isOnline&&<div style={{background:"#f7c948",color:"#1a202c",padding:"8px 18px",fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"center",letterSpacing:"0.04em"}}>
-      ⚠ Offline — workouts will sync when connection is restored
+      ⚠ Offline — your work is safe. Reconnect to finish saving.
     </div>}
     {planSaveFailed&&<div style={{background:isOnline?C.danger:"#f7c948",color:isOnline?"#fff":"#1a202c",padding:"8px 18px",fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",textAlign:"center",letterSpacing:"0.04em",display:"flex",alignItems:"center",justifyContent:"center",gap:12,flexWrap:"wrap"}}>
       <span>{isOnline?"Couldn't save your plan changes":"Plan changes will save when you're back online"}</span>
