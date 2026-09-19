@@ -4104,7 +4104,7 @@ No explanation, no markdown, just the JSON array.`;
                       <input key={ex.reps} defaultValue={ex.reps} aria-label="Reps"
                         onKeyDown={e=>{if(e.key==="Enter")e.currentTarget.blur();}}
                         onBlur={e=>{const v=e.target.value.trim();if(v&&v!==ex.reps)saveExercise(day.id,{...ex,reps:v});}}
-                        style={{width:52,padding:"3px 6px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,color:C.text,fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box"}}/>
+                        style={{width:72,padding:"3px 8px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,color:C.text,fontSize:12,fontFamily:"'SF Mono','Courier New',monospace",boxSizing:"border-box",textAlign:"center"}}/>
                       {ex.muscle&&<Mono style={{fontSize:11,color:C.muted}}> . {ex.muscle}</Mono>}
                     </div>;
                   })()}
