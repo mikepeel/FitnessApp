@@ -100,7 +100,7 @@ const THEMES = {
     violet:"#7c5cf5", sky:"#0284c7", dayRest:"#94a3b8",
     // Darkened accent text colors — all meet WCAG AA (>=4.5:1) on white; vivid tokens above
     // stay for fills/borders/buttons/glows so the UI keeps its pop.
-    accentInk:"#2b6cb0", blueInk:"#2b6cb0", neonInk:"#076b42", greenInk:"#076b42", goldInk:"#8a6d0a", redInk:"#c01f4d", dangerInk:"#c01f4d",
+    accentInk:"#2b6cb0", blueInk:"#2b6cb0", neonInk:"#076b42", greenInk:"#076b42", goldInk:"#6d5406", redInk:"#c01f4d", dangerInk:"#c01f4d",
     // Solid-fill button/selector colors — same deep shades as light (white text passes)
     accentBtn:"#2b6cb0", neonBtn:"#076b42",
     text:"#1a202c", muted:"#2d3748", faint:"#54637a", cardText:"#0d1117",
@@ -3410,13 +3410,14 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
               const typ=(setTypes[ex.name]?.[n])||"working";
               const typeLabel=typ==="warmup"?"W":typ==="working"?"S":typ==="drop"?"D":"F";
               const typeColor=typ==="warmup"?C.muted:typ==="working"?C.accent:typ==="drop"?C.gold:C.red;
+              const typeInk=typ==="warmup"?C.muted:typ==="working"?C.accentInk:typ==="drop"?C.goldInk:C.redInk; // text-safe (raw fill washes out in light mode)
               const isPrepop=!!myLog[n]?.prepop;
               const stateKey=ex.id+"-"+n;
               const isConfirmed=setStates[stateKey]==="confirmed";
               const hasVal=!!(myLog[n]?.weight||myLog[n]?.reps);
               const setRowState=isConfirmed?"confirmed":isPrepop?"suggested":hasVal?"inprogress":"suggested";
               return [
-                <button key={`t${n}`} onClick={()=>cycleSetType(ex.name,n)} style={{padding:"3px 0",background:typeColor+"22",border:"none",borderRadius:4,color:typeColor,fontSize:9,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"center",letterSpacing:"0.05em"}}>{typeLabel}</button>,
+                <button key={`t${n}`} onClick={()=>cycleSetType(ex.name,n)} style={{padding:"3px 0",background:typeColor+"22",border:"none",borderRadius:4,color:typeInk,fontSize:9,fontWeight:700,fontFamily:"'SF Mono','Courier New',monospace",cursor:"pointer",textAlign:"center",letterSpacing:"0.05em"}}>{typeLabel}</button>,
                 ...(isConfirmed
                   ?[<div key={`confirmed${n}`} className="iron-pop" onClick={()=>{setSetStates(prev=>{const u={...prev};delete u[stateKey];return u;});}} style={{gridColumn:"span 4",background:C.neon+"12",border:`1px solid ${C.neon}22`,borderRadius:6,display:"flex",alignItems:"center",gap:8,padding:"8px 10px",cursor:"pointer"}}>
                       <span style={{color:C.neonInk,display:"inline-flex",alignItems:"center"}}><Check size={ICON.sm} strokeWidth={1.75}/></span>
