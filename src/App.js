@@ -2107,7 +2107,7 @@ export default function ForgeApp(){
       pr_detection:s.prDetection, last_ref:s.lastRef,
       deload_reminder:s.deloadReminder, streak_tracking:s.streakTracking,
       plate_calc:s.plateCalc, workout_notes:s.workoutNotes,
-      ai_recs:s.aiRecs, theme_mode:themeMode,
+      ai_recs:s.aiRecs, theme_mode:s.theme_mode||themeMode, // toggleTheme passes the NEW mode; themeMode here is the pre-toggle closure value
       apple_health:s.appleHealth||false,
       ai_age_range:s.aiAgeRange||"", ai_experience:s.aiExperience||"",
       ai_joint_notes:s.aiJointNotes||"", ai_goal:s.aiGoal||"",
