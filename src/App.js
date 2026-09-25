@@ -90,11 +90,13 @@ const THEMES = {
     bodyUnused:"#444b59", bodyStruct:"#2b323e", bodyStructOp:0.7, // muscle heat-map: unused-muscle gray / faint non-muscle structure
     mono:"'SF Mono','Courier New',monospace",
     sans:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif", // prose/UI; metrics use `mono`
+    tintBase:"transparent", // what translucent card tints sit on — dark: the page (unchanged look)
+    shadow:"none", // card elevation — dark mode separates by surface color, so none
     navBg:"#1a2130", gradTop:"linear-gradient(135deg,#4f8ef715 0%,#22c98a08 100%)",
   },
   light: {
-    bg:"#f7f9fc", surface:"#ffffff", card:"#ffffff", border:"#e2e8f0",
-    accent:"#4f8ef7", neon:"#0ea66e", red:"#e53e6a", gold:"#d4a017",
+    bg:"#f0f4f9", surface:"#ffffff", card:"#ffffff", border:"#d9e1ec",
+    accent:"#4f8ef7", neon:"#0ea66e", red:"#e53e6a", gold:"#f5b400",
     blue:"#4f8ef7", green:"#0ea66e", danger:"#e53e6a",
     // Day-type categorical palette (light-mode: darker so it reads on white)
     violet:"#7c5cf5", sky:"#0284c7", dayRest:"#94a3b8",
@@ -107,6 +109,8 @@ const THEMES = {
     bodyUnused:"#ccd3de", bodyStruct:"#dfe5ec", bodyStructOp:0.9, // muscle heat-map: unused-muscle gray / faint non-muscle structure
     mono:"'SF Mono','Courier New',monospace",
     sans:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif", // prose/UI; metrics use `mono`
+    tintBase:"#ffffff", // light: tints sit on white, not the gray canvas (avoids a muddy wash)
+    shadow:"0 1px 2px rgba(15,30,60,0.06), 0 6px 16px rgba(15,30,60,0.07)", // soft elevation so white cards lift off the canvas
     navBg:"#ffffff", gradTop:"linear-gradient(135deg,#4f8ef710 0%,#0ea66e08 100%)",
   }
 };
@@ -1267,6 +1271,8 @@ const EXERCISE_LIBRARY = [
   {name:"Barbell Behind-the-Back Shrug",muscle:"Back",equipment:"Barbell",track:"weight",cue:"Bar behind the thighs, shrug straight up, hold the squeeze",img:["Barbell_Shrug_Behind_The_Back/0.jpg","Barbell_Shrug_Behind_The_Back/1.jpg"]},
   {name:"Cable Shrug",muscle:"Back",equipment:"Cable",track:"weight",cue:"Low pulley, shrug straight up with constant tension",img:["Cable_Shrugs/0.jpg","Cable_Shrugs/1.jpg"]},
   {name:"Kettlebell Single-Arm Row",muscle:"Back",equipment:"Kettlebell",track:"weight",cue:"Hinge and brace, row the bell to your hip, control the return",img:["One-Arm_Kettlebell_Row/0.jpg","One-Arm_Kettlebell_Row/1.jpg"]},
+  {name:"Farmer's Carry",muscle:"Back",equipment:"Dumbbell",track:"time",cue:"Heavy dumbbells at your sides, tall posture, walk with short controlled steps",img:["Farmers_Walk/0.jpg","Farmers_Walk/1.jpg"]},
+  {name:"Kettlebell Farmer's Carry",muscle:"Back",equipment:"Kettlebell",track:"time",cue:"Bells at your sides, shoulders packed, brace and walk tall",img:["Farmers_Walk/0.jpg","Farmers_Walk/1.jpg"]},
   {name:"Kettlebell Renegade Row",muscle:"Back",equipment:"Kettlebell",track:"weight",cue:"Plank over two bells, row one at a time, resist the twist",img:["Alternating_Renegade_Row/0.jpg","Alternating_Renegade_Row/1.jpg"]},
   {name:"Neutral-Grip Pull-Up",muscle:"Back",equipment:"Bodyweight",track:"reps",cue:"Palms facing, pull chest to hands, full hang each rep",img:["V-Bar_Pullup/0.jpg","V-Bar_Pullup/1.jpg"]},
   {name:"Smith Machine Bent-Over Row",muscle:"Back",equipment:"Smith Machine",track:"weight",cue:"Hinge to 45 degrees, row the fixed bar to your waist",img:["Smith_Machine_Bent_Over_Row/0.jpg","Smith_Machine_Bent_Over_Row/1.jpg"]},
@@ -1768,7 +1774,7 @@ function RestTimer({seconds,onDone,onSkip,C,next}){
   // Make the rest the most useful 15 seconds: show the NEXT set's target + last week's number to beat.
   const targetTxt=next?(next.track==="time"?`${next.targetReps||"—"}s hold`:next.track==="reps"?`${next.targetReps||"—"} reps`:`${next.targetReps||"—"} reps${next.weight?` @ ${next.weight} lb`:""}`):null;
   const lastTxt=next?(next.track==="time"?(next.lastR?`${next.lastR}s`:""):next.track==="reps"?(next.lastR?`${next.lastR} reps`:""):((next.lastW||next.lastR)?`${next.lastW||"–"} lb × ${next.lastR||"–"}`:"")):null;
-  return <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"8px 12px",marginBottom:8}}>
+  return <div style={{background:C.card,boxShadow:C.shadow,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"8px 12px",marginBottom:8}}>
     <div style={{display:"flex",alignItems:"center",gap:12}}>
       <Mono style={{fontSize:9,color:C.muted,letterSpacing:"0.12em",flexShrink:0}}>REST</Mono>
       <div style={{fontSize:20,fontFamily:"'SF Mono','Courier New',monospace",color:rem<10?C.redInk:C.neonInk,fontWeight:700,minWidth:42}}>
@@ -1802,7 +1808,7 @@ function OverloadCalc({C}){
   const weight=parseFloat(w);
   const p25=weight?Math.round(weight*1.025*4)/4:null;
   const p5=weight?Math.round(weight*1.05*4)/4:null;
-  return <div style={{background:C.card,border:`1px solid ${C.border}`,borderTop:`3px solid ${C.accent}`,borderRadius:12,padding:"16px"}}>
+  return <div style={{background:C.card,boxShadow:C.shadow,border:`1px solid ${C.border}`,borderTop:`3px solid ${C.accent}`,borderRadius:12,padding:"16px"}}>
     <div style={{fontSize:14,fontWeight:600,marginBottom:4}}>Progressive Overload Calculator</div>
     <Mono style={{fontSize:11,color:C.muted,display:"block",marginBottom:12}}>Enter your current max weight -- see your next target</Mono>
     <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:12}}>
@@ -2735,7 +2741,7 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,p
       </div>
     </div>
     <div style={{padding:"14px 18px"}}>
-      {!plan&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"20px",textAlign:"center",marginBottom:14}}>
+      {!plan&&<div style={{background:C.card,boxShadow:C.shadow,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"20px",textAlign:"center",marginBottom:14}}>
         <div style={{fontSize:18,marginBottom:8}}>💪</div>
         <div style={{fontSize:15,fontWeight:700,marginBottom:6}}>No plan set up yet</div>
         <div style={{fontSize:11,color:C.muted,marginBottom:14}}>Pick a template to get started or build a custom plan.</div>
@@ -2802,7 +2808,7 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,p
           return {vol,sets};
         })():null;
         const isPast=slotOffset!==null&&slotOffset<0;
-        return <div key={day.id} style={{background:isToday?C.neon+"0d":C.card,border:`2px solid ${isToday?C.neon:C.border}`,borderRadius:RADIUS.card,padding:"13px 14px",marginBottom:8,opacity:isToday?1:day.isRest?.65:isPast?.7:1,boxShadow:isToday?`0 0 12px ${C.neon}33`:"none",transition:"all .2s"}}>
+        return <div key={day.id} style={{background:isToday?`linear-gradient(${C.neon}0d,${C.neon}0d),${C.tintBase}`:C.card,border:`2px solid ${isToday?C.neon:C.border}`,borderRadius:RADIUS.card,padding:"13px 14px",marginBottom:8,opacity:isToday?1:day.isRest?.65:isPast?.7:1,boxShadow:isToday?`0 0 12px ${C.neon}33`:C.shadow,transition:"all .2s"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <div style={{flex:1}}>
               <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:2}}>
@@ -2866,10 +2872,17 @@ function ExerciseLibraryModal({onSelect,onClose,C,multiAdd=false,initialMuscle=n
   };
   const muscles=["Chest","Back","Shoulders","Biceps","Triceps","Legs","Abs","Cardio"];
   const equipColor={"Barbell":C.accent,"Dumbbell":C.sky,"Cable":C.violet,"Machine":C.muted,"Smith Machine":C.muted,"Bodyweight":C.accent,"Kettlebell":C.violet,"Band":C.sky};
-  const filtered=EXERCISE_LIBRARY.filter(e=>
-    (!muscleFilter||e.muscle===muscleFilter)&&
-    (!query||e.name.toLowerCase().includes(query.toLowerCase()))
-  );
+  // Word-by-word search: every typed word must appear in the name (any order), a trailing "s" is
+  // ignored ("swings"→swing, "tricep"↔triceps), and common gym shorthand expands (kb, db, bb). A typed
+  // query searches ALL muscles — the chip filter only narrows browsing, so a Legs chip can't hide
+  // Kettlebell Swing (filed under Cardio).
+  const ABBR={kb:"kettlebell",db:"dumbbell",bb:"barbell",ohp:"overhead press",rdl:"romanian deadlift"};
+  const qWords=query.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean).flatMap(w=>(ABBR[w]||w).split(" ")).map(w=>w.length>3?w.replace(/s$/,""):w);
+  const filtered=EXERCISE_LIBRARY.filter(e=>{
+    if(!qWords.length)return !muscleFilter||e.muscle===muscleFilter;
+    const nm=e.name.toLowerCase();
+    return qWords.every(w=>nm.includes(w));
+  });
   return <Modal onClose={onClose} C={C} showClose={false}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
       <div>
@@ -3695,7 +3708,7 @@ function PlanAnalysisView({plan,goalRaw,C,onBack}){
     return <div>
       {Header}
       <div style={{padding:"14px 18px"}}>
-        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"14px",marginBottom:14}}>
+        <div style={{background:C.card,boxShadow:C.shadow,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"14px",marginBottom:14}}>
           <SectionLabel C={C}>Strength goal — coarse guidance</SectionLabel>
           <Mono style={{fontSize:12,color:C.muted,lineHeight:1.7,display:"block"}}>Strength is lift-specific: train your key lifts 2–3×/week, keep most sets heavy and 1–2 reps from failure, and aim ~6–12 working sets on the primary movers. Per-muscle set totals matter far less than for hypertrophy — don't over-index on them.</Mono>
         </div>
@@ -3818,6 +3831,21 @@ function PlanTab({plans,activePlanKey,setActivePlanKey,savePlans,settings,C,togg
   function setDayRest(dayId,rest){updatePlan(days.map(d=>d.id!==dayId?d:{...d,isRest:rest,exercises:rest?[]:(d.exercises||[])}));}
   // Toggle handler: rest -> training is immediate; training -> rest confirms first when it would discard
   // authored exercises (never silently delete), else marks rest directly.
+  // Rest-day switch row. Training day → footer placement (top border, softer copy); rest day → leads the panel.
+  const restToggleRow=day=><div style={day.isRest
+      ?{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"4px 0 10px",borderBottom:`1px solid ${C.border}`,marginBottom:8,gap:12}
+      :{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 0 2px",borderTop:`1px solid ${C.border}`,marginTop:12,gap:12}}>
+    <div style={{minWidth:0}}>
+      {day.isRest
+        ?<Mono style={{fontSize:11,color:C.neonInk,letterSpacing:"0.06em",fontWeight:700}}>REST DAY</Mono>
+        :<div style={{fontSize:13,fontWeight:600,color:C.text}}>Make this a rest day</div>}
+      <div style={{fontSize:11,color:C.faint,marginTop:2,lineHeight:1.4}}>{day.isRest?"Recovery — not counted toward your weekly target. Switch off to train this day.":"Rest days don't count toward your weekly target"}</div>
+    </div>
+    <button role="switch" aria-checked={!!day.isRest} aria-label="Rest day" onClick={()=>toggleRest(day)}
+      style={{width:44,height:26,borderRadius:13,border:"none",background:day.isRest?C.neon:C.border,position:"relative",cursor:"pointer",flexShrink:0,padding:0,transition:"background .15s"}}>
+      <span style={{position:"absolute",top:3,left:day.isRest?21:3,width:20,height:20,borderRadius:10,background:"#fff",boxShadow:"0 1px 2px rgba(0,0,0,0.3)",transition:"left .15s"}}/>
+    </button>
+  </div>;
   function toggleRest(day){
     if(day.isRest){setDayRest(day.id,false);return;}
     const n=(day.exercises||[]).length;
@@ -3980,7 +4008,7 @@ No explanation, no markdown, just the JSON array.`;
     </div>}
     {/* MY PLANS */}
     {view==="mine"&&<div style={{padding:"14px 18px"}}>
-      {!plan&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"22px 20px",textAlign:"center",marginBottom:14}}>
+      {!plan&&<div style={{background:C.card,boxShadow:C.shadow,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"22px 20px",textAlign:"center",marginBottom:14}}>
         <div style={{fontSize:15,fontWeight:700,marginBottom:6}}>Create your first plan</div>
         <Mono style={{fontSize:11,color:C.muted,display:"block",marginBottom:16,lineHeight:1.6}}>Start from a ready-made template and tweak it, or build your own from scratch.</Mono>
         <div style={{display:"flex",gap:8,flexDirection:"column"}}>
@@ -3988,7 +4016,7 @@ No explanation, no markdown, just the JSON array.`;
           <Btn onClick={()=>{setBlankName("");setBlankSheet(true);}} variant="ghost" C={C}>Build from scratch</Btn>
         </div>
       </div>}
-      {plan&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"13px 14px",marginBottom:12}}>
+      {plan&&<div style={{background:C.card,boxShadow:C.shadow,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"13px 14px",marginBottom:12}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
           <Mono style={{fontSize:10,color:C.muted,letterSpacing:"0.1em"}}>PLAN SCHEDULE</Mono>
           {(()=>{const wk=planWeekOf(plan);const tot=plan?.durationWeeks||10;return wk?<Mono style={{fontSize:10,color:wk>tot?C.goldInk:C.accentInk,fontWeight:700}}>{wk>tot?`COMPLETE`:`WEEK ${wk} OF ${tot}`}</Mono>:null;})()}
@@ -4021,7 +4049,7 @@ No explanation, no markdown, just the JSON array.`;
       {days.map((day,i)=>(
         <div key={day.id} style={{marginBottom:8}}>
           <div onClick={dayReorderMode?undefined:()=>setExpandedDay(expandedDay===i?null:i)}
-            style={{background:C.card,border:`1px solid ${dayReorderMode?C.neon+"33":expandedDay===i?getDayColor(day,C)+"55":C.border}`,borderLeft:`3px solid ${getDayColor(day,C)}`,borderRadius:(!dayReorderMode&&expandedDay===i)?"10px 10px 0 0":10,padding:"13px 14px",cursor:dayReorderMode?"default":"pointer"}}>
+            style={{background:C.card,boxShadow:C.shadow,border:`1px solid ${dayReorderMode?C.neon+"33":expandedDay===i?getDayColor(day,C)+"55":C.border}`,borderLeft:`3px solid ${getDayColor(day,C)}`,borderRadius:(!dayReorderMode&&expandedDay===i)?"10px 10px 0 0":10,padding:"13px 14px",cursor:dayReorderMode?"default":"pointer"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div style={{flex:1}}>
                 <div style={{fontSize:14,fontWeight:600}}>{slotWeekday(i)||day.name||`Day ${i+1}`} — {day.label}</div>
@@ -4039,17 +4067,9 @@ No explanation, no markdown, just the JSON array.`;
             </div>
           </div>
           {expandedDay===i&&<div style={{background:C.surface,border:`1px solid ${C.border}`,borderTop:"none",borderRadius:"0 0 10px 10px",padding:"8px 14px 14px"}}>
-            {/* Rest-day toggle — establishes the rest/training invariant */}
-            {reorderMode!==day.id&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"4px 0 10px",borderBottom:`1px solid ${C.border}`,marginBottom:8,gap:12}}>
-              <div style={{minWidth:0}}>
-                <Mono style={{fontSize:11,color:day.isRest?C.neonInk:C.muted,letterSpacing:"0.06em",fontWeight:700}}>REST DAY</Mono>
-                <div style={{fontSize:10,color:C.faint,marginTop:2,lineHeight:1.4}}>{day.isRest?"Recovery — not counted toward your weekly target":"Training day — counts toward your weekly target"}</div>
-              </div>
-              <button role="switch" aria-checked={!!day.isRest} aria-label="Rest day" onClick={()=>toggleRest(day)}
-                style={{width:44,height:26,borderRadius:13,border:"none",background:day.isRest?C.neon:C.border,position:"relative",cursor:"pointer",flexShrink:0,padding:0,transition:"background .15s"}}>
-                <span style={{position:"absolute",top:3,left:day.isRest?21:3,width:20,height:20,borderRadius:10,background:"#fff",boxShadow:"0 1px 2px rgba(0,0,0,0.3)",transition:"left .15s"}}/>
-              </button>
-            </div>}
+            {/* Rest-day toggle — establishes the rest/training invariant. On a rest day it's the day's main
+                control (leads the panel); on a training day it's a secondary day setting (footer, below). */}
+            {reorderMode!==day.id&&day.isRest&&restToggleRow(day)}
             {/* Reorder mode header */}
             {reorderMode===day.id&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0 10px",borderBottom:`1px solid ${C.neon}44`,marginBottom:4}}>
               <Mono style={{fontSize:10,color:C.neonInk,letterSpacing:"0.12em"}}>DRAG MODE -- USE ARROWS TO REORDER</Mono>
@@ -4118,6 +4138,7 @@ No explanation, no markdown, just the JSON array.`;
             ))}
             {/* Rest day with no exercises: a rest day holds no workout — the add controls are hidden */}
             {day.isRest&&(day.exercises||[]).length===0&&<div style={{padding:"14px 0",textAlign:"center"}}><Mono style={{fontSize:11,color:C.faint}}>Rest day — no exercises</Mono></div>}
+            {reorderMode!==day.id&&!day.isRest&&restToggleRow(day)}
             <div style={{display:"flex",gap:8,marginTop:12,flexWrap:"wrap"}}>
               {/* "+ Exercise" adds without flipping isRest, so it would break the invariant → hidden on a rest
                   day (toggle to training first). "Copy from…" stays: copyDayInto flips isRest:false, so it
@@ -4166,7 +4187,7 @@ No explanation, no markdown, just the JSON array.`;
         {filtered.length===0&&<div style={{textAlign:"center",padding:"24px",color:C.muted,fontSize:13}}>No templates match — <button onClick={()=>{setPresetGoal(null);setPresetDays(null);}} style={{background:"none",border:"none",color:C.accentInk,cursor:"pointer",fontSize:13,textDecoration:"underline",fontFamily:"inherit"}}>clear filters</button></div>}
         {filtered.map(t=>{
           const trainingDays=t.days.filter(d=>!d.isRest);
-          return <div key={t.id} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"16px",marginBottom:12}}>
+          return <div key={t.id} style={{background:C.card,boxShadow:C.shadow,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"16px",marginBottom:12}}>
             <div style={{display:"flex",gap:12,alignItems:"flex-start",marginBottom:10}}>
               <div style={{fontSize:26,width:46,height:46,borderRadius:12,background:C.surface,border:`1px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{t.emoji}</div>
               <div style={{flex:1,minWidth:0}}>
@@ -4199,7 +4220,7 @@ No explanation, no markdown, just the JSON array.`;
         <div style={{fontSize:13,color:C.muted,lineHeight:1.6,marginBottom:16}}>Answer a few questions and get a personalized workout plan built for your exact goals, schedule, and limitations.</div>
         <Btn size="lg" onClick={()=>setGoalModal(true)} C={C}>Build My Plan ✦</Btn>
       </div>
-      <div style={{background:C.card,border:`1px solid ${C.border}`,borderTop:`2px solid ${C.accent}`,borderRadius:6,padding:"14px"}}>
+      <div style={{background:C.card,boxShadow:C.shadow,border:`1px solid ${C.border}`,borderTop:`2px solid ${C.accent}`,borderRadius:6,padding:"14px"}}>
         <SectionLabel C={C}>What the AI considers</SectionLabel>
         {["Your primary goal (strength, size, fat loss, athletic)","Days per week available","Session length preference","Any injuries or joint issues","Experience level","Equipment available"].map((item,i)=>(
           <div key={i} style={{display:"flex",gap:10,padding:"7px 0",borderBottom:i<5?`1px solid ${C.border}`:"none",alignItems:"center"}}>
@@ -4929,7 +4950,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
             const isExp=expanded===idx;
             const dayCol=getDayColor({label:s.dayLabel,isRest:false},C);
             const muscles=[...new Set(allSets.filter(x=>x.type!=="warmup").map(x=>libMuscleFor(x.exName)).filter(Boolean))];
-            return <div key={s.id} style={{background:C.card,border:`1px solid ${isExp?dayCol+"55":C.border}`,borderLeft:`3px solid ${dayCol}`,borderRadius:8,padding:"13px 14px",marginBottom:8,transition:"border-color .2s"}}>
+            return <div key={s.id} style={{background:C.card,boxShadow:C.shadow,border:`1px solid ${isExp?dayCol+"55":C.border}`,borderLeft:`3px solid ${dayCol}`,borderRadius:8,padding:"13px 14px",marginBottom:8,transition:"border-color .2s"}}>
               {/* Header row */}
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",cursor:"pointer"}} onClick={()=>setExpanded(isExp?null:idx)}>
                 <div style={{flex:1}}>
@@ -5366,7 +5387,7 @@ function RealizedVolumeInsight({sessions,settings,C}){
   // Strength: per-muscle set totals matter far less (see Plan Analysis) — stay quiet.
   if(rv.goal==="strength")return null;
   const Label=<SectionLabel C={C}>Volume vs Targets — Last 28 Days</SectionLabel>;
-  const cardStyle={background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"12px 14px",marginBottom:18};
+  const cardStyle={background:C.card,boxShadow:C.shadow,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"12px 14px",marginBottom:18};
   if(!rv.sufficient)return <div style={cardStyle}>{Label}
     <Mono style={{fontSize:11,color:C.muted,display:"block",lineHeight:1.6}}>Keep logging — about 4 weeks of sessions unlocks volume guidance.</Mono>
   </div>;
@@ -5685,7 +5706,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
           if(settings.showVolumeTargets&&settings.showCoaching){const rv=analyzeRealized(sessions,{goal:(settings.aiGoal||"").toLowerCase(),windowDays:28});if(rv.sufficient){const f=(rv.perGroup||[]).find(g=>g.status!=="in_range");if(f)volumeFlag={group:f.group,status:f.status};}}
           const digest=assembleDigest({adherence,currentStreak:settings.streakTracking?complianceStreak:0,recentPR,plateaus,volumeFlag,deloadNewlyDue:!!deloadDue});
           const toneColor={positive:C.neonInk,caution:C.goldInk,info:C.accentInk,neutral:C.text};
-          return <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"14px",marginBottom:14}}>
+          return <div style={{background:C.card,boxShadow:C.shadow,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"14px",marginBottom:14}}>
             <SectionLabel C={C}>This Week</SectionLabel>
             {digest.lines.map((ln,i)=>(
               <div key={i} style={{fontSize:i===0?14:12,fontWeight:i===0?700:500,color:toneColor[ln.tone]||C.text,marginTop:i===0?2:8,lineHeight:1.5}}>{ln.text}</div>
@@ -5699,7 +5720,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
             Gated by streakTracking (same as the removed header chips). Full-width card so it can't
             bleed off a phone-width row — the header-chip overflow lesson, designed out. */}
         {settings.streakTracking&&longestStreak>0&&(
-          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"12px 14px",marginBottom:14,display:"flex",alignItems:"center",gap:10}}>
+          <div style={{background:C.card,boxShadow:C.shadow,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"12px 14px",marginBottom:14,display:"flex",alignItems:"center",gap:10}}>
             <span style={{color:C.gold,display:"inline-flex",flexShrink:0}}><Trophy size={ICON.md} strokeWidth={1.75}/></span>
             <div style={{minWidth:0}}>
               <div style={{fontSize:14,fontWeight:700,color:C.goldInk}}>Best: {longestStreak}-week run</div>
@@ -5712,7 +5733,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
         {prBoard.length>0&&<div style={{marginBottom:14}}>
           <SectionLabel C={C}>Personal Records</SectionLabel>
           {prBoard.slice(0,5).map(([name,pr])=>(
-            <div key={name} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+            <div key={name} style={{background:C.card,boxShadow:C.shadow,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
               <div style={{fontSize:13}}>{name}</div>
               <Mono style={{fontSize:14,color:C.goldInk,fontWeight:700}}>{pr.weight} lbs</Mono>
             </div>
@@ -5725,7 +5746,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
       {/* PROGRESS */}
       {statsView==="progress"&&(()=>{
         const mono="'SF Mono','Courier New',monospace";
-        const cardSt={background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"13px 14px",marginBottom:10};
+        const cardSt={background:C.card,boxShadow:C.shadow,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"13px 14px",marginBottom:10};
         const thSt={color:C.faint,fontWeight:600,padding:"4px 6px",fontSize:9,letterSpacing:"0.08em",borderBottom:`1px solid ${C.border}`,fontFamily:mono};
         const tdSt={padding:"5px 6px",borderBottom:`1px solid ${C.border}`,fontFamily:mono,fontSize:11};
         const tableSt={width:"100%",borderCollapse:"collapse",marginTop:6};
@@ -5817,7 +5838,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
               const col=single?C.muted:delta>0?C.neon:delta<0?C.red:C.gold;
               const head=single?`${l.weight} lb`:delta>0?`▲ Up ${delta} lb`:delta<0?`▼ Down ${Math.abs(delta)} lb`:`Holding at ${l.weight} lb`;
               const sub=single?"one session so far":`${f.weight} → ${l.weight} lb · over ${wks} week${wks!==1?"s":""}`;
-              return <div style={{background:C.card,border:`1px solid ${col}44`,borderRadius:RADIUS.card,padding:"16px 18px",marginBottom:12}}>
+              return <div style={{background:C.card,boxShadow:C.shadow,border:`1px solid ${col}44`,borderRadius:RADIUS.card,padding:"16px 18px",marginBottom:12}}>
                 <Mono style={{fontSize:10,color:C.muted,letterSpacing:"0.14em",textTransform:"uppercase",display:"block",marginBottom:7}}>{selEx} · Top Set</Mono>
                 <div style={{fontSize:30,fontWeight:800,letterSpacing:"-0.02em",color:col,fontFamily:mono,lineHeight:1.05}}>{head}</div>
                 <Mono style={{fontSize:12,color:C.muted,display:"block",marginTop:6}}>{sub}</Mono>
@@ -5825,7 +5846,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
             })()}
             {view==="chart"
               ? (chartData.length>1?<div>
-                  <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"14px 8px",marginBottom:12}}>
+                  <div style={{background:C.card,boxShadow:C.shadow,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"14px 8px",marginBottom:12}}>
                     <div style={{fontSize:13,fontWeight:600,marginBottom:4,paddingLeft:8}}>{selEx} — Max Weight</div>
                     <ResponsiveContainer width="100%" height={160}>
                       <LineChart data={chartData} margin={{top:4,right:12,left:-10,bottom:0}}>
@@ -5837,7 +5858,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
-                  <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"14px 8px",marginBottom:12}}>
+                  <div style={{background:C.card,boxShadow:C.shadow,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"14px 8px",marginBottom:12}}>
                     <div style={{fontSize:13,fontWeight:600,marginBottom:4,paddingLeft:8}}>{selEx} — Est. 1RM Trend</div>
                     <ResponsiveContainer width="100%" height={140}>
                       <LineChart data={chartData} margin={{top:4,right:12,left:-10,bottom:0}}>
@@ -5860,12 +5881,12 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
                     else if(proj.status==="declining")text="Trending down recently";
                     else if(proj.status==="flat")text="Trending flat — consider a deload or variation";
                     else text="Keep logging — ~5 sessions over 3+ weeks to project this lift";
-                    return <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"14px",marginBottom:12}}>
+                    return <div style={{background:C.card,boxShadow:C.shadow,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"14px",marginBottom:12}}>
                       <SectionLabel C={C}>Projection</SectionLabel>
                       <Mono style={{fontSize:12,color:C.muted,lineHeight:1.6,display:"block"}}>{text}</Mono>
                     </div>;
                   })()}
-                  {prs[selEx]&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"14px",marginBottom:12}}>
+                  {prs[selEx]&&<div style={{background:C.card,boxShadow:C.shadow,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"14px",marginBottom:12}}>
                     <SectionLabel C={C}>Strength Level</SectionLabel>
                     <div style={{display:"flex",gap:4}}>
                       {STRENGTH_LEVELS.map((level,i)=>{const score=getStrengthScore(selEx,prs[selEx]?.weight);return <div key={level} style={{flex:1,textAlign:"center"}}>
@@ -5962,7 +5983,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
           <SectionLabel C={C}>Body Measurements</SectionLabel>
           <Btn size="sm" variant="subtle" C={C} onClick={()=>setAddingBody(true)}>+ Log</Btn>
         </div>
-        {addingBody&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"14px",marginBottom:14}}>
+        {addingBody&&<div style={{background:C.card,boxShadow:C.shadow,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"14px",marginBottom:14}}>
           <SectionLabel C={C}>New Entry — {newBodyStat.date}</SectionLabel>
           {[["Weight (lbs)","weight"],["Chest (in)","chest"],["Waist (in)","waist"],["Hips (in)","hips"],["Arms (in)","arms"]].map(([label,key])=>(
             <div key={key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
@@ -5989,7 +6010,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
         </div>}
         {bodyStats.length>0&&<div>
           {/* Weight trend chart */}
-          {bodyStats.filter(s=>s.weight).length>1&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"14px 8px",marginBottom:14}}>
+          {bodyStats.filter(s=>s.weight).length>1&&<div style={{background:C.card,boxShadow:C.shadow,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"14px 8px",marginBottom:14}}>
             <div style={{fontSize:13,fontWeight:600,marginBottom:8,paddingLeft:8}}>Weight Trend</div>
             <ResponsiveContainer width="100%" height={140}>
               <LineChart data={[...bodyStats].reverse().filter(s=>s.weight).map(s=>({date:s.date.slice(5),weight:parseFloat(s.weight)}))} margin={{top:4,right:12,left:-10,bottom:0}}>
@@ -6002,7 +6023,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
             </ResponsiveContainer>
           </div>}
           {bodyStats.slice(0,5).map(s=>(
-            <div key={s.id} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"10px 14px",marginBottom:8}}>
+            <div key={s.id} style={{background:C.card,boxShadow:C.shadow,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"10px 14px",marginBottom:8}}>
               <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:6}}>{s.date}</Mono>
               <div style={{display:"flex",flexWrap:"wrap",gap:12}}>
                 {s.weight&&<div><Mono style={{fontSize:9,color:C.muted}}>WT </Mono><span style={{fontSize:14,fontWeight:700}}>{s.weight}<Mono style={{fontSize:10,color:C.muted}}> lbs</Mono></span></div>}
@@ -6453,7 +6474,7 @@ function PastBlocksSection({blockSummaries,onOpenBlock,C}){
   return <div style={{marginTop:18}}>
     <SectionLabel C={C}>Past Plans</SectionLabel>
     {blocks.length===0
-      ? <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"20px",textAlign:"center"}}><Mono style={{fontSize:12,color:C.muted}}>Your completed plans will appear here.</Mono></div>
+      ? <div style={{background:C.card,boxShadow:C.shadow,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"20px",textAlign:"center"}}><Mono style={{fontSize:12,color:C.muted}}>Your completed plans will appear here.</Mono></div>
       : blocks.map((s,i)=>{
           const X=s.sessionsCompleted||0,Y=s.sessionsScheduled||0,mi=s.mostImproved,pr=s.prsHit||0;
           return <button key={s.planKey||i} onClick={()=>onOpenBlock&&onOpenBlock(s)}
