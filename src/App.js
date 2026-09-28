@@ -34,7 +34,7 @@ import { volumeAwarePlateauAdvice, primaryGatedMuscles } from "./lib/plateauVolu
 import { exerciseOrderForSession } from "./lib/historyOrder";
 import { workoutDisplayOrder } from "./lib/workoutOrder";
 import volumeGuidelines from "./data/volumeGuidelines.json";
-import { Dumbbell, CalendarDays, History as HistoryIcon, TrendingUp, Settings as SettingsIcon, Moon, Sun, Trophy, Check, GripVertical, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { Dumbbell, CalendarDays, History as HistoryIcon, TrendingUp, Settings as SettingsIcon, Moon, Sun, Trophy, Check, Layers, Clock, Flame, GripVertical, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 
 // lucide icon sizing scale. Color always inherits via currentColor from a
 // token-styled parent; icons are never filled. Stroke 1.75 everywhere.
@@ -6499,61 +6499,73 @@ function PastBlocksSection({blockSummaries,onOpenBlock,C}){
 // ─────────────────────────────────────────────────────────────────────────────
 function SummaryPage({children,dataHero,C}){
   return (
-    <div data-hero={dataHero} style={{minHeight:"100vh",background:C.bg,fontFamily:C.mono,paddingTop:"env(safe-area-inset-top,0px)",paddingBottom:"env(safe-area-inset-bottom,0px)",overflowY:"auto",overflowX:"hidden"}}>
-      <div style={{width:"100%",maxWidth:440,margin:"0 auto",padding:"0 24px",boxSizing:"border-box"}}>{children}</div>
+    <div data-hero={dataHero} style={{minHeight:"100vh",background:C.bg,fontFamily:C.sans,paddingTop:"env(safe-area-inset-top,0px)",paddingBottom:"env(safe-area-inset-bottom,0px)",overflowY:"auto",overflowX:"hidden"}}>
+      <div style={{width:"100%",maxWidth:440,margin:"0 auto",padding:"0 18px",boxSizing:"border-box"}}>{children}</div>
     </div>
   );
 }
-// META tier — quietest, receding.
+// META tier — eyebrow + title header.
 function SummaryMeta({label,title,sub,C}){
   return (
-    <div style={{textAlign:"center",paddingTop:44}}>
-      <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.24em",color:C.faint}}>{label}</div>
-      {title?<div style={{fontSize:15,fontWeight:700,letterSpacing:"0.02em",color:C.muted,marginTop:10}}>{title}</div>:null}
-      {sub?<div style={{fontSize:12,fontWeight:600,letterSpacing:"0.06em",color:C.faint,marginTop:5}}>{sub}</div>:null}
+    <div style={{textAlign:"center",paddingTop:36}}>
+      <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.14em",color:C.faint}}>{label}</div>
+      {title?<div style={{fontSize:26,fontWeight:800,letterSpacing:"-0.02em",color:C.text,marginTop:8}}>{title}</div>:null}
+      {sub?<div style={{fontSize:13,fontWeight:500,color:C.muted,marginTop:5}}>{sub}</div>:null}
     </div>
   );
 }
-// HERO tier — one dominant element. accent=true => the single neon highlight; else neutral (dignified).
+// Raised tile surface shared by the summary tiles (depth via C.shadow in light; card-on-bg in dark).
+const summaryTile=(C,extra={})=>({background:C.card,border:`1px solid ${C.border}`,borderRadius:18,boxShadow:C.shadow,...extra});
+// HERO tier — one dominant element in a gradient tile. accent=true => the single neon highlight (a win);
+// else a quiet blue wash. icon = optional badge (Trophy on a PR day).
 // clamp() keeps the headline from overflowing at 320/375 while staying large on roomier screens.
-function SummaryHero({value,sub,context,caption,accent,C}){
+function SummaryHero({value,sub,context,caption,accent,icon:Icon,C}){
+  const tone=accent?C.neon:C.accent;
   return (
-    <div style={{textAlign:"center",padding:"48px 0 44px"}}>
-      <div data-testid="summary-hero" style={{fontSize:"clamp(42px,14vw,58px)",fontWeight:800,letterSpacing:"-0.03em",lineHeight:1,color:accent?C.neonInk:C.text,wordBreak:"break-word"}}>{value}</div>
-      {sub?<div style={{fontSize:17,fontWeight:700,letterSpacing:"0.01em",color:C.text,marginTop:14,wordBreak:"break-word"}}>{sub}</div>:null}
-      {context?<div style={{fontSize:13,fontWeight:600,letterSpacing:"0.02em",color:C.muted,marginTop:7}}>{context}</div>:null}
-      {caption?<div style={{fontSize:11,fontWeight:700,letterSpacing:"0.16em",color:C.muted,marginTop:12}}>{caption}</div>:null}
+    <div style={{...summaryTile(C),marginTop:22,padding:"26px 20px 24px",textAlign:"center",border:`1px solid ${tone}40`,
+      background:`linear-gradient(150deg, ${tone}2e 0%, ${tone}0a 60%), ${C.card}`}}>
+      {Icon?<div style={{width:44,height:44,borderRadius:22,margin:"0 auto 12px",display:"flex",alignItems:"center",justifyContent:"center",background:C.gold+"26",color:C.goldInk}}><Icon size={22} strokeWidth={2}/></div>:null}
+      <div data-testid="summary-hero" style={{fontSize:"clamp(44px,15vw,64px)",fontWeight:800,letterSpacing:"-0.04em",lineHeight:1,color:accent?C.neonInk:C.text,wordBreak:"break-word",fontVariantNumeric:"tabular-nums"}}>{value}</div>
+      {sub?<div style={{fontSize:17,fontWeight:700,color:C.text,marginTop:12,wordBreak:"break-word"}}>{sub}</div>:null}
+      {context?<div style={{fontSize:13,fontWeight:600,color:C.muted,marginTop:6}}>{context}</div>:null}
+      {caption?<div style={{display:"inline-block",fontSize:11,fontWeight:700,letterSpacing:"0.1em",color:accent?C.neonInk:C.accentInk,background:tone+"1f",borderRadius:RADIUS.pill,padding:"5px 12px",marginTop:14}}>{caption}</div>:null}
     </div>
   );
 }
-// SUPPORTING tier (the practical floor) — a quiet hairline stat row. items:[{label,value}] (nulls dropped).
+// SUPPORTING tier — stat tiles. items:[{label,value,icon}] (nulls dropped). 4 → 2×2 grid, else one row.
 function SummaryStatRow({items,C}){
   const cells=(items||[]).filter(Boolean);
   if(!cells.length) return null;
+  const stacked=cells.length!==4&&cells.length>2; // 3-across: icon above value so labels never clip at 320
   return (
-    <div style={{display:"flex",borderTop:`1px solid ${C.border}`,borderBottom:`1px solid ${C.border}`}}>
-      {cells.map((it,i)=>(
-        <div key={i} style={{flex:1,minWidth:0,textAlign:"center",padding:"18px 6px",borderLeft:i>0?`1px solid ${C.border}`:"none"}}>
-          <div data-testid="summary-stat" style={{fontSize:19,fontWeight:700,letterSpacing:"-0.01em",color:C.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{it.value}</div>
-          <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.12em",color:C.faint,marginTop:7}}>{it.label}</div>
+    <div style={{display:"grid",gridTemplateColumns:cells.length===4?"1fr 1fr":`repeat(${cells.length},1fr)`,gap:10,marginTop:12}}>
+      {cells.map((it,i)=>{const Icon=it.icon;return (
+        <div key={i} style={{...summaryTile(C),minWidth:0,padding:stacked?"14px 8px 12px":"14px 14px 13px",display:"flex",flexDirection:stacked?"column":"row",alignItems:"center",gap:stacked?8:12,textAlign:stacked?"center":"left"}}>
+          {Icon?<div style={{width:36,height:36,borderRadius:12,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:C.accent+"1a",color:C.accentInk}}><Icon size={18} strokeWidth={2}/></div>:null}
+          <div style={{minWidth:0,maxWidth:"100%"}}>
+            <div data-testid="summary-stat" style={{fontSize:21,fontWeight:800,letterSpacing:"-0.02em",lineHeight:1.1,color:C.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",fontVariantNumeric:"tabular-nums"}}>{it.value}</div>
+            <div style={{fontSize:11,fontWeight:600,letterSpacing:"0.06em",color:C.muted,marginTop:3}}>{it.label}</div>
+          </div>
         </div>
-      ))}
+      );})}
     </div>
   );
 }
-// A single quiet supporting line (label ——— value) for prose stats that don't fit a compact cell.
+// A single supporting stat tile (label … value) for prose stats that don't fit a compact cell.
 function SupLine({label,value,C}){
   return (
-    <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",gap:14,padding:"13px 2px",borderTop:`1px solid ${C.border}`}}>
-      <span style={{fontSize:10,fontWeight:700,letterSpacing:"0.14em",color:C.faint,whiteSpace:"nowrap"}}>{label}</span>
-      <span data-testid="summary-stat" style={{fontSize:14,fontWeight:700,color:C.text,textAlign:"right"}}>{value}</span>
+    <div style={{...summaryTile(C,{borderRadius:14}),display:"flex",alignItems:"center",justifyContent:"space-between",gap:14,padding:"14px 16px",marginTop:10}}>
+      <span style={{fontSize:11,fontWeight:700,letterSpacing:"0.08em",color:C.muted,whiteSpace:"nowrap"}}>{label}</span>
+      <span data-testid="summary-stat" style={{fontSize:15,fontWeight:700,color:C.text,textAlign:"right"}}>{value}</span>
     </div>
   );
 }
 // One shared action-button language across both screens (layout differs per screen).
 function SummaryButton({label,onClick,primary,C}){
   return (
-    <button onClick={onClick} style={{width:"100%",padding:"15px",borderRadius:12,fontSize:12,fontWeight:700,letterSpacing:"0.08em",fontFamily:C.mono,cursor:"pointer",border:primary?"none":`1.5px solid ${C.border}`,background:primary?C.neon:"transparent",color:primary?ONACCENT:C.muted}}>{label}</button>
+    <button onClick={onClick} style={{width:"100%",minHeight:50,padding:"14px",borderRadius:14,fontSize:15,fontWeight:700,letterSpacing:"0.01em",fontFamily:C.sans,cursor:"pointer",
+      border:primary?"none":`1px solid ${C.border}`,background:primary?C.neon:C.card,color:primary?ONACCENT:C.text,
+      boxShadow:primary?`0 6px 18px ${C.neon}40`:C.shadow}}>{label}</button>
   );
 }
 
@@ -6592,7 +6604,7 @@ function BlockSummary({snapshot,onRepeat,onTemplate,onBuild,onDismiss,onBack,C})
       <div style={{paddingBottom:8}}>
         <SupLine label="SESSIONS" value={`${X} of ${Y}`} C={C}/>
         <SupLine label="PERSONAL RECORDS" value={prText} C={C}/>
-        {prsList.length>0&&<div style={{padding:"4px 2px 8px"}}>
+        {prsList.length>0&&<div style={{...summaryTile(C,{borderRadius:14}),padding:"6px 16px",marginTop:10}}>
           {prsList.map((pr,i)=>(
             <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 0",fontSize:12}}>
               <span style={{color:C.muted}}>{pr.name}</span>
@@ -6602,7 +6614,7 @@ function BlockSummary({snapshot,onRepeat,onTemplate,onBuild,onDismiss,onBack,C})
         </div>}
         {showImproved&&<SupLine label="MOST IMPROVED" value={miText} C={C}/>}
       </div>
-      <div style={{display:"flex",flexDirection:"column",gap:10,padding:"22px 0 32px"}}>
+      <div style={{display:"flex",flexDirection:"column",gap:10,padding:"24px 0 32px"}}>
         {/* History detail (onBack set): Repeat + Back only. Completion moment: the four-way next-step. */}
         {onBack?<>
           {onRepeat&&<SummaryButton label="Repeat this plan" onClick={onRepeat} primary C={C}/>}
@@ -6646,18 +6658,18 @@ function WorkoutSummary({session,newPRs,previousPRs,complianceStreak,setsWarning
     <SummaryPage C={C}>
       {setsWarning&&<div style={{background:"#f7c948",borderRadius:10,padding:"10px 14px",textAlign:"center",marginTop:16}}><Mono style={{fontSize:12,color:ONACCENT,fontWeight:700}}>Workout saved — set details failed to sync. Check History and re-log if needed.</Mono></div>}
       <SummaryMeta label="WORKOUT RECAP" title={session.dayLabel} sub={`${dayName}, ${dateStr} · ${durationMin} min`} C={C}/>
-      <SummaryHero value={heroValue} sub={heroSub} caption={heroCaption} accent={heroIsPR} C={C}/>
+      <SummaryHero value={heroValue} sub={heroSub} caption={heroCaption} accent={heroIsPR} icon={heroIsPR?Trophy:null} C={C}/>
       {/* Supporting floor: the stats the hero doesn't already own. When a PR is the hero, volume shows here
           as LBS — same "lbs lifted" metric the volume-hero leads with when there's no PR. */}
       <SummaryStatRow items={[
-        heroIsPR?{label:"LBS",value:volStr}:null,
-        {label:"SETS",value:`${setCount}`},
-        {label:"MIN",value:`${durationMin}`},
-        {label:"STREAK",value:`${complianceStreak}`},
+        heroIsPR?{label:"LBS",value:volStr,icon:Dumbbell}:null,
+        {label:"SETS",value:`${setCount}`,icon:Layers},
+        {label:"MIN",value:`${durationMin}`,icon:Clock},
+        {label:"STREAK",value:`${complianceStreak}`,icon:Flame},
       ]} C={C}/>
       {prList.length>0&&(
-        <div style={{padding:"18px 0 2px"}}>
-          <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.14em",color:C.faint,marginBottom:8}}>NEW RECORDS</div>
+        <div style={{...summaryTile(C),marginTop:12,padding:"14px 16px 8px",boxShadow:[`inset 4px 0 0 ${C.gold}`,C.shadow!=="none"?C.shadow:null].filter(Boolean).join(",")}}>
+          <div style={{display:"flex",alignItems:"center",gap:6,fontSize:11,fontWeight:700,letterSpacing:"0.1em",color:C.goldInk,marginBottom:6}}><Trophy size={14} strokeWidth={2}/>NEW RECORDS</div>
           {prList.map((pr,i)=>(
             <div key={pr.name} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderTop:i>0?`1px solid ${C.border}`:"none"}}>
               <div>
@@ -6673,8 +6685,8 @@ function WorkoutSummary({session,newPRs,previousPRs,complianceStreak,setsWarning
         </div>
       )}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,padding:"22px 0 32px"}}>
-        <SummaryButton label="SHARE" onClick={handleShare} C={C}/>
-        <SummaryButton label="CLOSE" onClick={onClose} primary C={C}/>
+        <SummaryButton label="Share" onClick={handleShare} C={C}/>
+        <SummaryButton label="Close" onClick={onClose} primary C={C}/>
       </div>
     </SummaryPage>
   );
