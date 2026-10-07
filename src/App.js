@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, Component } from "react";
+import { useState, useEffect, useRef, useMemo, Component } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { createClient } from "@supabase/supabase-js";
 import { planWeekOf, elapsedDaysSince, parsePlanDate, programWeekFromDate, planWeekSessions } from "./lib/planWeek";
@@ -34,7 +34,7 @@ import { volumeAwarePlateauAdvice, primaryGatedMuscles } from "./lib/plateauVolu
 import { exerciseOrderForSession } from "./lib/historyOrder";
 import { workoutDisplayOrder } from "./lib/workoutOrder";
 import volumeGuidelines from "./data/volumeGuidelines.json";
-import { Dumbbell, CalendarDays, History as HistoryIcon, TrendingUp, Settings as SettingsIcon, Moon, Sun, Trophy, Check, Layers, Clock, Flame, GripVertical, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { Dumbbell, CalendarDays, History as HistoryIcon, TrendingUp, Settings as SettingsIcon, Moon, Sun, Trophy, Check, Layers, Clock, Flame, Plus, Search, X, GripVertical, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 
 // lucide icon sizing scale. Color always inherits via currentColor from a
 // token-styled parent; icons are never filled. Stroke 1.75 everywhere.
@@ -1638,6 +1638,12 @@ const EXERCISE_ALIASES = {
 // time (isometric hold, seconds) | cardio (minutes).
 const EX_TRACK = (() => { const m = {}; for (const e of EXERCISE_LIBRARY) m[e.name.toLowerCase()] = e.track; return m; })();
 const EX_MUSCLE = (() => { const m = {}; for (const e of EXERCISE_LIBRARY) m[e.name.toLowerCase()] = e.muscle; return m; })();
+const EX_BY_NAME = (() => { const m = {}; for (const e of EXERCISE_LIBRARY) m[e.name.toLowerCase()] = e; return m; })();
+// Catalog entry for a plan/session exercise name, resolving old (aliased) names; null for customs.
+function libExerciseFor(name) {
+  if (!name) return null;
+  return EX_BY_NAME[name.toLowerCase()] || (EXERCISE_ALIASES[name] ? EX_BY_NAME[EXERCISE_ALIASES[name].toLowerCase()] : null) || null;
+}
 // The exercise's coarse muscle GROUP, resolving old (aliased) and new catalog names. Used as the
 // muscle-view fallback so every library lift — including bodyweight, which carries no tonnage — is
 // credited to its group (set count) instead of falling into the hidden "Other" bucket. Cardio → null
@@ -1707,7 +1713,7 @@ function Btn({children,onClick,variant="primary",size="md",style={},disabled=fal
 
 function Modal({children,onClose,C,showClose=true}){
   const startY=useRef(null);
-  function onTouchStart(e){startY.current=e.touches[0].clientY;}
+  function onTouchStart(e){startY.current=e.currentTarget.scrollTop>0?null:e.touches[0].clientY;}
   function onTouchEnd(e){
     if(startY.current===null)return;
     const dy=e.changedTouches[0].clientY-startY.current;
@@ -2847,12 +2853,17 @@ async function writeToAppleHealth(startTime, endTime, totalVolume) {
 }
 
 // -- EXERCISE LIBRARY MODAL ---------------------------------------------------
-function ExerciseLibraryModal({onSelect,onClose,C,multiAdd=false,initialMuscle=null}){
+function ExerciseLibraryModal({onSelect,onClose,C,multiAdd=false,initialMuscle=null,sessions=null,plans=null,contextMuscles=null}){
   const [query,setQuery]=useState("");
   const [muscleFilter,setMuscleFilter]=useState(initialMuscle||null); // preset when opened by tapping a muscle on the plan-day BodyMap
-  const [tab,setTab]=useState("library");
+  const [equipFilter,setEquipFilter]=useState(null);
+  const [customOpen,setCustomOpen]=useState(false);
   const [custom,setCustom]=useState({name:"",sets:"3",reps:"10-12",note:"",muscle:""});
   const [preview,setPreview]=useState(null); // exercise whose movement photos are enlarged (tap a thumbnail)
+  const dragY=useRef(null);
+  const listRef=useRef(null);
+  // A new search or filter shows its results from the top, not wherever the last list was scrolled to.
+  useEffect(()=>{if(listRef.current)listRef.current.scrollTop=0;},[query,muscleFilter,equipFilter,customOpen]);
   // multiAdd: keep the picker open across selections so a whole day is built in one session. `added`
   // (names added THIS session) drives the per-row "Added" state and no-ops a second tap of the same
   // row — guarding accidental dupes while feedback stays visible; a genuine repeat is still reachable
@@ -2870,99 +2881,162 @@ function ExerciseLibraryModal({onSelect,onClose,C,multiAdd=false,initialMuscle=n
       setAddedCount(c=>c+1);
     }
   };
+  const payloadFor=ex=>({name:ex.name,muscle:ex.muscle,sets:ex.muscle==="Cardio"?"--":"3",reps:ex.muscle==="Cardio"?"30 min":"10-12",note:ex.cue});
   const muscles=["Chest","Back","Shoulders","Biceps","Triceps","Legs","Abs","Cardio"];
-  const equipColor={"Barbell":C.accent,"Dumbbell":C.sky,"Cable":C.violet,"Machine":C.muted,"Smith Machine":C.muted,"Bodyweight":C.accent,"Kettlebell":C.violet,"Band":C.sky};
+  const equipments=["Barbell","Dumbbell","Cable","Machine","Bodyweight","Kettlebell","Band","Smith Machine"];
   // Word-by-word search: every typed word must appear in the name (any order), a trailing "s" is
   // ignored ("swings"→swing, "tricep"↔triceps), and common gym shorthand expands (kb, db, bb). A typed
-  // query searches ALL muscles — the chip filter only narrows browsing, so a Legs chip can't hide
-  // Kettlebell Swing (filed under Cardio).
+  // query searches ALL muscles — the muscle chip only narrows browsing, so a Legs chip can't hide
+  // Kettlebell Swing (filed under Cardio). The equipment chip is an explicit constraint and always applies.
   const ABBR={kb:"kettlebell",db:"dumbbell",bb:"barbell",ohp:"overhead press",rdl:"romanian deadlift"};
   const qWords=query.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean).flatMap(w=>(ABBR[w]||w).split(" ")).map(w=>w.length>3?w.replace(/s$/,""):w);
   const filtered=EXERCISE_LIBRARY.filter(e=>{
+    if(equipFilter&&e.equipment!==equipFilter)return false;
     if(!qWords.length)return !muscleFilter||e.muscle===muscleFilter;
     const nm=e.name.toLowerCase();
     return qWords.every(w=>nm.includes(w));
   });
-  return <Modal onClose={onClose} C={C} showClose={false}>
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-      <div>
-        <div style={{fontSize:16,fontWeight:700}}>{multiAdd?"Add Exercises":"Add Exercise"}</div>
-        {multiAdd&&addedCount>0&&<Mono style={{fontSize:11,color:C.neonInk,marginTop:2,display:"block"}}><span style={{display:"inline-flex",alignItems:"center",gap:4}}><Check size={ICON.sm} strokeWidth={2}/>{addedCount} added</span></Mono>}
+  const browsing=!qWords.length&&!muscleFilter&&!equipFilter;
+  // Recent = catalog lifts from the newest sessions (mid-workout, today's muscles first); From your plans =
+  // catalog lifts in any saved plan not already in Recent. Customs (no catalog entry) are skipped.
+  const recent=useMemo(()=>{
+    if(!Array.isArray(sessions)||!sessions.length)return [];
+    const sorted=sessions.filter(x=>x&&x.completedAt).sort((a,b)=>String(b.completedAt).localeCompare(String(a.completedAt)));
+    const seen=new Set(),out=[];
+    for(const ss of sorted){
+      for(const x of (ss.setsArr||[])){const e=libExerciseFor(x&&x.exName);if(e&&!seen.has(e.name)){seen.add(e.name);out.push(e);}}
+      if(out.length>=24)break;
+    }
+    if(Array.isArray(contextMuscles)&&contextMuscles.length){
+      const cm=new Set(contextMuscles);
+      out.sort((a,b)=>(cm.has(b.muscle)?1:0)-(cm.has(a.muscle)?1:0));
+    }
+    return out.slice(0,8);
+  },[sessions,contextMuscles]);
+  const fromPlans=useMemo(()=>{
+    const seen=new Set(recent.map(e=>e.name)),out=[];
+    for(const pl of Object.values(plans||{})){
+      for(const d of ((pl&&pl.days)||[])){
+        for(const x of ((d&&d.exercises)||[])){const e=libExerciseFor(x&&x.name);if(e&&!seen.has(e.name)){seen.add(e.name);out.push(e);}}
+      }
+    }
+    return out.slice(0,8);
+  },[plans,recent]);
+
+  const chip=(active,label,onClick)=><button key={label} onClick={onClick} style={{flexShrink:0,padding:"7px 13px",borderRadius:RADIUS.pill,border:active?"1px solid transparent":`1px solid ${C.border}`,background:active?C.accentBtn:C.card,color:active?"#fff":C.text,fontFamily:C.sans,fontSize:13,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>{label}</button>;
+  const chipRow={display:"flex",gap:6,overflowX:"auto",WebkitOverflowScrolling:"touch",scrollbarWidth:"none",margin:"0 -16px",padding:"0 16px"};
+  const group={background:C.card,border:`1px solid ${C.border}`,borderRadius:16,boxShadow:C.shadow,overflow:"hidden"};
+  const sectionHead=(label,count)=><div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",margin:"18px 4px 8px"}}>
+    <span style={{fontSize:12,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",color:C.muted}}>{label}</span>
+    {count!=null&&<span style={{fontSize:12,color:C.faint}}>{count}</span>}
+  </div>;
+  const row=(ex,idx)=>{
+    const isAdded=multiAdd&&added.has(ex.name);
+    return <div key={ex.name} onClick={()=>handleSelect(payloadFor(ex))}
+      style={{display:"flex",alignItems:"center",gap:12,padding:"8px 12px",minHeight:60,boxSizing:"border-box",borderTop:idx>0?`1px solid ${C.border}`:"none",background:isAdded?C.neon+"12":"transparent",cursor:isAdded?"default":"pointer"}}>
+      {/* Movement thumbnail (public-domain photo); tap to enlarge. Falls back to a muscle-initial tile when no image / load fails. */}
+      <div onClick={e=>{e.stopPropagation();if(ex.img)setPreview(ex);}} style={{width:44,height:44,borderRadius:10,flexShrink:0,overflow:"hidden",background:C.surface,border:`1px solid ${C.border}`,cursor:ex.img?"zoom-in":"default"}}>
+        {ex.img&&<img src={EX_IMG_BASE+ex.img[0]} alt="" loading="lazy" onError={e=>{e.currentTarget.style.display="none";if(e.currentTarget.nextSibling)e.currentTarget.nextSibling.style.display="flex";}} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>}
+        <div style={{display:ex.img?"none":"flex",width:"100%",height:"100%",alignItems:"center",justifyContent:"center",color:C.muted,fontFamily:C.sans,fontSize:15,fontWeight:700}}>{(ex.muscle||"?").charAt(0)}</div>
       </div>
-      <Btn variant="ghost" size="sm" onClick={onClose} C={C}>✕</Btn>
-    </div>
-    <div style={{display:"flex",gap:4,background:C.card,padding:3,borderRadius:8,marginBottom:12}}>
-      {[["library","Browse Library"],["custom","Custom"]].map(([k,label])=>(
-        <button key={k} onClick={()=>setTab(k)} style={{flex:1,padding:"7px",borderRadius:6,border:"none",background:tab===k?C.accentBtn:"transparent",color:tab===k?"#fff":C.muted,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",fontSize:11,cursor:"pointer",letterSpacing:"0.04em"}}>{label}</button>
-      ))}
-    </div>
-    {tab==="library"&&<div>
-      <input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search 300+ exercises..."
-        autoFocus
-        style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",boxSizing:"border-box",marginBottom:10,outline:"none"}}/>
-      <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:10}}>
-        <button onClick={()=>setMuscleFilter(null)} style={{padding:"5px 9px",borderRadius:5,border:`1px solid ${muscleFilter===null?C.accent+"66":C.border}`,background:muscleFilter===null?C.accent+"20":"transparent",color:muscleFilter===null?C.accentInk:C.muted,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",fontSize:9,cursor:"pointer",letterSpacing:"0.06em"}}>ALL</button>
-        {muscles.map(m=>(
-          <button key={m} onClick={()=>setMuscleFilter(muscleFilter===m?null:m)} style={{padding:"5px 9px",borderRadius:5,border:`1px solid ${muscleFilter===m?C.accent+"66":C.border}`,background:muscleFilter===m?C.accent+"20":"transparent",color:muscleFilter===m?C.accentInk:C.muted,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",fontSize:9,cursor:"pointer",letterSpacing:"0.06em"}}>{m.toUpperCase()}</button>
-        ))}
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{fontSize:15,fontWeight:600,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ex.name}</div>
+        <div style={{fontSize:12,color:C.muted,marginTop:2}}>{ex.muscle} · {ex.equipment}</div>
       </div>
-      <Mono style={{fontSize:11,color:C.muted,display:"block",marginBottom:8,letterSpacing:"0.08em"}}>{filtered.length} EXERCISES</Mono>
-      {filtered.map((ex,i)=>{
-        const isAdded=multiAdd&&added.has(ex.name);
-        return <div key={i} onClick={()=>handleSelect({name:ex.name,muscle:ex.muscle,sets:ex.muscle==="Cardio"?"--":"3",reps:ex.muscle==="Cardio"?"30 min":"10-12",note:ex.cue})}
-          style={{background:isAdded?C.neon+"14":C.card,border:`1px solid ${isAdded?C.neon+"55":C.border}`,borderRadius:8,padding:"10px 12px",marginBottom:6,cursor:isAdded?"default":"pointer"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
-            {/* Movement thumbnail (public-domain photo); tap to enlarge. Falls back to a muscle-tag tile when no image / load fails. */}
-            <div onClick={e=>{e.stopPropagation();if(ex.img)setPreview(ex);}} style={{width:46,height:46,borderRadius:8,flexShrink:0,overflow:"hidden",background:C.card,border:`1px solid ${C.border}`,cursor:ex.img?"zoom-in":"default"}}>
-              {ex.img&&<img src={EX_IMG_BASE+ex.img[0]} alt="" loading="lazy" onError={e=>{e.currentTarget.style.display="none";if(e.currentTarget.nextSibling)e.currentTarget.nextSibling.style.display="flex";}} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>}
-              <div style={{display:ex.img?"none":"flex",width:"100%",height:"100%",alignItems:"center",justifyContent:"center",background:C.surface,color:C.faint,fontFamily:C.mono,fontSize:8.5,letterSpacing:"0.03em",textAlign:"center",padding:2,boxSizing:"border-box"}}>{(ex.muscle||"").toUpperCase()}</div>
-            </div>
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{fontSize:13,fontWeight:600,marginBottom:3}}>{ex.name}</div>
-              <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:5,lineHeight:1.4}}>{ex.cue}</Mono>
-              <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-                <Pill color={C.accentInk}>{ex.muscle}</Pill>
-                <Pill color={equipColor[ex.equipment]||C.faint}>{ex.equipment}</Pill>
-              </div>
-            </div>
-            {isAdded
-              ?<Mono style={{color:C.neonInk,fontSize:11,fontWeight:700,flexShrink:0,paddingTop:2,whiteSpace:"nowrap"}}><span style={{display:"inline-flex",alignItems:"center",gap:3}}><Check size={ICON.sm} strokeWidth={2}/>Added</span></Mono>
-              :<div style={{color:C.neonInk,fontSize:20,fontWeight:300,flexShrink:0,paddingTop:2}}>+</div>}
+      {isAdded
+        ?<span style={{display:"inline-flex",alignItems:"center",gap:4,flexShrink:0,fontSize:12,fontWeight:700,color:C.neonInk}}><Check size={ICON.sm} strokeWidth={2.5}/>Added</span>
+        :<span aria-hidden="true" style={{width:32,height:32,borderRadius:16,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:C.accent+"18",color:C.accentInk}}><Plus size={18} strokeWidth={2.25}/></span>}
+    </div>;
+  };
+  const list=items=><div style={group}>{items.map((ex,i)=>row(ex,i))}</div>;
+  const openCustom=()=>{setCustom(p=>({...p,name:query.trim(),muscle:p.muscle||muscleFilter||""}));setCustomOpen(true);};
+  const field={width:"100%",padding:"12px 14px",background:C.card,border:`1px solid ${C.border}`,borderRadius:12,color:C.text,fontSize:16,fontFamily:C.sans,boxSizing:"border-box",outline:"none"};
+  const label=t=><div style={{fontSize:12,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",color:C.muted,margin:"14px 4px 6px"}}>{t}</div>;
+
+  return <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+    <div onClick={e=>e.stopPropagation()} style={{background:C.bg,width:"100%",maxWidth:560,height:"92vh",borderRadius:"20px 20px 0 0",display:"flex",flexDirection:"column",overflow:"hidden",boxShadow:"0 -10px 30px rgba(0,0,0,.25)",fontFamily:C.sans}}>
+      {/* Pinned header: drag down here to dismiss (never from the list, so scrolling back up can't close it). */}
+      <div onTouchStart={e=>{dragY.current=e.touches[0].clientY;}} onTouchEnd={e=>{if(dragY.current!==null&&e.changedTouches[0].clientY-dragY.current>80)onClose();dragY.current=null;}}
+        style={{flexShrink:0,background:C.surface,borderBottom:`1px solid ${C.border}`,padding:"8px 16px 12px"}}>
+        <div style={{width:36,height:5,borderRadius:3,background:C.border,margin:"0 auto 10px"}}/>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+          <div>
+            <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em",color:C.text}}>{customOpen?"Custom exercise":multiAdd?"Add Exercises":"Add Exercise"}</div>
+            {multiAdd&&addedCount>0&&<div style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:12,fontWeight:700,color:C.neonInk,marginTop:2}}><Check size={ICON.sm} strokeWidth={2.5}/><span>{addedCount} added</span></div>}
           </div>
-        </div>;
-      })}
-    </div>}
-    {tab==="custom"&&<div>
-      {[["Exercise Name","name"],["Sets","sets"],["Reps","reps"],["Muscle Group","muscle"],["Note / Cue","note"]].map(([label,key])=>(
-        <div key={key} style={{marginBottom:10}}>
-          <SectionLabel C={C}>{label}</SectionLabel>
-          <input value={custom[key]||""} onChange={e=>setCustom(p=>({...p,[key]:e.target.value}))}
-            style={{width:"100%",padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,color:C.text,fontSize:16,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",boxSizing:"border-box"}}/>
+          <button aria-label="Close" onClick={onClose} style={{width:36,height:36,borderRadius:18,border:"none",background:C.card,color:C.muted,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",boxShadow:C.shadow}}><X size={18} strokeWidth={2.25}/></button>
         </div>
-      ))}
-      <Btn style={{width:"100%",marginTop:6}} C={C} onClick={()=>{if(custom.name.trim()){handleSelect(custom);if(multiAdd)setCustom(p=>({...p,name:"",note:""}));}}} disabled={!custom.name.trim()}>Add Exercise</Btn>
-    </div>}
-    {multiAdd&&<div style={{position:"sticky",bottom:0,marginTop:12,paddingTop:10,background:C.surface,borderTop:`1px solid ${C.border}`}}>
-      <Btn onClick={onClose} C={C} style={{width:"100%",fontWeight:800,letterSpacing:"0.08em"}}>{addedCount>0?`Done — ${addedCount} added`:"Done"}</Btn>
-    </div>}
+        {!customOpen&&<>
+          <div style={{position:"relative",marginBottom:10}}>
+            <span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",color:C.faint,display:"flex"}}><Search size={18} strokeWidth={2}/></span>
+            <input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search 300+ exercises" aria-label="Search exercises"
+              style={{...field,padding:"11px 38px 11px 38px",background:C.bg}}/>
+            {query&&<button aria-label="Clear search" onClick={()=>setQuery("")} style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",width:30,height:30,borderRadius:15,border:"none",background:"transparent",color:C.faint,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}><X size={16} strokeWidth={2.25}/></button>}
+          </div>
+          <div style={{...chipRow,marginBottom:8}}>
+            {chip(!muscleFilter,"All muscles",()=>setMuscleFilter(null))}
+            {muscles.map(m=>chip(muscleFilter===m,m,()=>setMuscleFilter(muscleFilter===m?null:m)))}
+          </div>
+          <div style={chipRow}>
+            {chip(!equipFilter,"Any equipment",()=>setEquipFilter(null))}
+            {equipments.map(q=>chip(equipFilter===q,q,()=>setEquipFilter(equipFilter===q?null:q)))}
+          </div>
+        </>}
+      </div>
+
+      <div ref={listRef} style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch",overscrollBehavior:"contain",padding:"2px 16px 24px"}}>
+        {!customOpen&&<>
+          {browsing&&recent.length>0&&<>{sectionHead("Recent")}{list(recent)}</>}
+          {browsing&&fromPlans.length>0&&<>{sectionHead("From your plans")}{list(fromPlans)}</>}
+          {sectionHead(browsing?"All exercises":(qWords.length&&muscleFilter?"Results · all muscles":"Results"),filtered.length)}
+          {filtered.length>0?list(filtered):<div style={{...group,padding:"20px 16px",textAlign:"center",color:C.muted,fontSize:14}}>No matches{query?` for “${query.trim()}”`:""}.</div>}
+          <button onClick={openCustom} style={{...group,width:"100%",marginTop:12,padding:"14px 16px",display:"flex",alignItems:"center",gap:12,cursor:"pointer",textAlign:"left",fontFamily:C.sans}}>
+            <span style={{width:32,height:32,borderRadius:16,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:C.accent+"18",color:C.accentInk}}><Plus size={18} strokeWidth={2.25}/></span>
+            <span style={{minWidth:0}}>
+              <span style={{display:"block",fontSize:15,fontWeight:600,color:C.text}}>{query.trim()?`Create “${query.trim()}”`:"Create a custom exercise"}</span>
+              <span style={{display:"block",fontSize:12,color:C.muted,marginTop:2}}>Not in the library? Add your own.</span>
+            </span>
+          </button>
+        </>}
+        {customOpen&&<div style={{paddingTop:6}}>
+          <button onClick={()=>setCustomOpen(false)} style={{background:"none",border:"none",padding:"8px 4px",color:C.accentInk,fontFamily:C.sans,fontSize:15,fontWeight:600,cursor:"pointer"}}>‹ Back to library</button>
+          {label("Name")}
+          <input value={custom.name} onChange={e=>setCustom(p=>({...p,name:e.target.value}))} placeholder="e.g. Sled Push" style={field}/>
+          {label("Muscle group")}
+          <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+            {[...muscles,"Recovery"].map(m=>chip(custom.muscle===m,m,()=>setCustom(p=>({...p,muscle:p.muscle===m?"":m}))))}
+          </div>
+          <div style={{display:"flex",gap:10}}>
+            <div style={{flex:1}}>{label("Sets")}<input value={custom.sets} onChange={e=>setCustom(p=>({...p,sets:e.target.value}))} inputMode="numeric" style={field}/></div>
+            <div style={{flex:1}}>{label("Reps")}<input value={custom.reps} onChange={e=>setCustom(p=>({...p,reps:e.target.value}))} style={field}/></div>
+          </div>
+          {label("Note / cue")}
+          <input value={custom.note} onChange={e=>setCustom(p=>({...p,note:e.target.value}))} placeholder="Optional" style={field}/>
+          <Btn style={{width:"100%",marginTop:18,minHeight:50,fontSize:15}} C={C} disabled={!custom.name.trim()}
+            onClick={()=>{if(custom.name.trim()){handleSelect({...custom,name:custom.name.trim()});if(multiAdd){setCustom(p=>({...p,name:"",note:""}));setCustomOpen(false);setQuery("");}}}}>Add exercise</Btn>
+        </div>}
+      </div>
+
+      {multiAdd&&!customOpen&&<div style={{flexShrink:0,background:C.surface,borderTop:`1px solid ${C.border}`,padding:"10px 16px calc(10px + env(safe-area-inset-bottom, 0px))"}}>
+        <Btn onClick={onClose} C={C} style={{width:"100%",minHeight:50,fontSize:15}}>{addedCount>0?`Done · ${addedCount} added`:"Done"}</Btn>
+      </div>}
+    </div>
     {/* Tap-to-enlarge: the movement's start + end photos, cue, and a direct Add. */}
-    {preview&&<div onClick={()=>setPreview(null)} style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.82)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-      <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:RADIUS.modal,padding:16,maxWidth:360,width:"100%",maxHeight:"90vh",overflowY:"auto"}}>
-        <div style={{fontSize:16,fontWeight:700,marginBottom:10}}>{preview.name}</div>
+    {preview&&<div onClick={e=>{e.stopPropagation();setPreview(null);}} style={{position:"fixed",inset:0,zIndex:310,background:"rgba(0,0,0,0.82)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:20,padding:16,maxWidth:360,width:"100%",maxHeight:"90vh",overflowY:"auto",fontFamily:C.sans}}>
+        <div style={{fontSize:17,fontWeight:700,marginBottom:10,color:C.text}}>{preview.name}</div>
         <div style={{display:"flex",gap:8,marginBottom:10}}>
-          {(preview.img||[]).map((p,idx)=><img key={idx} src={EX_IMG_BASE+p} alt="" style={{flex:1,minWidth:0,width:"100%",borderRadius:RADIUS.card,border:`1px solid ${C.border}`,objectFit:"cover",background:C.card}}/>)}
+          {(preview.img||[]).map((ph,idx)=><img key={idx} src={EX_IMG_BASE+ph} alt="" style={{flex:1,minWidth:0,width:"100%",borderRadius:12,border:`1px solid ${C.border}`,objectFit:"cover",background:C.card}}/>)}
         </div>
-        {preview.cue&&<Mono style={{fontSize:11,color:C.muted,display:"block",lineHeight:1.5,marginBottom:10}}>{preview.cue}</Mono>}
-        <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
-          <Pill color={C.accentInk}>{preview.muscle}</Pill><Pill color={equipColor[preview.equipment]||C.faint}>{preview.equipment}</Pill>
-        </div>
+        {preview.cue&&<div style={{fontSize:14,color:C.muted,lineHeight:1.5,marginBottom:10}}>{preview.cue}</div>}
+        <div style={{fontSize:12,color:C.muted,marginBottom:14}}>{preview.muscle} · {preview.equipment}</div>
         <div style={{display:"flex",gap:8}}>
-          <Btn variant="ghost" C={C} style={{flex:1}} onClick={()=>setPreview(null)}>Close</Btn>
-          <Btn C={C} style={{flex:1}} onClick={()=>{handleSelect({name:preview.name,muscle:preview.muscle,sets:preview.muscle==="Cardio"?"--":"3",reps:preview.muscle==="Cardio"?"30 min":"10-12",note:preview.cue});setPreview(null);}}>Add</Btn>
+          <Btn variant="ghost" C={C} style={{flex:1,minHeight:46}} onClick={()=>setPreview(null)}>Close</Btn>
+          <Btn C={C} style={{flex:1,minHeight:46}} onClick={()=>{handleSelect(payloadFor(preview));setPreview(null);}}>Add</Btn>
         </div>
       </div>
     </div>}
-  </Modal>;
+  </div>;
 }
 
 // -- WORKOUT SESSION -----------------------------------------------------------
@@ -3531,7 +3605,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
     {swapModal&&<SwapExerciseModal exercise={swapModal} settings={settings} onSwap={(newData)=>swapExercise(swapModal,newData)} onClose={()=>setSwapModal(null)} cachedSuggestions={swapCache[swapModal.name]||null} onCacheSuggestions={(name,data)=>setSwapCache(prev=>({...prev,[name]:data}))} C={C}/>}
 
     {/* Add exercise modal */}
-    {addExModal&&<ExerciseLibraryModal onSelect={addExercise} onClose={()=>setAddExModal(false)} C={C}/>}
+    {addExModal&&<ExerciseLibraryModal onSelect={addExercise} onClose={()=>setAddExModal(false)} sessions={sessions} plans={plans} contextMuscles={exercises.map(e=>e.muscle).filter(Boolean)} C={C}/>}
 
     {/* Edit exercise modal */}
     {editExModal&&<Modal onClose={()=>setEditExModal(null)} C={C}>
@@ -4323,7 +4397,7 @@ No explanation, no markdown, just the JSON array.`;
       </div>;
     })()}
     {editEx&&<Modal onClose={()=>setEditEx(null)} C={C}><ExerciseForm title="Edit Exercise" initial={editEx.ex} onSave={ex=>{saveExercise(editEx.dayId,ex);setEditEx(null);}} onClose={()=>setEditEx(null)} C={C}/></Modal>}
-    {addExDay&&<ExerciseLibraryModal multiAdd initialMuscle={addExMuscle} onSelect={ex=>addExercise(addExDay,ex)} onClose={()=>{setAddExDay(null);setAddExMuscle(null);}} C={C}/>}
+    {addExDay&&<ExerciseLibraryModal multiAdd initialMuscle={addExMuscle} plans={plans} onSelect={ex=>addExercise(addExDay,ex)} onClose={()=>{setAddExDay(null);setAddExMuscle(null);}} C={C}/>}
     {addDayModal&&<Modal onClose={()=>setAddDayModal(false)} C={C}><DayForm onSave={addDay} onClose={()=>setAddDayModal(false)} C={C}/></Modal>}
     {deletingDay&&<Modal onClose={()=>setDeletingDay(null)} C={C}>
       <div style={{textAlign:"center",padding:"10px 0"}}>
