@@ -52,8 +52,8 @@ test.describe("cap-delete-exercise single-target delete", () => {
     const rows = page.getByText(EX, { exact: true });
     await expect(rows).toHaveCount(2, { timeout: 8000 });
 
-    // Delete the first one via its ✕ (danger) button.
-    await page.getByRole("button", { name: "✕" }).first().click();
+    // Delete the first one via its Remove (trash) button.
+    await page.getByRole("button", { name: "Remove exercise" }).first().click();
 
     // Exactly ONE remains — the old code would have removed BOTH.
     await expect(page.getByText(EX, { exact: true })).toHaveCount(1);

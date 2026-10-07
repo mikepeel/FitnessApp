@@ -34,7 +34,7 @@ import { volumeAwarePlateauAdvice, primaryGatedMuscles } from "./lib/plateauVolu
 import { exerciseOrderForSession } from "./lib/historyOrder";
 import { workoutDisplayOrder } from "./lib/workoutOrder";
 import volumeGuidelines from "./data/volumeGuidelines.json";
-import { Dumbbell, CalendarDays, History as HistoryIcon, TrendingUp, Settings as SettingsIcon, Moon, Sun, Trophy, Check, Layers, Clock, Flame, Plus, Search, X, GripVertical, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { Dumbbell, CalendarDays, History as HistoryIcon, TrendingUp, Settings as SettingsIcon, Moon, Sun, Trophy, Check, Layers, Clock, Flame, Plus, Search, X, Pencil, Trash2, GripVertical, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 
 // lucide icon sizing scale. Color always inherits via currentColor from a
 // token-styled parent; icons are never filled. Stroke 1.75 everywhere.
@@ -3813,7 +3813,7 @@ function PlanAnalysisView({plan,goalRaw,C,onBack}){
   };
   const balanced=a.summary.underCount===0&&a.summary.highCount===0&&a.summary.flagged.length===0;
   const Header=(
-    <div style={{background:C.bg,borderBottom:`2px solid ${C.accent}`,padding:"16px 18px 14px"}}>
+    <div style={{background:C.bg,borderBottom:`1px solid ${C.border}`,padding:"16px 18px 14px"}}>
       <button onClick={onBack} aria-label="Back to plan" style={{display:"inline-flex",alignItems:"center",gap:5,background:"transparent",border:"none",color:C.accentInk,fontFamily:mono,fontSize:13,fontWeight:600,cursor:"pointer",padding:0,marginBottom:10}}><ChevronLeft size={ICON.sm} strokeWidth={1.75}/>Plan</button>
       <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em",marginBottom:4}}>Plan Analysis</div>
       <Mono style={{fontSize:11,color:C.muted,display:"block",lineHeight:1.5}}>Planned weekly working sets vs. evidence-based ranges.{a.goalDefaulted?" Assuming a hypertrophy goal.":""}</Mono>
@@ -4096,7 +4096,7 @@ No explanation, no markdown, just the JSON array.`;
   if(analysisOpen&&plan&&settings.showPlanAnalysis&&settings.showCoaching)return <PlanAnalysisView plan={plan} goalRaw={(settings.aiGoal||"").toLowerCase()} C={C} onBack={()=>setAnalysisOpen(false)}/>;
 
   return <div>
-    <div style={{background:C.bg,borderBottom:`2px solid ${C.accent}`,padding:"16px 18px 14px"}}>
+    <div style={{background:C.bg,borderBottom:`1px solid ${C.border}`,padding:"16px 18px 14px"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
         <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>Plan Editor</div>
         <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
@@ -4178,7 +4178,7 @@ No explanation, no markdown, just the JSON array.`;
                   <button onClick={e=>{e.stopPropagation();reorderDay(i,i+1);}} disabled={i===days.length-1}
                     style={{padding:"3px 8px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:4,color:i===days.length-1?C.faint:C.neonInk,cursor:i===days.length-1?"default":"pointer",fontSize:12,lineHeight:1}}>↓</button>
                 </div>
-                :<Mono style={{color:C.muted,fontSize:12,flexShrink:0}}>{expandedDay===i?"▲":"▼"}</Mono>
+                :<span style={{color:C.muted,display:"inline-flex",flexShrink:0,transition:"transform .2s",transform:expandedDay===i?"rotate(180deg)":"none"}}><ChevronDown size={20} strokeWidth={2}/></span>
               }
             </div>
           </div>
@@ -4205,7 +4205,7 @@ No explanation, no markdown, just the JSON array.`;
               </div>;
             })()}
             {day.exercises.map((ex,exIdx)=>(
-              <div key={ex.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:10,marginBottom:8,transition:"background .15s"}}>
+              <div key={ex.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,padding:"11px 12px",background:C.bg,border:`1px solid ${C.border}`,borderRadius:12,marginBottom:8,transition:"background .15s"}}>
                 {/* Reorder arrows */}
                 {reorderMode===day.id&&<div style={{display:"flex",flexDirection:"column",gap:1,marginRight:8,flexShrink:0}}>
                   <button onClick={()=>exIdx>0&&reorderExercises(day.id,exIdx,exIdx-1)}
@@ -4218,14 +4218,14 @@ No explanation, no markdown, just the JSON array.`;
                 {/* Position badge in reorder mode */}
                 {reorderMode===day.id&&<Mono style={{fontSize:11,color:C.muted,width:18,flexShrink:0,textAlign:"center"}}>{exIdx+1}</Mono>}
                 <div style={{flex:1,marginLeft:reorderMode===day.id?8:0,minWidth:0}}>
-                  <div style={{fontSize:14,fontWeight:600,letterSpacing:"-0.01em"}}>{ex.name}</div>
+                  <div style={{fontSize:15,fontWeight:600,letterSpacing:"-0.01em"}}>{ex.name}</div>
                   {(()=>{
                     // Inline sets/reps editing on the row (persists via saveExercise — id + order preserved,
                     // same write path as the Edit modal). Only in normal mode and for non-cardio: cardio's
                     // "--"/"30 min" don't fit steppers, so it keeps the static line and the Edit modal.
                     const isCardio=ex.muscle==="Cardio"||ex.muscle==="Recovery";
                     if(reorderMode===day.id||isCardio)
-                      return <Mono style={{fontSize:11,color:C.muted}}>{ex.sets}×{ex.reps}{ex.muscle?` . ${ex.muscle}`:""}</Mono>;
+                      return <div style={{fontSize:12,color:C.muted,marginTop:2}}>{ex.sets} × {ex.reps}{ex.muscle?` · ${ex.muscle}`:""}</div>;
                     const isNumSets=/^\d+$/.test(String(ex.sets).trim());
                     const sn=parseInt(ex.sets,10)||0;
                     const setSets=n=>saveExercise(day.id,{...ex,sets:String(Math.max(1,Math.min(20,n)))});
@@ -4242,13 +4242,13 @@ No explanation, no markdown, just the JSON array.`;
                         onKeyDown={e=>{if(e.key==="Enter")e.currentTarget.blur();}}
                         onBlur={e=>{const v=e.target.value.trim();if(v&&v!==ex.reps)saveExercise(day.id,{...ex,reps:v});}}
                         style={{width:72,padding:"3px 8px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,color:C.text,fontSize:12,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",boxSizing:"border-box",textAlign:"center"}}/>
-                      {ex.muscle&&<Mono style={{fontSize:11,color:C.muted}}> . {ex.muscle}</Mono>}
+                      {ex.muscle&&<span style={{fontSize:11,fontWeight:600,color:muscleFamilyColor(ex.muscle,C),background:muscleFamilyColor(ex.muscle,C)+"1a",borderRadius:RADIUS.pill,padding:"2px 8px"}}>{ex.muscle}</span>}
                     </div>;
                   })()}
                 </div>
-                {reorderMode!==day.id&&<div style={{display:"flex",gap:6,marginLeft:8}}>
-                  <Btn size="sm" variant="ghost" onClick={()=>setEditEx({dayId:day.id,ex})} C={C}>Edit</Btn>
-                  <Btn size="sm" variant="danger" onClick={()=>deleteExercise(day.id,ex.id,ex.name)} C={C}>✕</Btn>
+                {reorderMode!==day.id&&<div style={{display:"flex",gap:6,marginLeft:8,flexShrink:0}}>
+                  <button aria-label="Edit exercise" onClick={()=>setEditEx({dayId:day.id,ex})} style={{width:36,height:36,borderRadius:18,border:`1px solid ${C.border}`,background:C.card,color:C.muted,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}><Pencil size={15} strokeWidth={2}/></button>
+                  <button aria-label="Remove exercise" onClick={()=>deleteExercise(day.id,ex.id,ex.name)} style={{width:36,height:36,borderRadius:18,border:`1px solid ${C.danger}33`,background:C.danger+"12",color:C.dangerInk,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}><Trash2 size={15} strokeWidth={2}/></button>
                 </div>}
               </div>
             ))}
@@ -4971,7 +4971,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
   }
 
   return <div>
-    <div style={{background:C.bg,borderBottom:`2px solid ${C.accent}`,padding:"16px 18px 14px"}}>
+    <div style={{background:C.bg,borderBottom:`1px solid ${C.border}`,padding:"16px 18px 14px"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
         <div>
           <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>Workout History</div>
@@ -4982,9 +4982,9 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
           <Btn size="sm" C={C} onClick={()=>setAddingSession(a=>!a)} style={{fontWeight:700,padding:"6px 10px",fontSize:11}}>+ Log</Btn>
         </div>
       </div>
-      <div style={{display:"flex",gap:5}}>
-        {[["1m","1M"],["3m","3M"],["6m","6M"],["all","ALL"]].map(([k,label])=>(
-          <button key={k} onClick={()=>setHistoryFilter(k)} style={{padding:"7px 14px",borderRadius:7,border:historyFilter===k?"none":`1px solid ${C.border}`,background:historyFilter===k?C.accentBtn:"transparent",color:historyFilter===k?"#fff":C.muted,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",fontSize:12,fontWeight:700,cursor:"pointer"}}>{label}</button>
+      <div style={{display:"flex",gap:2,background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:3,boxShadow:C.shadow}}>
+        {[["1m","1M"],["3m","3M"],["6m","6M"],["all","All"]].map(([k,label])=>(
+          <button key={k} onClick={()=>setHistoryFilter(k)} style={{flex:1,minHeight:34,padding:"6px 10px",borderRadius:9,border:"none",background:historyFilter===k?C.accentBtn:"transparent",color:historyFilter===k?"#fff":C.muted,fontFamily:C.sans,fontSize:13,fontWeight:700,cursor:"pointer"}}>{label}</button>
         ))}
       </div>
     </div>
@@ -5084,7 +5084,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
                     {muscles.slice(0,6).map(m=><span key={m} style={{display:"inline-flex",alignItems:"center",gap:5,background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,padding:"2px 8px"}}><span style={{width:6,height:6,borderRadius:3,background:muscleFamilyColor(m,C),flexShrink:0}}/><Mono style={{fontSize:10,color:C.muted}}>{m}</Mono></span>)}
                   </div>}
                 </div>
-                <Mono style={{color:C.muted,fontSize:12,marginLeft:8}}>{isExp?"▲":"▼"}</Mono>
+                <span style={{color:C.muted,display:"inline-flex",marginLeft:8,transition:"transform .2s",transform:isExp?"rotate(180deg)":"none"}}><ChevronDown size={20} strokeWidth={2}/></span>
               </div>
 
               {/* Expanded view */}
@@ -5116,15 +5116,15 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
                       <span style={{fontSize:13,fontWeight:600}}>{name}</span>
                       {onDrillTo&&<Mono style={{fontSize:10,color:C.accentInk,letterSpacing:"0.04em",flexShrink:0,display:"inline-flex",alignItems:"center",gap:3}}>Progress<span style={{fontSize:15,lineHeight:1}}>›</span></Mono>}
                     </div>
-                    <div style={{display:"grid",gap:6}}>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
                       {groups.map((g,j)=>(
-                        <Mono key={j} style={{fontSize:11,background:C.surface,padding:"8px 10px",borderRadius:8,color:g.isPR?C.goldInk:g.cardio?C.greenInk:C.muted,opacity:g.type==="warmup"?0.6:1}}>
-                          {g.type==="warmup"?"W ":""}{g.cardio?`Interval ${g.setNum}: ${g.minutes} min${g.level?` · L${g.level}`:""}`:""}{!g.cardio&&g.count>1?`${g.count} × `:""}{!g.cardio&&g.weight?`${g.weight}lbs`:""}{!g.cardio&&g.weight&&g.reps?" × ":""}{!g.cardio&&g.reps?`${g.reps}${et==="time"?"s":"r"}`:""}{g.isPR?<> <PRMark C={C}/></>:""}
-                        </Mono>
+                        <span key={j} style={{fontSize:13,fontWeight:600,background:g.isPR?C.gold+"1f":C.bg,border:`1px solid ${g.isPR?C.gold+"55":C.border}`,padding:"6px 10px",borderRadius:10,color:g.isPR?C.goldInk:g.cardio?C.greenInk:C.text,opacity:g.type==="warmup"?0.6:1,whiteSpace:"nowrap"}}>
+                          {g.type==="warmup"?"W ":""}{g.cardio?`Interval ${g.setNum}: ${g.minutes} min${g.level?` · L${g.level}`:""}`:""}{!g.cardio&&g.count>1?`${g.count} × `:""}{!g.cardio&&g.weight?`${g.weight} lbs`:""}{!g.cardio&&g.weight&&g.reps?" × ":""}{!g.cardio&&g.reps?`${g.reps}${et==="time"?"s":(g.weight?"":" reps")}`:""}{g.isPR?<> <PRMark C={C}/></>:""}
+                        </span>
                       ))}
                       {(() => {
                         const totalMinutes = exSets.reduce((sum,x)=>sum + (parseFloat(x.minutes)||0),0);
-                        return totalMinutes>0 ? <Mono style={{fontSize:11,color:C.muted}}>Total: {Math.round(totalMinutes)} min</Mono> : null;
+                        return totalMinutes>0 ? <span style={{fontSize:12,color:C.muted,alignSelf:"center"}}>Total: {Math.round(totalMinutes)} min</span> : null;
                       })()}
                     </div>
                   </div>;
@@ -5788,7 +5788,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
     setLoadingInsight(false);
   }
 
-  const tabStyle=(active)=>({flex:1,padding:"7px 4px",borderRadius:7,border:"none",background:active?C.accentBtn:"transparent",color:active?"#fff":C.muted,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",fontSize:10,cursor:"pointer",letterSpacing:"0.04em"});
+  const tabStyle=(active)=>({flex:1,whiteSpace:"nowrap",padding:"7px 4px",borderRadius:7,border:"none",background:active?C.accentBtn:"transparent",color:active?"#fff":C.muted,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",fontSize:10,cursor:"pointer",letterSpacing:"0.04em"});
 
   if(detailSnapshot){
     return <BlockSummary snapshot={detailSnapshot} C={C} onBack={()=>setDetailSnapshot(null)} onRepeat={()=>onRepeatBlock&&onRepeatBlock(detailSnapshot.planKey)}/>;
@@ -6361,7 +6361,7 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
   ];
 
   return <div>
-    <div style={{background:C.bg,borderBottom:`2px solid ${C.accent}`,padding:"16px 18px"}}>
+    <div style={{background:C.bg,borderBottom:`1px solid ${C.border}`,padding:"16px 18px"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>Settings</div>
         <div style={{display:"flex",gap:8}}>
