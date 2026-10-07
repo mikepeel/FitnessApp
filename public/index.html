@@ -15,7 +15,9 @@
       body {
         margin: 0;
         background: #0b0c0e;
-        font-family: Georgia, serif;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        font-variant-numeric: tabular-nums;
+        -webkit-font-smoothing: antialiased;
         overscroll-behavior: none;
         -webkit-overflow-scrolling: touch;
         /* Push content below iPhone status bar */
@@ -30,6 +32,10 @@
       * {
         scroll-behavior: smooth;
       }
+      /* Form controls don't inherit the page font by default */
+      button, input, select, textarea { font-family: inherit; }
+      /* Grouped settings cards: no divider under the last row */
+      .iron-group > *:last-child { border-bottom: none !important; }
       /* Prevent double-tap zoom on buttons */
       button, a {
         touch-action: manipulation;

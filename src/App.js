@@ -44,7 +44,7 @@ const ICON = { sm: 16, md: 20, lg: 24 };
 // (plus optional weight via `value`) in gold, mono, bold. Used on workout rows,
 // the WorkoutSummary, and History markers so every PR reads identically.
 function PRMark({ value, C }) {
-  return <span style={{fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",fontSize:11,color:C.goldInk,fontWeight:700,whiteSpace:"nowrap"}}>PR{value!=null&&value!==""?` ${value}`:""}</span>;
+  return <span style={{fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",fontSize:11,color:C.goldInk,fontWeight:700,whiteSpace:"nowrap"}}>PR{value!=null&&value!==""?` ${value}`:""}</span>;
 }
 
 // ── SUPABASE ──────────────────────────────────────────────────────────────────
@@ -88,7 +88,7 @@ const THEMES = {
     accentBtn:"#2b6cb0", neonBtn:"#0a7a4f",
     text:"#e8edf4", muted:"#b0bac8", faint:"#9aa3b2", cardText:"#f2f5fa",
     bodyUnused:"#444b59", bodyStruct:"#2b323e", bodyStructOp:0.7, // muscle heat-map: unused-muscle gray / faint non-muscle structure
-    mono:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",
+    mono:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",
     sans:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif", // prose/UI; metrics use `mono`
     tintBase:"transparent", // what translucent card tints sit on — dark: the page (unchanged look)
     shadow:"none", // card elevation — dark mode separates by surface color, so none
@@ -107,7 +107,7 @@ const THEMES = {
     accentBtn:"#2b6cb0", neonBtn:"#076b42",
     text:"#1a202c", muted:"#2d3748", faint:"#54637a", cardText:"#0d1117",
     bodyUnused:"#ccd3de", bodyStruct:"#dfe5ec", bodyStructOp:0.9, // muscle heat-map: unused-muscle gray / faint non-muscle structure
-    mono:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",
+    mono:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",
     sans:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif", // prose/UI; metrics use `mono`
     tintBase:"#ffffff", // light: tints sit on white, not the gray canvas (avoids a muddy wash)
     shadow:"0 1px 2px rgba(15,30,60,0.06), 0 6px 16px rgba(15,30,60,0.07)", // soft elevation so white cards lift off the canvas
@@ -1689,7 +1689,7 @@ function aiProfileContext(s){
 const useTheme = (mode) => THEMES[mode] || THEMES.dark;
 
 // -- TINY UI COMPONENTS --------------------------------------------------------
-const Mono = ({children,style={}})=><span style={{fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",...style}}>{children}</span>;
+const Mono = ({children,style={}})=><span style={{fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",...style}}>{children}</span>;
 
 function Toggle({on,onToggle,C}){
   return <div onClick={onToggle} style={{width:46,height:26,borderRadius:13,background:on?C.accent:C.faint,position:"relative",cursor:"pointer",transition:"background .2s",flexShrink:0}}>
@@ -1728,6 +1728,26 @@ function Modal({children,onClose,C,showClose=true}){
     </div>
   </div>;
 }
+
+// Progress primitives — one bar + one ring, used for week/program/workout progress.
+function ProgressBar({value,max,color,C,height=6}){
+  const pct=max>0?Math.max(0,Math.min(100,(value/max)*100)):0;
+  return <div style={{height,borderRadius:height/2,background:C.border,overflow:"hidden"}}>
+    <div style={{width:`${pct}%`,height:"100%",borderRadius:height/2,background:color,transition:"width .5s ease"}}/>
+  </div>;
+}
+function ProgressRing({value,max,color,C,size=88,stroke=9,children}){
+  const r=(size-stroke)/2,circ=2*Math.PI*r,pct=max>0?Math.max(0,Math.min(1,value/max)):0;
+  return <div style={{position:"relative",width:size,height:size,flexShrink:0}}>
+    <svg width={size} height={size} style={{display:"block",transform:"rotate(-90deg)"}}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={C.border} strokeWidth={stroke}/>
+      {pct>0&&<circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={circ*(1-pct)} style={{transition:"stroke-dashoffset .6s ease"}}/>}
+    </svg>
+    <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>{children}</div>
+  </div>;
+}
+// Grouped-list surface (iOS inset-grouped) for settings rows; pair with className="iron-group".
+const groupCard=C=>({background:C.card,border:`1px solid ${C.border}`,borderRadius:16,boxShadow:C.shadow,padding:"0 14px",marginBottom:6});
 
 function SectionLabel({children,C}){
   return <div style={{fontSize:11,fontFamily:C.sans,color:C.muted,letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:10,fontWeight:700}}>{children}</div>;
@@ -1783,7 +1803,7 @@ function RestTimer({seconds,onDone,onSkip,C,next}){
   return <div style={{background:C.card,boxShadow:C.shadow,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"8px 12px",marginBottom:8}}>
     <div style={{display:"flex",alignItems:"center",gap:12}}>
       <Mono style={{fontSize:9,color:C.muted,letterSpacing:"0.12em",flexShrink:0}}>REST</Mono>
-      <div style={{fontSize:20,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",color:rem<10?C.redInk:C.neonInk,fontWeight:700,minWidth:42}}>
+      <div style={{fontSize:20,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",color:rem<10?C.redInk:C.neonInk,fontWeight:700,minWidth:42}}>
         {Math.floor(rem/60)}:{String(rem%60).padStart(2,"0")}
       </div>
       <div style={{flex:1,height:3,background:C.border,borderRadius:2}}>
@@ -1819,18 +1839,18 @@ function OverloadCalc({C}){
     <Mono style={{fontSize:11,color:C.muted,display:"block",marginBottom:12}}>Enter your current max weight -- see your next target</Mono>
     <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:12}}>
       <input type="number" placeholder="Current weight (lbs)" value={w} onChange={e=>setW(e.target.value)}
-        style={{flex:1,padding:"10px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",boxSizing:"border-box"}}/>
+        style={{flex:1,padding:"10px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",boxSizing:"border-box"}}/>
       <Mono style={{fontSize:12,color:C.muted}}>lbs</Mono>
     </div>
     {weight>0&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
       <div style={{background:C.surface,border:`1px solid ${C.gold}66`,borderRadius:6,padding:"12px",textAlign:"center"}}>
         <Mono style={{fontSize:10,color:C.muted,letterSpacing:"0.1em",display:"block",marginBottom:4}}>+2.5% NEXT</Mono>
-        <div style={{fontSize:24,fontWeight:600,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",color:C.goldInk}}>{p25}</div>
+        <div style={{fontSize:24,fontWeight:600,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",color:C.goldInk}}>{p25}</div>
         <Mono style={{fontSize:10,color:C.muted}}>lbs</Mono>
       </div>
       <div style={{background:C.surface,border:`1px solid ${C.gold}88`,borderRadius:6,padding:"12px",textAlign:"center"}}>
         <Mono style={{fontSize:10,color:C.muted,letterSpacing:"0.1em",display:"block",marginBottom:4}}>+5% NEXT</Mono>
-        <div style={{fontSize:24,fontWeight:600,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",color:C.goldInk}}>{p5}</div>
+        <div style={{fontSize:24,fontWeight:600,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",color:C.goldInk}}>{p5}</div>
         <Mono style={{fontSize:10,color:C.muted}}>lbs</Mono>
       </div>
     </div>}
@@ -1963,7 +1983,7 @@ function AuthScreen({C,onAuth,themeMode,toggleTheme}){
         {error&&<div style={{margin:"4px 0 12px",padding:"10px 12px",borderRadius:"0 8px 8px 0",borderLeft:"2px solid #f06584",background:"rgba(240,101,132,0.08)",fontSize:13,color:"#ffb3c0"}}>{error}</div>}
         {message&&<div style={{margin:"4px 0 12px",padding:"10px 12px",borderRadius:"0 8px 8px 0",borderLeft:"2px solid "+GOLD,background:"rgba(247,201,72,0.08)",fontSize:13,color:"#f3d68a"}}>{message}</div>}
 
-        <button type="submit" disabled={loading} style={{width:"100%",padding:17,background:"linear-gradient(135deg, "+GOLD+" 0%, "+GOLD2+" 100%)",border:"none",borderRadius:13,color:BASE,fontSize:13,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",fontWeight:800,letterSpacing:"0.14em",cursor:loading?"default":"pointer",opacity:loading?0.6:1,marginTop:8,marginBottom:16,boxShadow:"0 4px 24px rgba(247,201,72,0.35), 0 1px 0 rgba(255,255,255,0.15) inset"}}>{loading?"...":submitLabel}</button>
+        <button type="submit" disabled={loading} style={{width:"100%",padding:17,background:"linear-gradient(135deg, "+GOLD+" 0%, "+GOLD2+" 100%)",border:"none",borderRadius:13,color:BASE,fontSize:13,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",fontWeight:800,letterSpacing:"0.14em",cursor:loading?"default":"pointer",opacity:loading?0.6:1,marginTop:8,marginBottom:16,boxShadow:"0 4px 24px rgba(247,201,72,0.35), 0 1px 0 rgba(255,255,255,0.15) inset"}}>{loading?"...":submitLabel}</button>
 
         <div style={{display:"flex",justifyContent:"center"}}>
           {mode==="login"&&<button type="button" className="footer-link" onClick={()=>{setMode("reset");clear();}} style={footerLinkStyle}>Forgot password?</button>}
@@ -2641,12 +2661,12 @@ export default function ForgeApp(){
   }
 
   return <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:C.sans,paddingBottom:72,userSelect:"none",scrollBehavior:"smooth"}}>
-    {!isOnline&&<div style={{background:"#f7c948",color:"#1a202c",padding:"8px 18px",fontSize:12,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",textAlign:"center",letterSpacing:"0.04em"}}>
+    {!isOnline&&<div style={{background:"#f7c948",color:"#1a202c",padding:"8px 18px",fontSize:12,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",textAlign:"center",letterSpacing:"0.04em"}}>
       ⚠ Offline — your work is safe. Reconnect to finish saving.
     </div>}
-    {planSaveFailed&&<div style={{background:isOnline?C.danger:"#f7c948",color:isOnline?"#fff":"#1a202c",padding:"8px 18px",fontSize:12,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",textAlign:"center",letterSpacing:"0.04em",display:"flex",alignItems:"center",justifyContent:"center",gap:12,flexWrap:"wrap"}}>
+    {planSaveFailed&&<div style={{background:isOnline?C.danger:"#f7c948",color:isOnline?"#fff":"#1a202c",padding:"8px 18px",fontSize:12,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",textAlign:"center",letterSpacing:"0.04em",display:"flex",alignItems:"center",justifyContent:"center",gap:12,flexWrap:"wrap"}}>
       <span>{isOnline?"Couldn't save your plan changes":"Plan changes will save when you're back online"}</span>
-      {isOnline&&<button onClick={()=>{if(pendingPlanSaveRef.current)savePlans(pendingPlanSaveRef.current);}} style={{background:"rgba(255,255,255,0.2)",border:"1px solid rgba(255,255,255,0.55)",borderRadius:6,color:"#fff",cursor:"pointer",padding:"3px 12px",fontSize:11,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",fontWeight:700}}>Retry</button>}
+      {isOnline&&<button onClick={()=>{if(pendingPlanSaveRef.current)savePlans(pendingPlanSaveRef.current);}} style={{background:"rgba(255,255,255,0.2)",border:"1px solid rgba(255,255,255,0.55)",borderRadius:6,color:"#fff",cursor:"pointer",padding:"3px 12px",fontSize:11,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",fontWeight:700}}>Retry</button>}
     </div>}
     {minimizedWorkout&&<div onClick={()=>{setWorkoutDraft({loggedSets:minimizedWorkout.loggedSets,elapsed:bannerElapsed,startedAt:minimizedWorkout.startedAt,workout:minimizedWorkout.workout,exercises:minimizedWorkout.exercises,completedExIds:minimizedWorkout.completedExIds});setActiveWorkout(minimizedWorkout.workout);setMinimizedWorkout(null);}} style={{position:"fixed",top:"env(safe-area-inset-top,0px)",left:0,right:0,zIndex:100,background:C.neon,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",minHeight:44,cursor:"pointer",userSelect:"none"}}>
       <Mono style={{fontSize:12,color:ONACCENT,fontWeight:700}}>🔴 {minimizedWorkout.workout.label} in progress · {Math.floor(bannerElapsed/60)}:{String(bannerElapsed%60).padStart(2,"0")}</Mono>
@@ -2741,7 +2761,7 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,p
           <div style={{fontSize:22,letterSpacing:"-0.03em",fontWeight:800}}>{new Date().toLocaleDateString("en",{weekday:"long"})}</div>
           <div style={{fontSize:13,color:C.muted,marginTop:1}}>{new Date().toLocaleDateString("en",{month:"short",day:"numeric",year:"numeric"})}</div>
         </div>
-        <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",letterSpacing:"0.08em",marginTop:2,display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
+        <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",letterSpacing:"0.08em",marginTop:2,display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
           {themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}
         </button>
       </div>
@@ -2779,7 +2799,18 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,p
           </div>;
         })}
       </div>}
-      <SectionLabel C={C}>{isFutureStart?"Preview":"This Week"}</SectionLabel>
+      {(()=>{
+        const adh=(!isFutureStart&&plan)?weeklyAdherence(plan,sessions,plan.startDate||programStart||getProgramStart(sessions),new Date()):null;
+        if(!adh||!(adh.target>0))return <SectionLabel C={C}>{isFutureStart?"Preview":"This Week"}</SectionLabel>;
+        const col=adh.status==="complete"?C.neon:C.accent;
+        return <div style={{marginBottom:12}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
+            <SectionLabel C={C}>This Week</SectionLabel>
+            <span style={{fontSize:13,fontWeight:700,color:adh.status==="complete"?C.neonInk:C.text}}>{adh.done} of {adh.target} done</span>
+          </div>
+          <ProgressBar value={adh.done} max={adh.target} color={col} C={C} height={6}/>
+        </div>;
+      })()}
       {orderedDays.map((day,i)=>{
         const origSlotIdx=rawDays.findIndex(d=>d.id===day.id);
         const isToday=todaySlot!==null&&origSlotIdx===todaySlot;
@@ -3345,7 +3376,15 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
     if(ok){await deleteDraft();}else{finishCalledRef.current=false;setSaving(false);setSaveError("Workout not saved — check connection and tap Retry.");}
   }
 
-  const inputStyle={padding:"9px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",width:"100%",boxSizing:"border-box"};
+  // Workout progress: confirmed sets / planned sets (a finished exercise counts in full; cardio = 1).
+  const wkProg=exercises.reduce((acc,ex)=>{
+    const card=trackFor(ex)==="cardio";
+    const tot=card?1:(parseInt(ex.sets)||3)+(extraSets[ex.name]||0);
+    const conf=Object.keys(setStates).filter(k=>k.startsWith(ex.id+"-")&&setStates[k]==="confirmed").length;
+    acc.total+=tot;acc.done+=completedExIds.has(ex.id)?tot:Math.min(tot,conf);
+    return acc;
+  },{done:0,total:0});
+  const inputStyle={padding:"9px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",width:"100%",boxSizing:"border-box"};
 
 
   return <div style={{minHeight:"100vh",background:C.bg,color:C.text,fontFamily:C.sans,paddingBottom:100,scrollBehavior:"smooth"}}>
@@ -3359,19 +3398,20 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
     <div onPointerDown={e=>{dragStartYRef.current=e.clientY;setDragDelta(0);e.currentTarget.setPointerCapture(e.pointerId);}} onPointerMove={e=>{if(dragStartYRef.current===null)return;const d=e.clientY-dragStartYRef.current;setDragDelta(d>0?d:0);}} onPointerUp={async e=>{const d=dragStartYRef.current!==null?e.clientY-dragStartYRef.current:0;dragStartYRef.current=null;setDragDelta(0);if(d>80){await saveDraft();onMinimize({workout,loggedSets,elapsed,startedAt:startTime,exercises,completedExIds:[...completedExIds]});}}} onPointerCancel={()=>{dragStartYRef.current=null;setDragDelta(0);}} style={{height:28,display:"flex",alignItems:"center",justifyContent:"center",cursor:"grab",touchAction:"none",background:C.bg}}>
       <div style={{width:40,height:4,borderRadius:2,background:dragDelta>60?C.neon:C.border,transition:"background 0.15s"}}/>
     </div>
-    <div style={{background:C.bg,borderBottom:`2px solid ${C.neon}`,padding:"14px 18px",position:"sticky",top:0,zIndex:50,marginTop:0}}>
+    <div style={{background:C.bg,padding:"14px 18px 0",position:"sticky",top:0,zIndex:50,marginTop:0}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div>
           <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>{workout.label}</div>
-          <Mono style={{fontSize:11,color:C.muted}}>{exercises.length} exercises</Mono>
+          <div style={{fontSize:12,color:C.muted,marginTop:1}}>{exercises.length} exercises · {wkProg.done} of {wkProg.total} sets</div>
         </div>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
           <Mono style={{fontSize:13,color:C.neonInk,fontWeight:700}}>{Math.floor(elapsed/60)}:{String(elapsed%60).padStart(2,"0")}</Mono>
           <Btn onClick={()=>setAddExModal(true)} variant="ghost" size="sm" C={C} style={{fontSize:11,color:C.neonInk,borderColor:C.neon+"44"}}>+ Add</Btn>
           <Btn onClick={()=>setShowEndMenu(true)} variant="ghost" size="sm" C={C} style={{fontSize:16,letterSpacing:"0.1em",padding:"5px 8px"}}>⋯</Btn>
-          <Btn onClick={async()=>{await saveDraft();onMinimize({workout,loggedSets,elapsed,startedAt:startTime,exercises,completedExIds:[...completedExIds]});}} variant="ghost" size="sm" C={C}>✕</Btn>
+          <Btn onClick={async()=>{await saveDraft();onMinimize({workout,loggedSets,elapsed,startedAt:startTime,exercises,completedExIds:[...completedExIds]});}} variant="ghost" size="sm" C={C} style={{padding:"4px 7px",display:"inline-flex",alignItems:"center"}}><span aria-label="Minimize workout" style={{display:"inline-flex"}}><ChevronDown size={18} strokeWidth={2.25}/></span></Btn>
         </div>
       </div>
+      <div style={{margin:"12px -18px 0"}}><ProgressBar value={wkProg.done} max={wkProg.total} color={C.neon} C={C} height={4}/></div>
     </div>
     {autoSaveToast&&<div style={{background:C.gold,padding:"10px 18px",textAlign:"center"}}>
       <Mono style={{fontSize:12,color:ONACCENT,fontWeight:700}}>Workout auto-saved after 3 hours</Mono>
@@ -3403,24 +3443,26 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
         const intervalKeys=isCardio?Object.keys(myLog).map(n=>parseInt(n)).filter(n=>Number.isFinite(n)).sort((a,b)=>a-b):[];
         if(isCardio&&intervalKeys.length===0)intervalKeys.push(1);
         const hasAnyLog=isCardio?intervalKeys.some(n=>myLog[n]?.minutes&&!myLog[n]?.prepop):Object.values(myLog).some(v=>(v.weight||v.reps)&&!v.prepop);
-        return <div key={ex.id} style={{background:isDone?C.surface:C.card,borderTop:`1px solid ${isDone?C.faint:hasAnyLog?C.neon+"44":C.border}`,borderRight:`1px solid ${isDone?C.faint:hasAnyLog?C.neon+"44":C.border}`,borderBottom:`1px solid ${isDone?C.faint:hasAnyLog?C.neon+"44":C.border}`,borderLeft:`3px solid ${isDone?C.faint:isCardio?C.green:hasAnyLog?C.neon:C.accent}`,borderRadius:10,padding:"14px",marginBottom:10,transition:"all .3s",opacity:isDone?0.55:1}}>
+        return <div key={ex.id} style={{background:isDone?C.surface:C.card,borderTop:`1px solid ${isDone?C.faint:hasAnyLog?C.neon+"44":C.border}`,borderRight:`1px solid ${isDone?C.faint:hasAnyLog?C.neon+"44":C.border}`,borderBottom:`1px solid ${isDone?C.faint:hasAnyLog?C.neon+"44":C.border}`,borderLeft:`3px solid ${isDone?C.faint:isCardio?C.green:hasAnyLog?C.neon:C.accent}`,borderRadius:14,boxShadow:isDone?"none":C.shadow,padding:"14px",marginBottom:12,transition:"all .3s",opacity:isDone?0.55:1}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
             <div style={{flex:1}}>
               <div style={{fontSize:15,fontWeight:700,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                 {ex.name}
                 {isCardio&&<Pill color={C.greenInk}>Cardio</Pill>}
                 {isPRNow&&<span className="iron-cele"><PRMark C={C}/></span>}
-                {hasAnyLog&&<span style={{fontSize:9,color:C.neonInk,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",letterSpacing:"0.08em"}}>LOGGED</span>}
+                {hasAnyLog&&<span style={{fontSize:9,color:C.neonInk,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",letterSpacing:"0.08em"}}>LOGGED</span>}
               </div>
-              <Mono style={{fontSize:11,color:C.muted}}>{isCardio?"Duration goal:":ex.sets+" sets ."} {ex.reps}{!isCardio&&ex.muscle?` . ${ex.muscle}`:""}</Mono>
+              <div style={{fontSize:12,color:C.muted,marginTop:2}}>{isCardio?"Duration goal:":ex.sets+" sets ·"} {ex.reps}{!isCardio&&ex.muscle?` · ${ex.muscle}`:""}</div>
               {ex.note&&<div style={{fontSize:11,color:C.muted,marginTop:2}}>{ex.note}</div>}
-              {!isCardio&&last&&<Mono style={{fontSize:11,color:C.muted,display:"block",marginTop:2}}>{isTime?`Last: ${last[1]?.reps||"--"}s`:isReps?`Last: ${last[1]?.reps||"--"} reps${last[1]?.weight?` +${last[1].weight} lbs`:""}`:`Last: ${last[1]?.weight||"--"}lbs × ${last[1]?.reps||"--"}`}</Mono>}
-              {isCardio&&last&&last[1]?.minutes&&<Mono style={{fontSize:11,color:C.muted,display:"block",marginTop:2}}>Last: {last[1].minutes} min</Mono>}
-              {myPR&&<Mono style={{fontSize:11,color:C.goldInk,display:"block"}}>PR: {myPR.weight}lbs</Mono>}
+              {((!isCardio&&last)||(isCardio&&last&&last[1]?.minutes)||myPR)&&<div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:7}}>
+                {!isCardio&&last&&<span style={{fontSize:12,fontWeight:600,color:C.muted,background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.pill,padding:"3px 9px"}}>{isTime?`Last ${last[1]?.reps||"--"}s`:isReps?`Last ${last[1]?.reps||"--"} reps${last[1]?.weight?` +${last[1].weight} lbs`:""}`:`Last ${last[1]?.weight||"--"} lbs × ${last[1]?.reps||"--"}`}</span>}
+                {isCardio&&last&&last[1]?.minutes&&<span style={{fontSize:12,fontWeight:600,color:C.muted,background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.pill,padding:"3px 9px"}}>Last {last[1].minutes} min</span>}
+                {myPR&&<span style={{fontSize:12,fontWeight:700,color:C.goldInk,background:C.gold+"1f",borderRadius:RADIUS.pill,padding:"3px 9px"}}>PR {myPR.weight} lbs</span>}
+              </div>}
               {!isCardio&&settings.plateCalc&&w0&&<PlateCalc weight={w0} C={C}/>}
             </div>
             <div style={{display:"flex",gap:4,marginLeft:8,flexShrink:0}}>
-              <button onClick={()=>setExMenu(ex)} aria-label={`${ex.name} options`} style={{background:"transparent",border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.muted,cursor:"pointer",fontSize:16,lineHeight:1,padding:"5px 12px",letterSpacing:"0.08em",fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace"}}>⋯</button>
+              <button onClick={()=>setExMenu(ex)} aria-label={`${ex.name} options`} style={{background:"transparent",border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.muted,cursor:"pointer",fontSize:16,lineHeight:1,padding:"5px 12px",letterSpacing:"0.08em",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif"}}>⋯</button>
             </div>
           </div>
 
@@ -3504,7 +3546,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
               const hasVal=!!(myLog[n]?.weight||myLog[n]?.reps);
               const setRowState=isConfirmed?"confirmed":isPrepop?"suggested":hasVal?"inprogress":"suggested";
               return [
-                <button key={`t${n}`} onClick={()=>cycleSetType(ex.name,n)} style={{padding:"3px 0",background:typeColor+"22",border:"none",borderRadius:4,color:typeInk,fontSize:9,fontWeight:700,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",cursor:"pointer",textAlign:"center",letterSpacing:"0.05em"}}>{typeLabel}</button>,
+                <button key={`t${n}`} onClick={()=>cycleSetType(ex.name,n)} style={{padding:"3px 0",background:typeColor+"22",border:"none",borderRadius:4,color:typeInk,fontSize:9,fontWeight:700,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",cursor:"pointer",textAlign:"center",letterSpacing:"0.05em"}}>{typeLabel}</button>,
                 ...(isConfirmed
                   ?[<div key={`confirmed${n}`} className="iron-pop" onClick={()=>{setSetStates(prev=>{const u={...prev};delete u[stateKey];return u;});}} style={{gridColumn:"span 4",background:C.neon+"12",border:`1px solid ${C.neon}22`,borderRadius:6,display:"flex",alignItems:"center",gap:8,padding:"8px 10px",cursor:"pointer"}}>
                       <span style={{color:C.neonInk,display:"inline-flex",alignItems:"center"}}><Check size={ICON.sm} strokeWidth={1.75}/></span>
@@ -3542,13 +3584,13 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
               ];
             })}
           </div>}
-          {!isCardio&&<button onClick={()=>setExtraSets(prev=>({...prev,[ex.name]:(prev[ex.name]||0)+1}))} style={{marginTop:6,padding:"5px 10px",background:"transparent",border:`1px dashed ${C.border}`,borderRadius:6,color:C.muted,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",fontSize:11,cursor:"pointer",letterSpacing:"0.06em"}}>+ SET</button>}
+          {!isCardio&&<button onClick={()=>setExtraSets(prev=>({...prev,[ex.name]:(prev[ex.name]||0)+1}))} style={{marginTop:6,padding:"5px 10px",background:"transparent",border:`1px dashed ${C.border}`,borderRadius:6,color:C.muted,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",fontSize:11,cursor:"pointer",letterSpacing:"0.06em"}}>+ SET</button>}
           {setError[ex.name]&&<Mono style={{fontSize:11,color:C.redInk,display:"block",marginTop:4}}>{setError[ex.name]}</Mono>}
         </div>;
       })}
 
       {/* Add exercise inline button */}
-      <button onClick={()=>setAddExModal(true)} style={{width:"100%",padding:"12px",background:"transparent",border:`1px dashed ${C.border}`,borderRadius:10,color:C.muted,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",fontSize:12,cursor:"pointer",marginBottom:10,letterSpacing:"0.08em"}}>
+      <button onClick={()=>setAddExModal(true)} style={{width:"100%",padding:"12px",background:"transparent",border:`1px dashed ${C.border}`,borderRadius:10,color:C.muted,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",fontSize:12,cursor:"pointer",marginBottom:10,letterSpacing:"0.08em"}}>
         + ADD EXERCISE
       </button>
 
@@ -3569,10 +3611,10 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
       <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:"16px 16px 0 0",padding:"20px 18px calc(32px + env(safe-area-inset-bottom,0px)) 18px",display:"flex",flexDirection:"column",gap:10}}>
         <div style={{width:36,height:4,borderRadius:2,background:C.border,alignSelf:"center",marginTop:-8,marginBottom:4}}/>
         <Mono style={{fontSize:11,color:C.muted,letterSpacing:"0.1em",marginBottom:4}}>END WORKOUT</Mono>
-        <button onClick={()=>{setShowEndMenu(false);finish();}} disabled={saving} style={{width:"100%",padding:"13px 16px",background:C.neon+"22",border:`1px solid ${C.neon}44`,borderRadius:10,color:C.neonInk,fontSize:14,fontWeight:700,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",cursor:saving?"not-allowed":"pointer",textAlign:"left",letterSpacing:"0.04em",opacity:saving?0.5:1}}><span style={{display:"inline-flex",alignItems:"center",gap:8}}><Check size={ICON.md} strokeWidth={1.75}/>Complete Workout</span></button>
-        <button onClick={()=>{setShowEndMenu(false);savePartialAndExit();}} disabled={saving} style={{width:"100%",padding:"13px 16px",background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,color:C.text,fontSize:14,fontWeight:700,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",cursor:saving?"not-allowed":"pointer",textAlign:"left",letterSpacing:"0.04em",opacity:saving?0.5:1}}>↓ Save & Exit</button>
-        <button onClick={()=>{setShowEndMenu(false);setShowAbandonConfirm(true);}} style={{width:"100%",padding:"13px 16px",background:C.red+"11",border:`1px solid ${C.red}44`,borderRadius:10,color:C.redInk,fontSize:14,fontWeight:700,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}>✕ Abandon</button>
-        <button onClick={()=>setShowEndMenu(false)} style={{width:"100%",padding:"11px 16px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",cursor:"pointer",letterSpacing:"0.04em",marginTop:2}}>Cancel</button>
+        <button onClick={()=>{setShowEndMenu(false);finish();}} disabled={saving} style={{width:"100%",padding:"13px 16px",background:C.neon+"22",border:`1px solid ${C.neon}44`,borderRadius:10,color:C.neonInk,fontSize:14,fontWeight:700,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",cursor:saving?"not-allowed":"pointer",textAlign:"left",letterSpacing:"0.04em",opacity:saving?0.5:1}}><span style={{display:"inline-flex",alignItems:"center",gap:8}}><Check size={ICON.md} strokeWidth={1.75}/>Complete Workout</span></button>
+        <button onClick={()=>{setShowEndMenu(false);savePartialAndExit();}} disabled={saving} style={{width:"100%",padding:"13px 16px",background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,color:C.text,fontSize:14,fontWeight:700,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",cursor:saving?"not-allowed":"pointer",textAlign:"left",letterSpacing:"0.04em",opacity:saving?0.5:1}}>↓ Save & Exit</button>
+        <button onClick={()=>{setShowEndMenu(false);setShowAbandonConfirm(true);}} style={{width:"100%",padding:"13px 16px",background:C.red+"11",border:`1px solid ${C.red}44`,borderRadius:10,color:C.redInk,fontSize:14,fontWeight:700,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}>✕ Abandon</button>
+        <button onClick={()=>setShowEndMenu(false)} style={{width:"100%",padding:"11px 16px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",cursor:"pointer",letterSpacing:"0.04em",marginTop:2}}>Cancel</button>
       </div>
     </div>}
 
@@ -3680,7 +3722,7 @@ No markdown, no explanation, just the array.`;
     {/* Tab switcher */}
     <div style={{display:"flex",gap:6,background:C.card,padding:4,borderRadius:8,marginBottom:14}}>
       {[["ai","✦ AI Suggestions"],["custom","Custom"]].map(([k,label])=>(
-        <button key={k} onClick={()=>setTab(k)} style={{flex:1,padding:"7px",borderRadius:6,border:"none",background:tab===k?C.accentBtn:"transparent",color:tab===k?"#fff":C.muted,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",fontSize:11,cursor:"pointer"}}>
+        <button key={k} onClick={()=>setTab(k)} style={{flex:1,padding:"7px",borderRadius:6,border:"none",background:tab===k?C.accentBtn:"transparent",color:tab===k?"#fff":C.muted,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",fontSize:11,cursor:"pointer"}}>
           {label}
         </button>
       ))}
@@ -3688,9 +3730,9 @@ No markdown, no explanation, just the array.`;
 
     {tab==="ai"&&<div>
       <input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Filter suggestions..."
-        style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",boxSizing:"border-box",marginBottom:10}}/>
+        style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",boxSizing:"border-box",marginBottom:10}}/>
       {swapUpgrade?<UpgradePrompt {...swapUpgrade} C={C}/>
-        :loadingAI?<div style={{textAlign:"center",padding:"24px",color:C.muted,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",fontSize:12}}>Finding alternatives...</div>
+        :loadingAI?<div style={{textAlign:"center",padding:"24px",color:C.muted,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",fontSize:12}}>Finding alternatives...</div>
         :filtered.map((s,i)=>(
           <div key={i} style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,padding:"12px",marginBottom:8,cursor:"pointer"}} onClick={()=>onSwap(s)}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
@@ -3710,7 +3752,7 @@ No markdown, no explanation, just the array.`;
         <div key={key} style={{marginBottom:10}}>
           <SectionLabel C={C}>{label}</SectionLabel>
           <input value={custom[key]||""} onChange={e=>setCustom(p=>({...p,[key]:e.target.value}))}
-            style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",boxSizing:"border-box"}}/>
+            style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",boxSizing:"border-box"}}/>
         </div>
       ))}
       <Btn style={{width:"100%",marginTop:6}} C={C} onClick={()=>onSwap(custom)} disabled={!custom.name.trim()}>Swap In</Btn>
@@ -3741,7 +3783,7 @@ function PlanAnalysisView({plan,goalRaw,C,onBack}){
   const [openGroups,setOpenGroups]=useState({});
   const [showSources,setShowSources]=useState(false);
   const a=analyzePlan(plan,{goal:goalRaw});
-  const mono="ui-monospace,'SF Mono',Menlo,Consolas,monospace";
+  const mono="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif";
   const byGroup={}; a.perGroup.forEach(g=>{byGroup[g.group]=g;});
   const STATUS={under:{t:"under",c:C.dangerInk},maintenance:{t:"maintenance",c:C.muted},in_range:{t:"in range",c:C.neonInk},high:{t:"high",c:C.goldInk},mixed:{t:"mixed",c:C.blueInk}};
   const Chip=({status})=>{const s=STATUS[status]||STATUS.in_range;return <span style={{fontFamily:mono,fontSize:9,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:s.c,border:`1px solid ${s.c}55`,borderRadius:999,padding:"2px 8px",whiteSpace:"nowrap",flexShrink:0}}>{s.t}</span>;};
@@ -4057,23 +4099,23 @@ No explanation, no markdown, just the JSON array.`;
     <div style={{background:C.bg,borderBottom:`2px solid ${C.accent}`,padding:"16px 18px 14px"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
         <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>Plan Editor</div>
-        <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
+        <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
       </div>
       {/* View switcher */}
       <div style={{display:"flex",gap:6,marginBottom:10,background:C.card,padding:4,borderRadius:10}}>
         {[["mine","My Plans"],["presets","Templates"],["ai","✦ AI Builder"]].map(([k,label])=>(
-          <button key={k} onClick={()=>setView(k)} style={{flex:1,padding:"7px 4px",borderRadius:7,border:"none",background:view===k?C.accentBtn:"transparent",color:view===k?"#fff":C.muted,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",fontSize:11,cursor:"pointer",letterSpacing:"0.04em"}}>
+          <button key={k} onClick={()=>setView(k)} style={{flex:1,padding:"7px 4px",borderRadius:7,border:"none",background:view===k?C.accentBtn:"transparent",color:view===k?"#fff":C.muted,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",fontSize:11,cursor:"pointer",letterSpacing:"0.04em"}}>
             {label}
           </button>
         ))}
       </div>
       {view==="mine"&&<div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
         {Object.keys(plans).map(k=>(
-          <button key={k} onClick={()=>setActivePlanKey(k)} style={{padding:"5px 11px",borderRadius:6,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",fontSize:10,cursor:"pointer",border:activePlanKey===k?"none":`1px solid ${C.border}`,background:activePlanKey===k?C.accentBtn:"transparent",color:activePlanKey===k?"#fff":C.muted}}>
+          <button key={k} onClick={()=>setActivePlanKey(k)} style={{padding:"5px 11px",borderRadius:6,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",fontSize:10,cursor:"pointer",border:activePlanKey===k?"none":`1px solid ${C.border}`,background:activePlanKey===k?C.accentBtn:"transparent",color:activePlanKey===k?"#fff":C.muted}}>
             {plans[k]?.name||plans[k]?.name?.slice(0,18)}
           </button>
         ))}
-        <button onClick={()=>{setBlankName("");setBlankSheet(true);}} style={{padding:"5px 11px",borderRadius:6,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",fontSize:10,cursor:"pointer",border:`1px dashed ${C.neon}66`,background:"transparent",color:C.neonInk,fontWeight:700}}>＋ New</button>
+        <button onClick={()=>{setBlankName("");setBlankSheet(true);}} style={{padding:"5px 11px",borderRadius:6,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",fontSize:10,cursor:"pointer",border:`1px dashed ${C.neon}66`,background:"transparent",color:C.neonInk,fontWeight:700}}>＋ New</button>
       </div>}
     </div>
 
@@ -4099,7 +4141,7 @@ No explanation, no markdown, just the JSON array.`;
           <div style={{flex:1,minWidth:0}}>
             <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:4}}>START DATE</Mono>
             <div style={{position:"relative"}}>
-              <div style={{padding:"9px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,fontSize:13,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",color:plan?.startDate?C.text:C.faint,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",cursor:"pointer",userSelect:"none"}}>
+              <div style={{padding:"9px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,fontSize:13,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",color:plan?.startDate?C.text:C.faint,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",cursor:"pointer",userSelect:"none"}}>
                 {plan?.startDate?(()=>{const[y,m,d]=plan.startDate.split("-");return new Date(+y,+m-1,+d).toLocaleDateString("en",{month:"short",day:"numeric",year:"numeric"});})():"Tap to set"}
               </div>
               <input type="date" value={plan?.startDate||""} onChange={e=>savePlans({...plans,[activePlanKey]:{...plan,startDate:e.target.value}})}
@@ -4111,7 +4153,7 @@ No explanation, no markdown, just the JSON array.`;
             <div style={{display:"flex",gap:4}}>
               {[8,10,12].map(w=>(
                 <button key={w} onClick={()=>savePlans({...plans,[activePlanKey]:{...plan,durationWeeks:w}})}
-                  style={{padding:"9px 12px",borderRadius:7,border:(plan?.durationWeeks||10)===w?"none":`1px solid ${C.border}`,background:(plan?.durationWeeks||10)===w?C.accentBtn:"transparent",color:(plan?.durationWeeks||10)===w?"#fff":C.muted,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",fontSize:13,fontWeight:700,cursor:"pointer"}}>
+                  style={{padding:"9px 12px",borderRadius:7,border:(plan?.durationWeeks||10)===w?"none":`1px solid ${C.border}`,background:(plan?.durationWeeks||10)===w?C.accentBtn:"transparent",color:(plan?.durationWeeks||10)===w?"#fff":C.muted,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",fontSize:13,fontWeight:700,cursor:"pointer"}}>
                   {w}W
                 </button>
               ))}
@@ -4191,7 +4233,7 @@ No explanation, no markdown, just the JSON array.`;
                       {isNumSets
                         ?<div style={{display:"inline-flex",alignItems:"center",border:`1px solid ${C.border}`,borderRadius:6,overflow:"hidden"}}>
                           <button aria-label="Decrease sets" disabled={sn<=1} onClick={()=>setSets(sn-1)} style={{padding:"3px 9px",background:"transparent",border:"none",color:sn<=1?C.faint:C.neonInk,cursor:sn<=1?"default":"pointer",fontSize:15,lineHeight:1}}>−</button>
-                          <span style={{minWidth:14,textAlign:"center",fontSize:12,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",color:C.text}}>{sn}</span>
+                          <span style={{minWidth:14,textAlign:"center",fontSize:12,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",color:C.text}}>{sn}</span>
                           <button aria-label="Increase sets" disabled={sn>=20} onClick={()=>setSets(sn+1)} style={{padding:"3px 9px",background:"transparent",border:"none",color:sn>=20?C.faint:C.neonInk,cursor:sn>=20?"default":"pointer",fontSize:15,lineHeight:1}}>+</button>
                         </div>
                         :<Mono style={{fontSize:11,color:C.muted}}>{ex.sets}</Mono>}
@@ -4199,7 +4241,7 @@ No explanation, no markdown, just the JSON array.`;
                       <input key={ex.reps} defaultValue={ex.reps} aria-label="Reps"
                         onKeyDown={e=>{if(e.key==="Enter")e.currentTarget.blur();}}
                         onBlur={e=>{const v=e.target.value.trim();if(v&&v!==ex.reps)saveExercise(day.id,{...ex,reps:v});}}
-                        style={{width:72,padding:"3px 8px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,color:C.text,fontSize:12,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",boxSizing:"border-box",textAlign:"center"}}/>
+                        style={{width:72,padding:"3px 8px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:6,color:C.text,fontSize:12,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",boxSizing:"border-box",textAlign:"center"}}/>
                       {ex.muscle&&<Mono style={{fontSize:11,color:C.muted}}> . {ex.muscle}</Mono>}
                     </div>;
                   })()}
@@ -4242,7 +4284,7 @@ No explanation, no markdown, just the JSON array.`;
 
     {/* PRESET TEMPLATES */}
     {view==="presets"&&(()=>{
-      const mono="ui-monospace,'SF Mono',Menlo,Consolas,monospace";
+      const mono="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif";
       const GOALS=["Build Muscle","Get Stronger","Lose Fat","Athletic","General Fitness"];
       const DAYS=[3,4,5,6];
       const filtered=PRESET_TEMPLATES.filter(t=>(!presetGoal||t.goal===presetGoal)&&(!presetDays||t.dpw===presetDays));
@@ -4311,14 +4353,14 @@ No explanation, no markdown, just the JSON array.`;
         <div style={{width:36,height:4,borderRadius:2,background:C.border,alignSelf:"center",marginTop:-8,marginBottom:4}}/>
         {!newPlanSheet?<>
           <Mono style={{fontSize:11,color:C.muted,letterSpacing:"0.1em",marginBottom:4}}>SAVE DAY CHANGES</Mono>
-          <button onClick={()=>{updatePlan(days);setSaveSheet(null);setExpandedDay(null);setSaveToast("Plan updated");setTimeout(()=>setSaveToast(""),2500);}} style={{width:"100%",padding:"13px 16px",background:C.neon+"22",border:`1px solid ${C.neon}44`,borderRadius:10,color:C.neonInk,fontSize:14,fontWeight:700,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}><span style={{display:"inline-flex",alignItems:"center",gap:8}}><Check size={ICON.md} strokeWidth={1.75}/>Update Current Plan</span></button>
-          <button onClick={()=>{setNewPlanSheet(true);setNewPlanName("Custom - "+(plan?.name||"Plan")+" (modified)");}} style={{width:"100%",padding:"13px 16px",background:C.accent+"22",border:`1px solid ${C.accent}44`,borderRadius:10,color:C.accentInk,fontSize:14,fontWeight:700,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}>+ Save as New Plan</button>
-          <button onClick={()=>setSaveSheet(null)} style={{width:"100%",padding:"11px 16px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",cursor:"pointer",letterSpacing:"0.04em",marginTop:2}}>Cancel</button>
+          <button onClick={()=>{updatePlan(days);setSaveSheet(null);setExpandedDay(null);setSaveToast("Plan updated");setTimeout(()=>setSaveToast(""),2500);}} style={{width:"100%",padding:"13px 16px",background:C.neon+"22",border:`1px solid ${C.neon}44`,borderRadius:10,color:C.neonInk,fontSize:14,fontWeight:700,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}><span style={{display:"inline-flex",alignItems:"center",gap:8}}><Check size={ICON.md} strokeWidth={1.75}/>Update Current Plan</span></button>
+          <button onClick={()=>{setNewPlanSheet(true);setNewPlanName("Custom - "+(plan?.name||"Plan")+" (modified)");}} style={{width:"100%",padding:"13px 16px",background:C.accent+"22",border:`1px solid ${C.accent}44`,borderRadius:10,color:C.accentInk,fontSize:14,fontWeight:700,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}>+ Save as New Plan</button>
+          <button onClick={()=>setSaveSheet(null)} style={{width:"100%",padding:"11px 16px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",cursor:"pointer",letterSpacing:"0.04em",marginTop:2}}>Cancel</button>
         </>:<>
           <Mono style={{fontSize:11,color:C.muted,letterSpacing:"0.1em",marginBottom:4}}>NAME YOUR NEW PLAN</Mono>
-          <input type="text" value={newPlanName} onChange={e=>setNewPlanName(e.target.value)} autoFocus style={{padding:"11px 12px",background:C.card,border:`1px solid ${C.accent}44`,borderRadius:8,color:C.text,fontSize:16,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",width:"100%",boxSizing:"border-box"}}/>
-          <button onClick={saveAsNewPlan} style={{width:"100%",padding:"13px 16px",background:C.neon+"22",border:`1px solid ${C.neon}44`,borderRadius:10,color:C.neonInk,fontSize:14,fontWeight:700,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}><span style={{display:"inline-flex",alignItems:"center",gap:8}}><Check size={ICON.md} strokeWidth={1.75}/>Create &amp; Activate</span></button>
-          <button onClick={()=>setNewPlanSheet(false)} style={{width:"100%",padding:"11px 16px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",cursor:"pointer",letterSpacing:"0.04em",marginTop:2}}>← Back</button>
+          <input type="text" value={newPlanName} onChange={e=>setNewPlanName(e.target.value)} autoFocus style={{padding:"11px 12px",background:C.card,border:`1px solid ${C.accent}44`,borderRadius:8,color:C.text,fontSize:16,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",width:"100%",boxSizing:"border-box"}}/>
+          <button onClick={saveAsNewPlan} style={{width:"100%",padding:"13px 16px",background:C.neon+"22",border:`1px solid ${C.neon}44`,borderRadius:10,color:C.neonInk,fontSize:14,fontWeight:700,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}><span style={{display:"inline-flex",alignItems:"center",gap:8}}><Check size={ICON.md} strokeWidth={1.75}/>Create &amp; Activate</span></button>
+          <button onClick={()=>setNewPlanSheet(false)} style={{width:"100%",padding:"11px 16px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",cursor:"pointer",letterSpacing:"0.04em",marginTop:2}}>← Back</button>
         </>}
       </div>
     </div>}
@@ -4328,9 +4370,9 @@ No explanation, no markdown, just the JSON array.`;
         <div style={{width:36,height:4,borderRadius:2,background:C.border,alignSelf:"center",marginTop:-8,marginBottom:4}}/>
         <Mono style={{fontSize:11,color:C.muted,letterSpacing:"0.1em",marginBottom:2}}>BUILD FROM SCRATCH</Mono>
         <div style={{fontSize:13,color:C.muted,lineHeight:1.5,marginBottom:6}}>Name your plan — we'll start you with three empty training days. Add, rename, or remove days and exercises however you like.</div>
-        <input type="text" value={blankName} onChange={e=>setBlankName(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")createBlankPlan();}} autoFocus placeholder="My Plan" style={{padding:"11px 12px",background:C.card,border:`1px solid ${C.accent}44`,borderRadius:8,color:C.text,fontSize:16,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",width:"100%",boxSizing:"border-box"}}/>
-        <button onClick={createBlankPlan} style={{width:"100%",padding:"13px 16px",background:C.neon+"22",border:`1px solid ${C.neon}44`,borderRadius:10,color:C.neonInk,fontSize:14,fontWeight:700,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}><span style={{display:"inline-flex",alignItems:"center",gap:8}}><Check size={ICON.md} strokeWidth={1.75}/>Create &amp; Start Building</span></button>
-        <button onClick={()=>setBlankSheet(false)} style={{width:"100%",padding:"11px 16px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",cursor:"pointer",letterSpacing:"0.04em",marginTop:2}}>Cancel</button>
+        <input type="text" value={blankName} onChange={e=>setBlankName(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")createBlankPlan();}} autoFocus placeholder="My Plan" style={{padding:"11px 12px",background:C.card,border:`1px solid ${C.accent}44`,borderRadius:8,color:C.text,fontSize:16,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",width:"100%",boxSizing:"border-box"}}/>
+        <button onClick={createBlankPlan} style={{width:"100%",padding:"13px 16px",background:C.neon+"22",border:`1px solid ${C.neon}44`,borderRadius:10,color:C.neonInk,fontSize:14,fontWeight:700,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}><span style={{display:"inline-flex",alignItems:"center",gap:8}}><Check size={ICON.md} strokeWidth={1.75}/>Create &amp; Start Building</span></button>
+        <button onClick={()=>setBlankSheet(false)} style={{width:"100%",padding:"11px 16px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",cursor:"pointer",letterSpacing:"0.04em",marginTop:2}}>Cancel</button>
       </div>
     </div>}
     {/* Copy-day: pick a SOURCE day to copy into the target (copyFromDay) */}
@@ -4342,12 +4384,12 @@ No explanation, no markdown, just the JSON array.`;
           <div style={{width:36,height:4,borderRadius:2,background:C.border,alignSelf:"center",marginTop:-8,marginBottom:4}}/>
           <Mono style={{fontSize:11,color:C.muted,letterSpacing:"0.1em",marginBottom:4}}>COPY INTO {(target?.label||"DAY").toUpperCase()} FROM…</Mono>
           {others.map(d=>(
-            <button key={d.id} onClick={()=>pickCopySource(d.id)} style={{width:"100%",padding:"13px 16px",background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,color:C.text,fontSize:14,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
+            <button key={d.id} onClick={()=>pickCopySource(d.id)} style={{width:"100%",padding:"13px 16px",background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,color:C.text,fontSize:14,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",cursor:"pointer",textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
               <span style={{fontWeight:700}}>{d.label||d.name||"Day"}</span>
               <Mono style={{fontSize:11,color:C.muted}}>{d.isRest?"Rest":`${(d.exercises||[]).length} exercises`}</Mono>
             </button>
           ))}
-          <button onClick={()=>setCopyFromDay(null)} style={{width:"100%",padding:"11px 16px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",cursor:"pointer",letterSpacing:"0.04em",marginTop:2}}>Cancel</button>
+          <button onClick={()=>setCopyFromDay(null)} style={{width:"100%",padding:"11px 16px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",cursor:"pointer",letterSpacing:"0.04em",marginTop:2}}>Cancel</button>
         </div>
       </div>;
     })()}
@@ -4376,10 +4418,10 @@ No explanation, no markdown, just the JSON array.`;
           <Mono style={{fontSize:11,color:C.muted,letterSpacing:"0.1em",marginBottom:4}}>COPY {(source.label||"DAY").toUpperCase()} INTO {(target.label||"DAY").toUpperCase()}</Mono>
           {isRest&&<div style={{fontSize:13,color:C.goldInk,lineHeight:1.5,background:C.gold+"14",border:`1px solid ${C.gold}44`,borderRadius:10,padding:"11px 12px"}}>{restLine}</div>}
           {nonEmpty?<>
-            <button onClick={()=>doCopy(target.id,source.id,"replace")} style={{width:"100%",padding:"13px 16px",background:C.neon+"22",border:`1px solid ${C.neon}44`,borderRadius:10,color:C.neonInk,fontSize:14,fontWeight:700,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}><span style={{display:"inline-flex",alignItems:"center",gap:8}}><Check size={ICON.md} strokeWidth={1.75}/>Replace — {tCount} → {sCount} exercises</span></button>
-            <button onClick={()=>doCopy(target.id,source.id,"append")} style={{width:"100%",padding:"13px 16px",background:C.accent+"22",border:`1px solid ${C.accent}44`,borderRadius:10,color:C.accentInk,fontSize:14,fontWeight:700,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}>Append — {tCount} + {sCount} exercises</button>
-          </>:<button onClick={()=>doCopy(target.id,source.id,"replace")} style={{width:"100%",padding:"13px 16px",background:C.neon+"22",border:`1px solid ${C.neon}44`,borderRadius:10,color:C.neonInk,fontSize:14,fontWeight:700,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}><span style={{display:"inline-flex",alignItems:"center",gap:8}}><Check size={ICON.md} strokeWidth={1.75}/>Copy {sCount} exercises</span></button>}
-          <button onClick={()=>setCopyConfirm(null)} style={{width:"100%",padding:"11px 16px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",cursor:"pointer",letterSpacing:"0.04em",marginTop:2}}>Cancel</button>
+            <button onClick={()=>doCopy(target.id,source.id,"replace")} style={{width:"100%",padding:"13px 16px",background:C.neon+"22",border:`1px solid ${C.neon}44`,borderRadius:10,color:C.neonInk,fontSize:14,fontWeight:700,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}><span style={{display:"inline-flex",alignItems:"center",gap:8}}><Check size={ICON.md} strokeWidth={1.75}/>Replace — {tCount} → {sCount} exercises</span></button>
+            <button onClick={()=>doCopy(target.id,source.id,"append")} style={{width:"100%",padding:"13px 16px",background:C.accent+"22",border:`1px solid ${C.accent}44`,borderRadius:10,color:C.accentInk,fontSize:14,fontWeight:700,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}>Append — {tCount} + {sCount} exercises</button>
+          </>:<button onClick={()=>doCopy(target.id,source.id,"replace")} style={{width:"100%",padding:"13px 16px",background:C.neon+"22",border:`1px solid ${C.neon}44`,borderRadius:10,color:C.neonInk,fontSize:14,fontWeight:700,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}><span style={{display:"inline-flex",alignItems:"center",gap:8}}><Check size={ICON.md} strokeWidth={1.75}/>Copy {sCount} exercises</span></button>}
+          <button onClick={()=>setCopyConfirm(null)} style={{width:"100%",padding:"11px 16px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",cursor:"pointer",letterSpacing:"0.04em",marginTop:2}}>Cancel</button>
         </div>
       </div>;
     })()}
@@ -4391,8 +4433,8 @@ No explanation, no markdown, just the JSON array.`;
           <div style={{width:36,height:4,borderRadius:2,background:C.border,alignSelf:"center",marginTop:-8,marginBottom:4}}/>
           <Mono style={{fontSize:11,color:C.muted,letterSpacing:"0.1em",marginBottom:4}}>MAKE THIS A REST DAY</Mono>
           <div style={{fontSize:13,color:C.text,lineHeight:1.5}}>This day has {n} exercise{n!==1?"s":""} — marking it a rest day will remove {n!==1?"them":"it"}.</div>
-          <button onClick={()=>{setDayRest(restConfirm.dayId,true);setRestConfirm(null);}} style={{width:"100%",padding:"13px 16px",background:C.red+"22",border:`1px solid ${C.red}44`,borderRadius:10,color:C.redInk,fontSize:14,fontWeight:700,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}>Make Rest Day — removes {n} exercise{n!==1?"s":""}</button>
-          <button onClick={()=>setRestConfirm(null)} style={{width:"100%",padding:"11px 16px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",cursor:"pointer",letterSpacing:"0.04em",marginTop:2}}>Cancel</button>
+          <button onClick={()=>{setDayRest(restConfirm.dayId,true);setRestConfirm(null);}} style={{width:"100%",padding:"13px 16px",background:C.red+"22",border:`1px solid ${C.red}44`,borderRadius:10,color:C.redInk,fontSize:14,fontWeight:700,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",cursor:"pointer",textAlign:"left",letterSpacing:"0.04em"}}>Make Rest Day — removes {n} exercise{n!==1?"s":""}</button>
+          <button onClick={()=>setRestConfirm(null)} style={{width:"100%",padding:"11px 16px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",cursor:"pointer",letterSpacing:"0.04em",marginTop:2}}>Cancel</button>
         </div>
       </div>;
     })()}
@@ -4436,14 +4478,14 @@ No explanation, no markdown, just the JSON array.`;
       <div style={{marginBottom:14}}>
         <Mono style={{fontSize:10,color:C.muted,letterSpacing:"0.1em",display:"block",marginBottom:6}}>START DATE</Mono>
         <input type="date" value={modalStartDate} onChange={e=>setModalStartDate(e.target.value)}
-          style={{width:"100%",padding:"9px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,color:C.text,fontSize:13,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",boxSizing:"border-box"}}/>
+          style={{width:"100%",padding:"9px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,color:C.text,fontSize:13,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",boxSizing:"border-box"}}/>
       </div>
       <div style={{marginBottom:22}}>
         <Mono style={{fontSize:10,color:C.muted,letterSpacing:"0.1em",display:"block",marginBottom:6}}>DURATION</Mono>
         <div style={{display:"flex",gap:8}}>
           {[8,10,12].map(w=>(
             <button key={w} onClick={()=>setModalDuration(w)}
-              style={{flex:1,padding:"11px",borderRadius:8,border:modalDuration===w?"none":`1px solid ${C.border}`,background:modalDuration===w?C.accentBtn:"transparent",color:modalDuration===w?"#fff":C.muted,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",fontSize:13,fontWeight:700,cursor:"pointer"}}>
+              style={{flex:1,padding:"11px",borderRadius:8,border:modalDuration===w?"none":`1px solid ${C.border}`,background:modalDuration===w?C.accentBtn:"transparent",color:modalDuration===w?"#fff":C.muted,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",fontSize:13,fontWeight:700,cursor:"pointer"}}>
               {w} WK
             </button>
           ))}
@@ -4592,7 +4634,7 @@ function ExerciseForm({title,initial,onSave,onClose,isNew,C}){
       <div key={key} style={{marginBottom:12}}>
         <SectionLabel C={C}>{label}</SectionLabel>
         <input value={ex[key]||""} onChange={e=>setEx(p=>({...p,[key]:e.target.value}))}
-          style={{width:"100%",padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,color:C.text,fontSize:16,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",boxSizing:"border-box"}}/>
+          style={{width:"100%",padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,color:C.text,fontSize:16,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",boxSizing:"border-box"}}/>
       </div>
     ))}
     <div style={{display:"flex",gap:10,marginTop:16}}>
@@ -4611,7 +4653,7 @@ function DayForm({onSave,onClose,C}){
       <div key={key} style={{marginBottom:12}}>
         <SectionLabel C={C}>{label}</SectionLabel>
         <input value={d[key]||""} onChange={e=>setD(p=>({...p,[key]:e.target.value}))}
-          style={{width:"100%",padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,color:C.text,fontSize:16,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",boxSizing:"border-box"}}/>
+          style={{width:"100%",padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,color:C.text,fontSize:16,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",boxSizing:"border-box"}}/>
       </div>
     ))}
     <div style={{marginBottom:16}}>
@@ -4936,17 +4978,17 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
           <Mono style={{fontSize:11,color:C.muted}}>{filteredSorted.length} session{filteredSorted.length!==1?"s":""}{historyFilter!=="all"?` · last ${historyFilter.toUpperCase()}`:" · all time"}</Mono>
         </div>
         <div style={{display:"flex",gap:6,alignItems:"center",marginTop:2}}>
-          <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
+          <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
           <Btn size="sm" C={C} onClick={()=>setAddingSession(a=>!a)} style={{fontWeight:700,padding:"6px 10px",fontSize:11}}>+ Log</Btn>
         </div>
       </div>
       <div style={{display:"flex",gap:5}}>
         {[["1m","1M"],["3m","3M"],["6m","6M"],["all","ALL"]].map(([k,label])=>(
-          <button key={k} onClick={()=>setHistoryFilter(k)} style={{padding:"7px 14px",borderRadius:7,border:historyFilter===k?"none":`1px solid ${C.border}`,background:historyFilter===k?C.accentBtn:"transparent",color:historyFilter===k?"#fff":C.muted,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",fontSize:12,fontWeight:700,cursor:"pointer"}}>{label}</button>
+          <button key={k} onClick={()=>setHistoryFilter(k)} style={{padding:"7px 14px",borderRadius:7,border:historyFilter===k?"none":`1px solid ${C.border}`,background:historyFilter===k?C.accentBtn:"transparent",color:historyFilter===k?"#fff":C.muted,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",fontSize:12,fontWeight:700,cursor:"pointer"}}>{label}</button>
         ))}
       </div>
     </div>
-    {deleteError&&<div onClick={()=>setDeleteError(null)} style={{background:C.red,color:"#fff",padding:"10px 18px",fontSize:13,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",cursor:"pointer",textAlign:"center"}}>{deleteError} (tap to dismiss)</div>}
+    {deleteError&&<div onClick={()=>setDeleteError(null)} style={{background:C.red,color:"#fff",padding:"10px 18px",fontSize:13,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",cursor:"pointer",textAlign:"center"}}>{deleteError} (tap to dismiss)</div>}
 
     {/* Manual Session Logger Modal */}
     {addingSession&&<div style={{margin:"12px 18px 0",background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"16px"}}>
@@ -4955,18 +4997,18 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
         <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:4}}>WORKOUT NAME</Mono>
         <input value={manualSession.dayLabel} onChange={e=>setManualSession(p=>({...p,dayLabel:e.target.value}))}
           placeholder="e.g. Chest & Triceps"
-          style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",boxSizing:"border-box"}}/>
+          style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",boxSizing:"border-box"}}/>
       </div>
       <div style={{marginBottom:10}}>
         <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:4}}>DATE</Mono>
         <input type="date" value={manualSession.date} onChange={e=>setManualSession(p=>({...p,date:e.target.value}))}
-          style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",boxSizing:"border-box"}}/>
+          style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",boxSizing:"border-box"}}/>
       </div>
       <div style={{marginBottom:12}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
           <Mono style={{fontSize:10,color:C.muted}}>EXERCISES (optional)</Mono>
           <button onClick={()=>setManualSession(p=>({...p,exercises:[...p.exercises,{name:"",sets:"3",reps:"10",weight:""}]}))}
-            style={{background:"transparent",border:"none",color:C.neonInk,cursor:"pointer",fontSize:12,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace"}}>+ Add Exercise</button>
+            style={{background:"transparent",border:"none",color:C.neonInk,cursor:"pointer",fontSize:12,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif"}}>+ Add Exercise</button>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) auto",gap:5,marginBottom:4}}>
           {["Exercise","Sets","Reps","lbs",""].map(h=><Mono key={h} style={{fontSize:9,color:C.muted,textAlign:"center"}}>{h}</Mono>)}
@@ -4974,13 +5016,13 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
         {manualSession.exercises.map((ex,ei)=>(
           <div key={ei} style={{display:"grid",gridTemplateColumns:"minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) auto",gap:5,marginBottom:6,alignItems:"center"}}>
             <input value={ex.name} onChange={e=>setManualSession(p=>({...p,exercises:p.exercises.map((x,i)=>i===ei?{...x,name:e.target.value}:x)}))}
-              placeholder="Exercise name" style={{padding:"7px 8px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",minWidth:0,width:"100%",boxSizing:"border-box"}}/>
+              placeholder="Exercise name" style={{padding:"7px 8px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",minWidth:0,width:"100%",boxSizing:"border-box"}}/>
             <input value={ex.sets} onChange={e=>setManualSession(p=>({...p,exercises:p.exercises.map((x,i)=>i===ei?{...x,sets:e.target.value}:x)}))}
-              style={{padding:"7px 4px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",textAlign:"center",minWidth:0,width:"100%",boxSizing:"border-box"}}/>
+              style={{padding:"7px 4px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",textAlign:"center",minWidth:0,width:"100%",boxSizing:"border-box"}}/>
             <input value={ex.reps} inputMode="decimal" placeholder={(t=>t==="cardio"?"min":t==="time"?"secs":"reps")(trackFor({name:ex.name}))} onChange={e=>setManualSession(p=>({...p,exercises:p.exercises.map((x,i)=>i===ei?{...x,reps:e.target.value}:x)}))}
-              style={{padding:"7px 4px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",textAlign:"center",minWidth:0,width:"100%",boxSizing:"border-box"}}/>
+              style={{padding:"7px 4px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",textAlign:"center",minWidth:0,width:"100%",boxSizing:"border-box"}}/>
             <input value={ex.weight} inputMode="decimal" placeholder={(t=>t==="cardio"?"lvl":t==="reps"||t==="time"?"+lbs":"lbs")(trackFor({name:ex.name}))} onChange={e=>setManualSession(p=>({...p,exercises:p.exercises.map((x,i)=>i===ei?{...x,weight:e.target.value}:x)}))}
-              style={{padding:"7px 4px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",textAlign:"center",minWidth:0,width:"100%",boxSizing:"border-box"}}/>
+              style={{padding:"7px 4px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",textAlign:"center",minWidth:0,width:"100%",boxSizing:"border-box"}}/>
             {manualSession.exercises.length>1
               ?<button onClick={()=>setManualSession(p=>({...p,exercises:p.exercises.filter((_,i)=>i!==ei)}))}
                 style={{background:"transparent",border:"none",color:C.redInk,cursor:"pointer",fontSize:14,padding:"0 2px"}}>✕</button>
@@ -4992,7 +5034,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
         <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:4}}>NOTES (optional)</Mono>
         <textarea value={manualSession.notes} onChange={e=>setManualSession(p=>({...p,notes:e.target.value}))}
           placeholder="How did it go?"
-          style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",boxSizing:"border-box",resize:"none",height:56}}/>
+          style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",boxSizing:"border-box",resize:"none",height:56}}/>
       </div>
       <div style={{display:"flex",gap:8}}>
         <Btn C={C} style={{flex:1,fontWeight:700}} onClick={saveManualSession}>Save Session</Btn>
@@ -5230,7 +5272,7 @@ function SessionEditModal({session,onSave,onClose,allSessions=[],onRenameAll,C})
     });
   }
 
-  const inputStyle={padding:"8px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",width:"100%",boxSizing:"border-box"};
+  const inputStyle={padding:"8px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",width:"100%",boxSizing:"border-box"};
 
   // Parse completedAt into a LOCAL date string for the input (YYYY-MM-DD)
   const dateVal=editData.completedAt?new Date(editData.completedAt).toLocaleDateString("en-CA"):"";
@@ -5270,13 +5312,13 @@ function SessionEditModal({session,onSave,onClose,allSessions=[],onRenameAll,C})
       <div style={{flex:1,padding:"10px 14px",background:C.card,border:`1px solid ${C.border}`,borderRadius:8}}>
         <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:4,letterSpacing:"0.1em"}}>WORKOUT DATE</Mono>
         <input type="date" value={dateVal} onChange={e=>updateDate(e.target.value)}
-          style={{width:"100%",padding:"7px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:12,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",boxSizing:"border-box",cursor:"pointer"}}/>
+          style={{width:"100%",padding:"7px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:12,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",boxSizing:"border-box",cursor:"pointer"}}/>
       </div>
       <div style={{width:110,padding:"10px 14px",background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,flexShrink:0}}>
         <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:4,letterSpacing:"0.1em"}}>DURATION</Mono>
         <div style={{display:"flex",alignItems:"center",gap:6}}>
           <input type="number" min="1" max="300" value={durationMins} onChange={e=>updateDuration(e.target.value)} onBlur={e=>{if(!e.target.value||parseInt(e.target.value)<1)updateDuration("1");}}
-            style={{width:"100%",padding:"7px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontWeight:700,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",boxSizing:"border-box",textAlign:"center"}}/>
+            style={{width:"100%",padding:"7px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontWeight:700,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",boxSizing:"border-box",textAlign:"center"}}/>
           <Mono style={{fontSize:11,color:C.muted,flexShrink:0}}>min</Mono>
         </div>
       </div>
@@ -5354,7 +5396,7 @@ function SessionEditModal({session,onSave,onClose,allSessions=[],onRenameAll,C})
       <SectionLabel C={C}>Session Notes</SectionLabel>
       <textarea value={editData.notes||""} onChange={e=>setEditData(p=>({...p,notes:e.target.value}))}
         placeholder="How did it feel? Any joint issues?"
-        style={{width:"100%",padding:"10px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:13,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",height:72,resize:"none",boxSizing:"border-box"}}/>
+        style={{width:"100%",padding:"10px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:13,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",height:72,resize:"none",boxSizing:"border-box"}}/>
     </div>
 
     {editData.partial&&<div style={{marginBottom:16,padding:"10px 14px",background:C.gold+"18",border:`1px solid ${C.gold}44`,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -5362,7 +5404,7 @@ function SessionEditModal({session,onSave,onClose,allSessions=[],onRenameAll,C})
       <Btn size="sm" onClick={()=>setEditData(p=>({...p,partial:false}))} C={C} style={{fontWeight:700,letterSpacing:"0.06em"}}>Mark as complete</Btn>
     </div>}
 
-    {saveError&&<div style={{marginBottom:10,padding:"10px 12px",background:C.danger+"22",border:`1px solid ${C.danger}44`,borderRadius:8,color:C.dangerInk,fontSize:12,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace"}}>{saveError}</div>}
+    {saveError&&<div style={{marginBottom:10,padding:"10px 12px",background:C.danger+"22",border:`1px solid ${C.danger}44`,borderRadius:8,color:C.dangerInk,fontSize:12,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif"}}>{saveError}</div>}
     {applyAllPrompt
       ?<div style={{padding:"12px 14px",background:C.accent+"12",border:`1px solid ${C.accent}44`,borderRadius:8}}>
         <Mono style={{fontSize:12,color:C.text,fontWeight:700,display:"block",marginBottom:6}}>Saved — apply rename to other sessions?</Mono>
@@ -5437,14 +5479,18 @@ function getStrengthScore(exName, maxWeight){
 
 // Lightweight inline SVG sparkline (used in the Progress "All" overview — cheap to render for many lifts)
 function Sparkline({data,color}){
+  const gid=useRef("spk"+Math.random().toString(36).slice(2,9)).current;
   if(!data||data.length<2)return null;
   const w=320,h=56,pad=6;
   const ws=data.map(d=>d.weight),min=Math.min(...ws),max=Math.max(...ws),range=(max-min)||1;
   const pts=data.map((d,i)=>{const x=pad+(i/(data.length-1))*(w-2*pad);const y=h-pad-((d.weight-min)/range)*(h-2*pad);return `${x.toFixed(1)},${y.toFixed(1)}`;});
   const [lx,ly]=pts[pts.length-1].split(",");
+  const area=`${pad},${h} ${pts.join(" ")} ${(w-pad).toFixed(1)},${h}`;
   return <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{display:"block",width:"100%",height:56}}>
-    <polyline fill="none" stroke={color} strokeWidth="2.5" points={pts.join(" ")}/>
-    <circle cx={lx} cy={ly} r="3.5" fill={color}/>
+    <defs><linearGradient id={gid} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={color} stopOpacity="0.28"/><stop offset="100%" stopColor={color} stopOpacity="0"/></linearGradient></defs>
+    <polygon fill={`url(#${gid})`} points={area}/>
+    <polyline fill="none" stroke={color} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" points={pts.join(" ")}/>
+    <circle cx={lx} cy={ly} r="4" fill={color}/>
   </svg>;
 }
 
@@ -5456,7 +5502,7 @@ function Sparkline({data,color}){
 function RealizedVolumeInsight({sessions,settings,C}){
   const [openGroups,setOpenGroups]=useState({});
   const [showSources,setShowSources]=useState(false);
-  const mono="ui-monospace,'SF Mono',Menlo,Consolas,monospace";
+  const mono="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif";
   const rv=analyzeRealized(sessions,{goal:(settings.aiGoal||"").toLowerCase(),windowDays:28});
   // Strength: per-muscle set totals matter far less (see Plan Analysis) — stay quiet.
   if(rv.goal==="strength")return null;
@@ -5742,7 +5788,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
     setLoadingInsight(false);
   }
 
-  const tabStyle=(active)=>({flex:1,padding:"7px 4px",borderRadius:7,border:"none",background:active?C.accentBtn:"transparent",color:active?"#fff":C.muted,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",fontSize:10,cursor:"pointer",letterSpacing:"0.04em"});
+  const tabStyle=(active)=>({flex:1,padding:"7px 4px",borderRadius:7,border:"none",background:active?C.accentBtn:"transparent",color:active?"#fff":C.muted,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",fontSize:10,cursor:"pointer",letterSpacing:"0.04em"});
 
   if(detailSnapshot){
     return <BlockSummary snapshot={detailSnapshot} C={C} onBack={()=>setDetailSnapshot(null)} onRepeat={()=>onRepeatBlock&&onRepeatBlock(detailSnapshot.planKey)}/>;
@@ -5752,9 +5798,15 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
     <div style={{background:C.bg,borderBottom:`1px solid ${C.border}`,padding:"16px 18px 14px"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
         <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>Progress</div>
-        <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
+        <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
       </div>
-      <Mono style={{fontSize:11,color:C.muted,display:"block",marginBottom:12}}>{(()=>{const wk=planWeekOf(activePlan);const tot=activePlan?.durationWeeks||10;const fb=programStart?programWeekFromDate(programStart):programWeek(sessions);return wk?`Week ${Math.min(wk,tot)} of ${tot} in your program`:`Week ${fb} of your program`;})()}</Mono>
+      {(()=>{const wk=planWeekOf(activePlan);const tot=activePlan?.durationWeeks||10;const fb=programStart?programWeekFromDate(programStart):programWeek(sessions);
+        if(!wk)return <div style={{fontSize:12,color:C.muted,marginBottom:12}}>{`Week ${fb} of your program`}</div>;
+        const w=Math.min(wk,tot);
+        return <div style={{marginBottom:12}}>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:12,fontWeight:600,color:C.muted,marginBottom:6}}><span>{`Week ${w} of ${tot} in your program`}</span><span>{Math.round((w/tot)*100)}%</span></div>
+          <ProgressBar value={w} max={tot} color={C.accent} C={C} height={5}/>
+        </div>;})()}
       <div style={{display:"flex",gap:4,background:C.card,padding:4,borderRadius:10}}>
         {[["overview","Overview"],["progress","Progress"],["muscles","Muscles"],["body","Body"],["trainer","✦ Coach"]].filter(([k])=>k!=="trainer"||(settings.showCoach&&settings.showCoaching)).map(([k,label])=>(
           <button key={k} onClick={()=>{setStatsView(k);if(k==="trainer"&&!trainerInsight)loadTrainerInsight();}} style={tabStyle(statsView===k)}>{label}</button>
@@ -5780,11 +5832,19 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
           if(settings.showVolumeTargets&&settings.showCoaching){const rv=analyzeRealized(sessions,{goal:(settings.aiGoal||"").toLowerCase(),windowDays:28});if(rv.sufficient){const f=(rv.perGroup||[]).find(g=>g.status!=="in_range");if(f)volumeFlag={group:f.group,status:f.status};}}
           const digest=assembleDigest({adherence,currentStreak:settings.streakTracking?complianceStreak:0,recentPR,plateaus,volumeFlag,deloadNewlyDue:!!deloadDue});
           const toneColor={positive:C.neonInk,caution:C.goldInk,info:C.accentInk,neutral:C.text};
-          return <div style={{background:C.card,boxShadow:C.shadow,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"14px",marginBottom:14}}>
-            <SectionLabel C={C}>This Week</SectionLabel>
-            {digest.lines.map((ln,i)=>(
-              <div key={i} style={{fontSize:i===0?14:12,fontWeight:i===0?700:500,color:toneColor[ln.tone]||C.text,marginTop:i===0?2:8,lineHeight:1.5}}>{ln.text}</div>
-            ))}
+          const ringCol=adherence&&adherence.status==="complete"?C.neon:C.accent;
+          const hasRing=adherence&&adherence.target>0;
+          return <div style={{background:`linear-gradient(150deg, ${ringCol}24 0%, ${ringCol}08 65%), ${C.card}`,boxShadow:C.shadow,border:`1px solid ${ringCol}33`,borderRadius:18,padding:"16px",marginBottom:14,display:"flex",gap:16,alignItems:"center"}}>
+            {hasRing&&<ProgressRing value={adherence.done} max={adherence.target} color={ringCol} C={C}>
+              <div style={{fontSize:24,fontWeight:800,lineHeight:1,color:C.text,letterSpacing:"-0.02em"}}>{adherence.done}<span style={{fontSize:14,color:C.muted,fontWeight:700}}>/{adherence.target}</span></div>
+              <div style={{fontSize:9,fontWeight:700,letterSpacing:"0.1em",color:C.muted,marginTop:4}}>WORKOUTS</div>
+            </ProgressRing>}
+            <div style={{minWidth:0,flex:1}}>
+              <SectionLabel C={C}>This Week</SectionLabel>
+              {digest.lines.map((ln,i)=>(
+                <div key={i} style={{fontSize:i===0?15:12,fontWeight:i===0?700:500,color:toneColor[ln.tone]||C.text,marginTop:i===0?0:6,lineHeight:1.45}}>{ln.text}</div>
+              ))}
+            </div>
           </div>;
         })()}
 
@@ -5806,12 +5866,15 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
         {/* PR Board */}
         {prBoard.length>0&&<div style={{marginBottom:14}}>
           <SectionLabel C={C}>Personal Records</SectionLabel>
-          {prBoard.slice(0,5).map(([name,pr])=>(
-            <div key={name} style={{background:C.card,boxShadow:C.shadow,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-              <div style={{fontSize:13}}>{name}</div>
-              <Mono style={{fontSize:14,color:C.goldInk,fontWeight:700}}>{pr.weight} lbs</Mono>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          {prBoard.slice(0,5).map(([name,pr],i,arr)=>(
+            <div key={name} style={{background:C.card,boxShadow:C.shadow,border:`1px solid ${C.border}`,borderRadius:16,padding:"12px 14px",minWidth:0,gridColumn:(i===arr.length-1&&arr.length%2===1)?"1 / -1":"auto"}}>
+              <div style={{display:"flex",alignItems:"center",gap:6,color:C.goldInk,marginBottom:6}}><Trophy size={14} strokeWidth={2}/><span style={{fontSize:10,fontWeight:700,letterSpacing:"0.08em"}}>PR</span></div>
+              <div style={{fontSize:22,fontWeight:800,letterSpacing:"-0.02em",color:C.text,lineHeight:1.1}}>{pr.weight}<span style={{fontSize:12,fontWeight:700,color:C.muted,marginLeft:3}}>lbs</span></div>
+              <div style={{fontSize:12,color:C.muted,marginTop:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{name}</div>
             </div>
           ))}
+          </div>
         </div>}
 
         <div style={{marginBottom:14}}><OverloadCalc C={C}/></div>
@@ -5819,7 +5882,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
 
       {/* PROGRESS */}
       {statsView==="progress"&&(()=>{
-        const mono="ui-monospace,'SF Mono',Menlo,Consolas,monospace";
+        const mono="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif";
         const cardSt={background:C.card,boxShadow:C.shadow,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"13px 14px",marginBottom:10};
         const thSt={color:C.faint,fontWeight:600,padding:"4px 6px",fontSize:9,letterSpacing:"0.08em",borderBottom:`1px solid ${C.border}`,fontFamily:mono};
         const tdSt={padding:"5px 6px",borderBottom:`1px solid ${C.border}`,fontFamily:mono,fontSize:11};
@@ -5883,6 +5946,11 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
                     <PRMark value={pr} C={C}/>
                   </span>
                 </div>
+                {view==="chart"&&(()=>{const lastW=series[series.length-1].weight,firstW=series[0].weight,dl=Math.round((lastW-firstW)*10)/10;
+                  return <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:6}}>
+                    <span style={{fontSize:24,fontWeight:800,letterSpacing:"-0.02em",color:C.text}}>{lastW}<span style={{fontSize:12,fontWeight:700,color:C.muted,marginLeft:3}}>lbs</span></span>
+                    {series.length>=2&&dl!==0&&<span style={{fontSize:12,fontWeight:700,color:dl>0?C.neonInk:C.muted,background:(dl>0?C.neon:C.muted)+"1a",borderRadius:RADIUS.pill,padding:"2px 8px"}}>{dl>0?"+":""}{dl} lbs</span>}
+                  </div>;})()}
                 {view==="chart"
                   ? (series.length>=2?<Sparkline data={series} color={C.accent}/>:<Mono style={{fontSize:11,color:C.muted,padding:"4px 2px",display:"block"}}>One session — need 2+ for a trend</Mono>)
                   : <table style={tableSt}><tbody>
@@ -6011,7 +6079,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
         </div>;})()}
         {settings.showVolumeTargets&&settings.showCoaching&&<RealizedVolumeInsight sessions={sessions} settings={settings} C={C}/>}
         <SectionLabel C={C}>Volume by Muscle — Last 7 Days</SectionLabel>
-        {muscleOrder.filter(m=>muscleVolMapped[m]>0||groupSets[m]>0).length===0&&cardioSets===0&&<div style={{textAlign:"center",padding:"32px 0",color:C.muted,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",fontSize:12}}>Log workouts to see muscle volume breakdown.</div>}
+        {muscleOrder.filter(m=>muscleVolMapped[m]>0||groupSets[m]>0).length===0&&cardioSets===0&&<div style={{textAlign:"center",padding:"32px 0",color:C.muted,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",fontSize:12}}>Log workouts to see muscle volume breakdown.</div>}
         {muscleOrder.map(muscle=>{
           const vol=muscleVolMapped[muscle]||0;
           const sets=Math.round((groupSets[muscle]||0)*2)/2;
@@ -6063,7 +6131,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
             <div key={key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
               <Mono style={{fontSize:12,color:C.muted,width:120}}>{label}</Mono>
               <input type="number" value={newBodyStat[key]||""} onChange={e=>setNewBodyStat(p=>({...p,[key]:e.target.value}))}
-                style={{width:80,padding:"6px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",textAlign:"right"}}/>
+                style={{width:80,padding:"6px 10px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",textAlign:"right"}}/>
             </div>
           ))}
           <div style={{display:"flex",gap:8,marginTop:10}}>
@@ -6079,7 +6147,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
             <Btn size="sm" variant="ghost" C={C} style={{flex:1}} onClick={()=>setAddingBody(false)}>Cancel</Btn>
           </div>
         </div>}
-        {bodyStats.length===0&&!addingBody&&<div style={{textAlign:"center",padding:"32px 0",color:C.muted,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",fontSize:12}}>
+        {bodyStats.length===0&&!addingBody&&<div style={{textAlign:"center",padding:"32px 0",color:C.muted,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",fontSize:12}}>
           No measurements logged yet.<br/>Tap + Log to add your first entry.
         </div>}
         {bodyStats.length>0&&<div>
@@ -6089,9 +6157,9 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
             <ResponsiveContainer width="100%" height={140}>
               <LineChart data={[...bodyStats].reverse().filter(s=>s.weight).map(s=>({date:s.date.slice(5),weight:parseFloat(s.weight)}))} margin={{top:4,right:12,left:-10,bottom:0}}>
                 <CartesianGrid strokeDasharray="3 3" stroke={C.border}/>
-                <XAxis dataKey="date" tick={{fill:C.muted,fontSize:9,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace"}}/>
-                <YAxis tick={{fill:C.muted,fontSize:9,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace"}}/>
-                <Tooltip contentStyle={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",fontSize:11,color:C.text}}/>
+                <XAxis dataKey="date" tick={{fill:C.muted,fontSize:9,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif"}}/>
+                <YAxis tick={{fill:C.muted,fontSize:9,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif"}}/>
+                <Tooltip contentStyle={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",fontSize:11,color:C.text}}/>
                 <Line type="monotone" dataKey="weight" stroke={C.accent} strokeWidth={2} dot={{fill:C.accent,r:3}}/>
               </LineChart>
             </ResponsiveContainer>
@@ -6115,7 +6183,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
         <div style={{background:`linear-gradient(135deg,${C.accent}18,${C.neon}10)`,border:`1px solid ${C.accent}33`,borderRadius:12,padding:"18px",marginBottom:16}}>
           <div style={{fontSize:16,fontWeight:700,marginBottom:6}}>✦ Personal Trainer AI</div>
           <div style={{fontSize:13,color:C.muted,lineHeight:1.6,marginBottom:14}}>Weekly insight based on your actual training data.</div>
-          {loadingInsight?<div style={{textAlign:"center",padding:"20px 0",color:C.muted,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",fontSize:12}}>Analyzing your training...</div>
+          {loadingInsight?<div style={{textAlign:"center",padding:"20px 0",color:C.muted,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",fontSize:12}}>Analyzing your training...</div>
             :coachUpgrade?<UpgradePrompt {...coachUpgrade} C={C}/>
             :<div>
               {trainerInsight&&<div style={{fontSize:13,lineHeight:1.8,color:C.text,marginBottom:14,padding:"12px",background:C.card,borderRadius:8}}>{trainerInsight}</div>}
@@ -6297,8 +6365,8 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>Settings</div>
         <div style={{display:"flex",gap:8}}>
-          <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
-          <button onClick={async()=>{try{await supabase.auth.signOut();}catch(e){console.error("signOut:",e);}}} style={{background:"transparent",border:`1px solid ${C.danger}44`,borderRadius:8,color:C.dangerInk,cursor:"pointer",padding:"7px 12px",fontSize:11,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",letterSpacing:"0.04em"}}>
+          <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
+          <button onClick={async()=>{try{await supabase.auth.signOut();}catch(e){console.error("signOut:",e);}}} style={{background:"transparent",border:`1px solid ${C.danger}44`,borderRadius:8,color:C.dangerInk,cursor:"pointer",padding:"7px 12px",fontSize:11,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",letterSpacing:"0.04em"}}>
             Sign Out
           </button>
         </div>
@@ -6306,12 +6374,13 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
     </div>
     <div style={{padding:"14px 18px"}}>
       <SectionLabel C={C}>Account</SectionLabel>
+      <div className="iron-group" style={groupCard(C)}>
       <div style={{padding:"13px 0",borderBottom:`1px solid ${C.border}`}}>
         <div style={{fontSize:11,color:C.muted,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8,fontWeight:600}}>Display Name</div>
         <div style={{display:"flex",gap:8}}>
           <input value={displayName} onChange={e=>setDisplayName(e.target.value)}
             onKeyDown={e=>e.key==="Enter"&&saveDisplayName()}
-            style={{flex:1,padding:"10px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",outline:"none",boxSizing:"border-box"}}/>
+            style={{flex:1,padding:"10px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",outline:"none",boxSizing:"border-box"}}/>
           <Btn onClick={saveDisplayName} C={C} size="sm">Save</Btn>
         </div>
         {nameMsg&&<Mono style={{fontSize:11,color:C.neonInk,display:"block",marginTop:6}}>{nameMsg}</Mono>}
@@ -6330,7 +6399,9 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
         </div>
         {pwMsg&&<Mono style={{fontSize:11,color:C.neonInk,display:"block",marginTop:6}}>{pwMsg}</Mono>}
       </div>
+      </div>
       <div style={{marginTop:18}}><SectionLabel C={C}>Data</SectionLabel></div>
+      <div className="iron-group" style={groupCard(C)}>
       <div style={{padding:"13px 0",borderBottom:`1px solid ${C.border}`}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div style={{flex:1,paddingRight:16}}>
@@ -6354,7 +6425,9 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
         </div>
         {dlMsg&&<Mono style={{fontSize:11,color:C.neonInk,display:"block",marginTop:6}}>{dlMsg}</Mono>}
       </div>
+      </div>
       <div style={{marginTop:18}}><SectionLabel C={C}>Features</SectionLabel></div>
+      <div className="iron-group" style={groupCard(C)}>
       {features.map(f=>(
         <div key={f.key} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"13px 0",borderBottom:`1px solid ${C.border}`}}>
           <div style={{flex:1,paddingRight:16}}>
@@ -6365,7 +6438,9 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
         </div>
       ))}
 
+      </div>
       <div style={{marginTop:18}}><SectionLabel C={C}>Coaching & Insights</SectionLabel></div>
+      <div className="iron-group" style={groupCard(C)}>
       {/* Master switch for all interpretive surfaces (plateau flags, volume vs targets, Coach tab,
           plan analysis). When off, the sub-toggles are dimmed and inert. */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"13px 0",borderBottom:`1px solid ${C.border}`}}>
@@ -6385,7 +6460,8 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
         </div>
       ))}
 
-      {local.restTimer&&<div style={{padding:"14px 0",borderBottom:`1px solid ${C.border}`}}>
+      </div>
+      {local.restTimer&&<div style={{...groupCard(C),padding:"14px",marginTop:18}}>
         <SectionLabel C={C}>Rest Duration</SectionLabel>
         {(()=>{
           const secs=local.restSeconds||90;
@@ -6395,7 +6471,7 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
           return <div style={{display:"flex",alignItems:"center",gap:12,marginTop:8}}>
             {step(-15,secs<=15)}
             <div style={{flex:1,textAlign:"center"}}>
-              <div style={{fontSize:28,fontWeight:700,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",color:C.text,lineHeight:1}}>{fmt(secs)}</div>
+              <div style={{fontSize:28,fontWeight:700,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",color:C.text,lineHeight:1}}>{fmt(secs)}</div>
               <Mono style={{fontSize:10,color:C.faint,marginTop:5,display:"block"}}>between sets</Mono>
             </div>
             {step(15,secs>=300)}
@@ -6450,7 +6526,7 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
             <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
               {opts.map(o=>(
                 <button key={o} onClick={()=>setLocal(p=>({...p,[key]:p[key]===o?"":o}))}
-                  style={{padding:"7px 12px",borderRadius:7,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",fontSize:11,cursor:"pointer",
+                  style={{padding:"7px 12px",borderRadius:7,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",fontSize:11,cursor:"pointer",
                     border:local[key]===o?"none":`1px solid ${C.border}`,
                     background:local[key]===o?C.accentBtn:"transparent",
                     color:local[key]===o?"#fff":C.muted}}>
@@ -6464,7 +6540,7 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
           <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:6,letterSpacing:"0.08em"}}>JOINT / HEALTH NOTES</Mono>
           <input type="text" value={local.aiJointNotes||""} placeholder="e.g. bad left knee, avoid overhead press"
             onChange={e=>setLocal(p=>({...p,aiJointNotes:e.target.value}))}
-            style={{width:"100%",padding:"10px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",boxSizing:"border-box"}}/>
+            style={{width:"100%",padding:"10px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",boxSizing:"border-box"}}/>
         </div>
       </div>}
 
@@ -6526,7 +6602,7 @@ Plain text, no markdown, be concise.`;
       </div>
       <Btn variant="ghost" size="sm" onClick={onClose} C={C}>✕</Btn>
     </div>
-    {loading?<div style={{textAlign:"center",padding:"32px 0",fontFamily:"ui-monospace,'SF Mono',Menlo,Consolas,monospace",color:C.muted,fontSize:13}}>Analyzing...</div>
+    {loading?<div style={{textAlign:"center",padding:"32px 0",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",color:C.muted,fontSize:13}}>Analyzing...</div>
       :aiUpgrade?<UpgradePrompt {...aiUpgrade} C={C}/>
       :<div style={{fontSize:13,lineHeight:1.8,color:C.text,whiteSpace:"pre-wrap"}}>{response}</div>}
   </Modal>;
