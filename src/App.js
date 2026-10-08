@@ -1721,7 +1721,7 @@ function Modal({children,onClose,C,showClose=true}){
     startY.current=null;
   }
   return <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.72)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}} onClick={onClose}>
-    <div style={{background:C.surface,borderRadius:`${RADIUS.modal}px ${RADIUS.modal}px 0 0`,width:"100%",maxWidth:560,maxHeight:"90vh",overflowY:"auto",WebkitOverflowScrolling:"touch",padding:"20px 20px 40px",position:"relative"}} onClick={e=>e.stopPropagation()} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+    <div style={{background:C.surface,borderRadius:`${RADIUS.modal}px ${RADIUS.modal}px 0 0`,width:"100%",maxWidth:560,maxHeight:"90vh",overflowY:"auto",WebkitOverflowScrolling:"touch",overscrollBehavior:"contain",padding:"20px 20px calc(28px + env(safe-area-inset-bottom, 0px))",position:"relative"}} onClick={e=>e.stopPropagation()} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       <div style={{width:36,height:4,borderRadius:2,background:C.border,margin:"-8px auto 12px",flexShrink:0}}/>
       {showClose&&<button onClick={onClose} style={{position:"absolute",top:12,right:14,background:"transparent",border:"none",color:C.muted,cursor:"pointer",fontSize:20,lineHeight:1,padding:"4px 8px",zIndex:1}}>✕</button>}
       {children}
@@ -1748,6 +1748,10 @@ function ProgressRing({value,max,color,C,size=88,stroke=9,children}){
 }
 // Grouped-list surface (iOS inset-grouped) for settings rows; pair with className="iron-group".
 const groupCard=C=>({background:C.card,border:`1px solid ${C.border}`,borderRadius:16,boxShadow:C.shadow,padding:"0 14px",marginBottom:6});
+
+// In-memory only (no localStorage): the Coach insight survives tab switches for this app session, so
+// re-opening Coach doesn't spend another AI request. Refresh on the Coach tab still fetches a new one.
+const TRAINER_INSIGHT_CACHE={text:null};
 
 function SectionLabel({children,C}){
   return <div style={{fontSize:11,fontFamily:C.sans,color:C.muted,letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:10,fontWeight:700}}>{children}</div>;
@@ -1788,34 +1792,49 @@ function BodyMap({intensities={},focus=null,onSelect,C,figMax=150}){
 
 function RestTimer({seconds,onDone,onSkip,C,next}){
   const startTs=useRef(Date.now());
+  const [total,setTotal]=useState(seconds); // ±15s adjusts the target; elapsed stays wall-clock (iOS-safe)
   const [rem,setRem]=useState(seconds);
   useEffect(()=>{
     if(rem<=0){onDone();return;}
     const t=setTimeout(()=>{
       const elapsed=Math.floor((Date.now()-startTs.current)/1000);
-      setRem(Math.max(0,seconds-elapsed));
+      setRem(Math.max(0,total-elapsed));
     },1000);
     return()=>clearTimeout(t);
-  },[rem]); // eslint-disable-line react-hooks/exhaustive-deps
+  },[rem,total]); // eslint-disable-line react-hooks/exhaustive-deps
+  const adjust=d=>{const elapsed=Math.floor((Date.now()-startTs.current)/1000);const nt=Math.max(elapsed+5,total+d);setTotal(nt);setRem(Math.max(0,nt-elapsed));};
   // Make the rest the most useful 15 seconds: show the NEXT set's target + last week's number to beat.
   const targetTxt=next?(next.track==="time"?`${next.targetReps||"—"}s hold`:next.track==="reps"?`${next.targetReps||"—"} reps`:`${next.targetReps||"—"} reps${next.weight?` @ ${next.weight} lb`:""}`):null;
   const lastTxt=next?(next.track==="time"?(next.lastR?`${next.lastR}s`:""):next.track==="reps"?(next.lastR?`${next.lastR} reps`:""):((next.lastW||next.lastR)?`${next.lastW||"–"} lb × ${next.lastR||"–"}`:"")):null;
-  return <div style={{background:C.card,boxShadow:C.shadow,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"8px 12px",marginBottom:8}}>
-    <div style={{display:"flex",alignItems:"center",gap:12}}>
-      <Mono style={{fontSize:9,color:C.muted,letterSpacing:"0.12em",flexShrink:0}}>REST</Mono>
-      <div style={{fontSize:20,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",color:rem<10?C.redInk:C.neonInk,fontWeight:700,minWidth:42}}>
-        {Math.floor(rem/60)}:{String(rem%60).padStart(2,"0")}
+  // Draining ring: starts full, empties as rest runs out; turns red for the last 10 seconds.
+  const size=92,stroke=8,r=(size-stroke)/2,circ=2*Math.PI*r,frac=total>0?Math.max(0,Math.min(1,rem/total)):0;
+  const col=rem<=10?C.red:C.neon;
+  const pill={minHeight:36,padding:"6px 12px",borderRadius:RADIUS.pill,border:`1px solid ${C.border}`,background:C.surface,color:C.text,fontFamily:C.sans,fontSize:13,fontWeight:700,cursor:"pointer"};
+  return <div style={{background:C.card,boxShadow:C.shadow,border:`1px solid ${C.border}`,borderRadius:16,padding:"14px",marginBottom:12}}>
+    <div style={{display:"flex",alignItems:"center",gap:16}}>
+      <div style={{position:"relative",width:size,height:size,flexShrink:0}}>
+        <svg width={size} height={size} style={{display:"block",transform:"rotate(-90deg)"}}>
+          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={C.border} strokeWidth={stroke}/>
+          {frac>0&&<circle cx={size/2} cy={size/2} r={r} fill="none" stroke={col} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={circ*(1-frac)} style={{transition:"stroke-dashoffset 1s linear, stroke .3s"}}/>}
+        </svg>
+        <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+          <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.12em",color:C.muted}}>REST</div>
+          <div style={{fontSize:24,fontWeight:800,letterSpacing:"-0.02em",lineHeight:1.1,color:rem<=10?C.redInk:C.text,fontVariantNumeric:"tabular-nums"}}>{Math.floor(rem/60)}:{String(rem%60).padStart(2,"0")}</div>
+        </div>
       </div>
-      <div style={{flex:1,height:3,background:C.border,borderRadius:2}}>
-        <div style={{height:"100%",background:C.neon,borderRadius:2,width:`${(rem/seconds)*100}%`,transition:"width 1s linear"}}/>
+      <div style={{flex:1,minWidth:0}}>
+        {next?<>
+          <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.1em",color:C.neonInk}}>UP NEXT</div>
+          <div style={{fontSize:13,color:C.muted,marginTop:3,lineHeight:1.4}}>{next.exName?<><span style={{fontSize:15,fontWeight:700,color:C.text}}>{next.exName}</span>{" · "}</>:""}Set {next.setNum} · {targetTxt}</div>
+          {lastTxt&&<div style={{fontSize:12,color:C.muted,marginTop:1}}>Last: {lastTxt}</div>}
+        </>:<div style={{fontSize:15,fontWeight:700,color:C.text}}>Catch your breath</div>}
+        <div style={{display:"flex",gap:6,marginTop:10}}>
+          <button aria-label="Rest 15 seconds less" onClick={()=>adjust(-15)} style={pill}>−15s</button>
+          <button aria-label="Rest 15 seconds more" onClick={()=>adjust(15)} style={pill}>+15s</button>
+          <button onClick={onSkip} style={{...pill,marginLeft:"auto",background:C.neon,border:"1px solid transparent",color:ONACCENT}}>Skip</button>
+        </div>
       </div>
-      <Btn onClick={onSkip} variant="ghost" size="sm" C={C} style={{fontSize:10,padding:"4px 8px"}}>Skip</Btn>
     </div>
-    {next&&<div style={{display:"flex",alignItems:"center",gap:8,marginTop:8,paddingTop:8,borderTop:`1px solid ${C.border}`,flexWrap:"wrap"}}>
-      <Mono style={{fontSize:9,color:C.neonInk,letterSpacing:"0.12em",flexShrink:0}}>NEXT</Mono>
-      <Mono style={{fontSize:12,color:C.text,fontWeight:600}}>{next.exName?`${next.exName} · `:""}Set {next.setNum} · {targetTxt}</Mono>
-      {lastTxt&&<Mono style={{fontSize:11,color:C.muted,marginLeft:"auto"}}>Last: {lastTxt}</Mono>}
-    </div>}
   </div>;
 }
 
@@ -2984,7 +3003,7 @@ function ExerciseLibraryModal({onSelect,onClose,C,multiAdd=false,initialMuscle=n
   const field={width:"100%",padding:"12px 14px",background:C.card,border:`1px solid ${C.border}`,borderRadius:12,color:C.text,fontSize:16,fontFamily:C.sans,boxSizing:"border-box",outline:"none"};
   const label=t=><div style={{fontSize:12,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",color:C.muted,margin:"14px 4px 6px"}}>{t}</div>;
 
-  return <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:300,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+  return <div onClick={e=>{e.stopPropagation();onClose();}} onTouchStart={e=>e.stopPropagation()} onTouchEnd={e=>e.stopPropagation()} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:320,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
     <div onClick={e=>e.stopPropagation()} style={{background:C.bg,width:"100%",maxWidth:560,height:"92vh",borderRadius:"20px 20px 0 0",display:"flex",flexDirection:"column",overflow:"hidden",boxShadow:"0 -10px 30px rgba(0,0,0,.25)",fontFamily:C.sans}}>
       {/* Pinned header: drag down here to dismiss (never from the list, so scrolling back up can't close it). */}
       <div onTouchStart={e=>{dragY.current=e.touches[0].clientY;}} onTouchEnd={e=>{if(dragY.current!==null&&e.changedTouches[0].clientY-dragY.current>80)onClose();dragY.current=null;}}
@@ -3073,6 +3092,7 @@ function ExerciseLibraryModal({onSelect,onClose,C,multiAdd=false,initialMuscle=n
 // -- WORKOUT SESSION -----------------------------------------------------------
 function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,savePlans,authUser,workoutDraft,onMinimize,onFinish,onCancel,C}){
   const [exercises,setExercises]=useState(workoutDraft?.exercises||workout.exercises||[]);
+  const [swapPick,setSwapPick]=useState(null); // exercise being swapped via the library picker
   const [loggedSets,setLoggedSets]=useState(()=>{
     // If restoring from a saved draft, use draft data AS-IS — preserve prepop flags
     // so untouched suggestions stay "suggested" and don't appear as entered values
@@ -3287,7 +3307,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   function swapExercise(oldEx,newExData){
     // Transfer any logged sets from old name to new name
     const updatedLog={...loggedSets};
-    if(updatedLog[oldEx.name]){
+    if(updatedLog[oldEx.name]&&!updatedLog[newExData.name]){ // never overwrite logs of an exercise already in the workout
       updatedLog[newExData.name]=updatedLog[oldEx.name];
       delete updatedLog[oldEx.name];
     }
@@ -3636,9 +3656,10 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
         <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:"16px 16px 0 0",padding:"18px 16px calc(28px + env(safe-area-inset-bottom,0px))",display:"flex",flexDirection:"column",gap:8}}>
           <div style={{width:36,height:4,borderRadius:2,background:C.border,alignSelf:"center",marginBottom:4}}/>
           <Mono style={{fontSize:11,color:C.muted,letterSpacing:"0.1em",marginBottom:4}}>{(exMenu.name||"").toUpperCase()}</Mono>
-          {!mCardio&&settings.aiRecs&&row("✦","Suggest a swap (AI)",()=>{setAiModal(exMenu);setExMenu(null);})}
           {row("✎","Edit sets & reps",()=>{setEditExModal(exMenu);setExMenu(null);})}
-          {!mCardio&&row("⇄","Swap exercise",()=>{setSwapModal(exMenu);setExMenu(null);})}
+          {!mCardio&&row("⇄","Swap exercise",()=>{setSwapPick(exMenu);setExMenu(null);})}
+          {!mCardio&&settings.aiRecs&&row("✦","AI swap suggestions",()=>{setSwapModal(exMenu);setExMenu(null);})}
+          {!mCardio&&settings.aiRecs&&row("✦","AI form tips",()=>{setAiModal(exMenu);setExMenu(null);})}
           {row("✕","Remove from workout",()=>{removeExercise(exMenu.id);setExMenu(null);},true)}
           <button onClick={()=>setExMenu(null)} style={{width:"100%",padding:"12px",background:"transparent",border:`1px solid ${C.border}`,borderRadius:10,color:C.muted,fontSize:13,fontFamily:C.sans,cursor:"pointer",marginTop:2}}>Cancel</button>
         </div>
@@ -3646,6 +3667,9 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
     })()}
     {swapModal&&<SwapExerciseModal exercise={swapModal} settings={settings} onSwap={(newData)=>swapExercise(swapModal,newData)} onClose={()=>setSwapModal(null)} cachedSuggestions={swapCache[swapModal.name]||null} onCacheSuggestions={(name,data)=>setSwapCache(prev=>({...prev,[name]:data}))} C={C}/>}
 
+    {/* Swap from the library: changes the exercise, keeps your sets/reps targets */}
+    {swapPick&&<ExerciseLibraryModal sessions={sessions} plans={plans} contextMuscles={swapPick.muscle?[swapPick.muscle]:null} initialMuscle={swapPick.muscle&&swapPick.muscle!=="Cardio"?swapPick.muscle:null} onClose={()=>setSwapPick(null)} C={C}
+      onSelect={pk=>{swapExercise(swapPick,{name:pk.name,muscle:pk.muscle,note:pk.note});setSwapPick(null);}}/>}
     {/* Add exercise modal */}
     {addExModal&&<ExerciseLibraryModal onSelect={addExercise} onClose={()=>setAddExModal(false)} sessions={sessions} plans={plans} contextMuscles={exercises.map(e=>e.muscle).filter(Boolean)} C={C}/>}
 
@@ -4628,17 +4652,29 @@ Use 7 days total (fill rest days with isRest:true and minimal exercises array wi
 
 function ExerciseForm({title,initial,onSave,onClose,isNew,C}){
   const [ex,setEx]=useState({...initial});
+  // Muscle is a fixed vocabulary (stats, body map and colors key on it) — chips, not free text. A legacy
+  // value outside the list is kept as its own chip so editing never silently drops it.
+  const MUSCLES=["Chest","Back","Shoulders","Biceps","Triceps","Legs","Abs","Cardio","Recovery"];
+  const muscleOpts=ex.muscle&&!MUSCLES.includes(ex.muscle)?[...MUSCLES,ex.muscle]:MUSCLES;
+  const nameOk=!!(ex.name||"").trim();
+  const field={width:"100%",padding:"11px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:12,color:C.text,fontSize:16,fontFamily:C.sans,boxSizing:"border-box"};
+  const setName=v=>setEx(p=>{const lib=libExerciseFor(v.trim());return {...p,name:v,muscle:(!p.muscle&&lib)?lib.muscle:p.muscle};});
   return <div>
-    <div style={{fontSize:16,fontWeight:600,marginBottom:18}}>{title}</div>
-    {[["Exercise Name","name"],["Sets","sets"],["Reps","reps"],["Muscle Group","muscle"],["Note","note"]].map(([label,key])=>(
-      <div key={key} style={{marginBottom:12}}>
-        <SectionLabel C={C}>{label}</SectionLabel>
-        <input value={ex[key]||""} onChange={e=>setEx(p=>({...p,[key]:e.target.value}))}
-          style={{width:"100%",padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,color:C.text,fontSize:16,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",boxSizing:"border-box"}}/>
-      </div>
-    ))}
-    <div style={{display:"flex",gap:10,marginTop:16}}>
-      <Btn style={{flex:1}} onClick={()=>onSave(ex)} C={C}>Save</Btn>
+    {title?<div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em",marginBottom:16}}>{title}</div>:null}
+    <SectionLabel C={C}>Exercise Name</SectionLabel>
+    <input value={ex.name||""} onChange={e=>setName(e.target.value)} style={{...field,marginBottom:14,borderColor:nameOk?C.border:C.danger+"88"}}/>
+    <div style={{display:"flex",gap:10,marginBottom:14}}>
+      <div style={{flex:1}}><SectionLabel C={C}>Sets</SectionLabel><input value={ex.sets||""} onChange={e=>setEx(p=>({...p,sets:e.target.value}))} style={field}/></div>
+      <div style={{flex:1}}><SectionLabel C={C}>Reps</SectionLabel><input value={ex.reps||""} onChange={e=>setEx(p=>({...p,reps:e.target.value}))} style={field}/></div>
+    </div>
+    <SectionLabel C={C}>Muscle Group</SectionLabel>
+    <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:14}}>
+      {muscleOpts.map(m=><button key={m} onClick={()=>setEx(p=>({...p,muscle:p.muscle===m?"":m}))} style={{padding:"7px 13px",borderRadius:RADIUS.pill,border:ex.muscle===m?"1px solid transparent":`1px solid ${C.border}`,background:ex.muscle===m?C.accentBtn:C.card,color:ex.muscle===m?"#fff":C.text,fontFamily:C.sans,fontSize:13,fontWeight:600,cursor:"pointer"}}>{m}</button>)}
+    </div>
+    <SectionLabel C={C}>Note</SectionLabel>
+    <input value={ex.note||""} onChange={e=>setEx(p=>({...p,note:e.target.value}))} style={field}/>
+    <div style={{display:"flex",gap:10,marginTop:18}}>
+      <Btn style={{flex:1,minHeight:46}} disabled={!nameOk} onClick={()=>{if(nameOk)onSave({...ex,name:ex.name.trim()});}} C={C}>Save</Btn>
       <Btn variant="ghost" style={{flex:1}} onClick={onClose} C={C}>Cancel</Btn>
     </div>
   </div>;
@@ -4646,9 +4682,10 @@ function ExerciseForm({title,initial,onSave,onClose,isNew,C}){
 
 function DayForm({onSave,onClose,C}){
   const [d,setD]=useState({name:"",label:"",tag:"",color:"#4f8ef7",isRest:false});
-  const colors=["#4f8ef7","#f06584","#f7c948","#3ecf8e"]; // the 4 THEMES accents (blue/red/gold/neon) — no off-brand
+  // No color picker: a day's color is derived from its label (getDayColor — Push/Pull/Legs…), and the
+  // stored `color` is never read, so a picker here was a control that did nothing.
   return <div>
-    <div style={{fontSize:16,fontWeight:600,marginBottom:18}}>Add Day</div>
+    <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em",marginBottom:16}}>Add Day</div>
     {[["Day Name (e.g. Monday)","name"],["Label (e.g. Push)","label"],["Tag (e.g. Chest . Back)","tag"]].map(([label,key])=>(
       <div key={key} style={{marginBottom:12}}>
         <SectionLabel C={C}>{label}</SectionLabel>
@@ -4656,12 +4693,6 @@ function DayForm({onSave,onClose,C}){
           style={{width:"100%",padding:"10px 12px",background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,color:C.text,fontSize:16,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",boxSizing:"border-box"}}/>
       </div>
     ))}
-    <div style={{marginBottom:16}}>
-      <SectionLabel C={C}>Color</SectionLabel>
-      <div style={{display:"flex",gap:10}}>
-        {colors.map(c=><div key={c} onClick={()=>setD(p=>({...p,color:c}))} style={{width:32,height:32,borderRadius:16,background:c,cursor:"pointer",boxSizing:"border-box",border:d.color===c?"3px solid #fff":"3px solid transparent"}}/>)}
-      </div>
-    </div>
     {/* Rest day toggle — a rest day is authored isRest:true so it never counts toward the weekly target */}
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,gap:12}}>
       <div style={{minWidth:0}}>
@@ -4674,7 +4705,7 @@ function DayForm({onSave,onClose,C}){
       </button>
     </div>
     <div style={{display:"flex",gap:10}}>
-      <Btn style={{flex:1}} onClick={()=>onSave(d)} C={C}>Add Day</Btn>
+      <Btn style={{flex:1,minHeight:46}} disabled={!(d.label||"").trim()} onClick={()=>{if((d.label||"").trim())onSave({...d,label:d.label.trim()});}} C={C}>Add Day</Btn>
       <Btn variant="ghost" style={{flex:1}} onClick={onClose} C={C}>Cancel</Btn>
     </div>
   </div>;
@@ -4749,6 +4780,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
   const [confirmDelete,setConfirmDelete]=useState(null);
   const [deleteError,setDeleteError]=useState(null);
   const [addingSession,setAddingSession]=useState(false);
+  const [manualPick,setManualPick]=useState(null); // index of the manual-log row choosing from the library
   const [manualSession,setManualSession]=useState({
     dayLabel:"",date:new Date().toLocaleDateString("en-CA"),
     duration:"",notes:"",
@@ -4990,6 +5022,8 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
     </div>
     {deleteError&&<div onClick={()=>setDeleteError(null)} style={{background:C.red,color:"#fff",padding:"10px 18px",fontSize:13,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",cursor:"pointer",textAlign:"center"}}>{deleteError} (tap to dismiss)</div>}
 
+    {manualPick!==null&&<ExerciseLibraryModal sessions={sessions} plans={plans} onClose={()=>setManualPick(null)} C={C}
+      onSelect={pk=>{setManualSession(p=>({...p,exercises:p.exercises.map((x,i)=>i===manualPick?{...x,name:pk.name}:x)}));setManualPick(null);}}/>}
     {/* Manual Session Logger Modal */}
     {addingSession&&<div style={{margin:"12px 18px 0",background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.card,padding:"16px"}}>
       <div style={{fontSize:15,fontWeight:700,marginBottom:14}}>Log a Workout</div>
@@ -5015,8 +5049,11 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
         </div>
         {manualSession.exercises.map((ex,ei)=>(
           <div key={ei} style={{display:"grid",gridTemplateColumns:"minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) auto",gap:5,marginBottom:6,alignItems:"center"}}>
+            <div style={{display:"flex",gap:4,minWidth:0}}>
             <input value={ex.name} onChange={e=>setManualSession(p=>({...p,exercises:p.exercises.map((x,i)=>i===ei?{...x,name:e.target.value}:x)}))}
-              placeholder="Exercise name" style={{padding:"7px 8px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",minWidth:0,width:"100%",boxSizing:"border-box"}}/>
+              placeholder="Exercise name" list="exercise-name-options" style={{flex:1,padding:"7px 8px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",minWidth:0,width:"100%",boxSizing:"border-box"}}/>
+            <button aria-label="Browse library" onClick={()=>setManualPick(ei)} style={{width:34,flexShrink:0,borderRadius:RADIUS.control,border:`1px solid ${C.border}`,background:C.card,color:C.accentInk,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}><Search size={15} strokeWidth={2.25}/></button>
+            </div>
             <input value={ex.sets} onChange={e=>setManualSession(p=>({...p,exercises:p.exercises.map((x,i)=>i===ei?{...x,sets:e.target.value}:x)}))}
               style={{padding:"7px 4px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",textAlign:"center",minWidth:0,width:"100%",boxSizing:"border-box"}}/>
             <input value={ex.reps} inputMode="decimal" placeholder={(t=>t==="cardio"?"min":t==="time"?"secs":"reps")(trackFor({name:ex.name}))} onChange={e=>setManualSession(p=>({...p,exercises:p.exercises.map((x,i)=>i===ei?{...x,reps:e.target.value}:x)}))}
@@ -5030,6 +5067,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
           </div>
         ))}
       </div>
+      <datalist id="exercise-name-options">{EXERCISE_LIBRARY.map(e=><option key={e.name} value={e.name}/>)}</datalist>
       <div style={{marginBottom:14}}>
         <Mono style={{fontSize:10,color:C.muted,display:"block",marginBottom:4}}>NOTES (optional)</Mono>
         <textarea value={manualSession.notes} onChange={e=>setManualSession(p=>({...p,notes:e.target.value}))}
@@ -5037,7 +5075,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
           style={{width:"100%",padding:"9px 12px",background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.text,fontSize:16,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",boxSizing:"border-box",resize:"none",height:56}}/>
       </div>
       <div style={{display:"flex",gap:8}}>
-        <Btn C={C} style={{flex:1,fontWeight:700}} onClick={saveManualSession}>Save Session</Btn>
+        <Btn C={C} style={{flex:1,fontWeight:700}} disabled={!(manualSession.dayLabel||"").trim()} onClick={saveManualSession}>Save Session</Btn>
         <Btn C={C} variant="ghost" style={{flex:1}} onClick={()=>setAddingSession(false)}>Cancel</Btn>
       </div>
     </div>}
@@ -5195,6 +5233,7 @@ function SessionEditModal({session,onSave,onClose,allSessions=[],onRenameAll,C})
   });
   const [newExName,setNewExName]=useState("");
   const [addingEx,setAddingEx]=useState(false);
+  const [editPick,setEditPick]=useState(false);
   const addRowRef=useRef(null);
   const addNameRef=useRef(null);
   // When the add-exercise row opens, bring it into view and focus the field without a
@@ -5238,9 +5277,11 @@ function SessionEditModal({session,onSave,onClose,allSessions=[],onRenameAll,C})
     }
   }
 
-  function addExercise(){
-    if(!newExName.trim())return;
-    setEditData(prev=>({...prev,sets:{...prev.sets,[newExName.trim()]:{1:{weight:"",reps:"",isPR:false}}}}));
+  function addExercise(nameArg){
+    const nm=(typeof nameArg==="string"?nameArg:newExName).trim();
+    if(!nm)return;
+    // Adding a name that's already in the session must not replace its logged sets with one blank set.
+    setEditData(prev=>prev.sets&&prev.sets[nm]?prev:({...prev,sets:{...prev.sets,[nm]:{1:{weight:"",reps:"",isPR:false}}}}));
     setNewExName("");
     setAddingEx(false);
   }
@@ -5387,7 +5428,9 @@ function SessionEditModal({session,onSave,onClose,allSessions=[],onRenameAll,C})
         <Btn size="sm" C={C} onClick={addExercise}>Add</Btn>
         <Btn size="sm" variant="ghost" C={C} onClick={()=>{setAddingEx(false);setNewExName("");}}>Cancel</Btn>
       </div>
+      <button onClick={()=>setEditPick(true)} style={{marginTop:8,display:"inline-flex",alignItems:"center",gap:6,background:"none",border:"none",padding:"4px 0",color:C.accentInk,fontFamily:C.sans,fontSize:14,fontWeight:600,cursor:"pointer"}}><Search size={15} strokeWidth={2.25}/>Browse library</button>
       <datalist id="exercise-name-options">{EXERCISE_LIBRARY.map(e=><option key={e.name} value={e.name}/>)}</datalist>
+      {editPick&&<ExerciseLibraryModal sessions={allSessions} onClose={()=>setEditPick(false)} C={C} onSelect={pk=>{addExercise(pk.name);setEditPick(false);}}/>}
       <Mono style={{fontSize:10,color:C.faint,display:"block",marginTop:6}}>Added to the bottom — use ↑/↓ above to move it.</Mono>
     </div>:<Btn size="sm" variant="subtle" C={C} onClick={()=>setAddingEx(true)} style={{marginBottom:14}}>+ Add Exercise</Btn>}
 
@@ -5619,7 +5662,7 @@ function StatsTab({sessions,programStart,prs,settings,C,activePlan,toggleTheme,t
   const [bodyStats,setBodyStats]=useState(bodyStatsInit||[]);
   const [newBodyStat,setNewBodyStat]=useState({weight:"",chest:"",waist:"",hips:"",arms:"",date:new Date().toLocaleDateString("en-CA")});
   const [addingBody,setAddingBody]=useState(false);
-  const [trainerInsight,setTrainerInsight]=useState("");
+  const [trainerInsight,setTrainerInsight]=useState(()=>TRAINER_INSIGHT_CACHE.text||"");
   const [loadingInsight,setLoadingInsight]=useState(false);
   const [coachUpgrade,setCoachUpgrade]=useState(null);
   // Full-history prior-bests for plateau detection (so a true PR older than the loaded 100
@@ -5766,6 +5809,7 @@ function StatsTab({sessions,programStart,prs,settings,C,activePlan,toggleTheme,t
 
 
   async function loadTrainerInsight(){
+    TRAINER_INSIGHT_CACHE.text=null;
     setLoadingInsight(true);
     const recentSessions=sessions.slice(0,5).map(s=>({day:s.dayLabel,date:s.completedAt?new Date(s.completedAt).toLocaleDateString("en-CA"):undefined,sets:(s.setsArr||[]).length}));
     const topPRs=prList.slice(0,5).map(([n,p])=>(`${n}: ${p.weight}lbs`));
@@ -5781,7 +5825,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
     try{
       const data=await callAI({action:"coach_insight",messages:[{role:"user",content:prompt}],maxTokens:200});
       if(data.upgradeRequired){setCoachUpgrade(data);setLoadingInsight(false);return;}
-      setTrainerInsight(data.content?.find(b=>b.type==="text")?.text||"");
+      {const txt=data.content?.find(b=>b.type==="text")?.text||"";TRAINER_INSIGHT_CACHE.text=txt||null;setTrainerInsight(txt);}
     }catch{
       setTrainerInsight("Unable to load AI insight right now. Tap Refresh to try again.");
     }
