@@ -6230,7 +6230,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
           {loadingInsight?<div style={{textAlign:"center",padding:"20px 0",color:C.muted,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",fontSize:12}}>Analyzing your training...</div>
             :coachUpgrade?<UpgradePrompt {...coachUpgrade} C={C}/>
             :<div>
-              {trainerInsight&&<div style={{fontSize:13,lineHeight:1.8,color:C.text,marginBottom:14,padding:"12px",background:C.card,borderRadius:8}}>{trainerInsight}</div>}
+              {trainerInsight&&<div style={{fontSize:13,lineHeight:1.8,color:C.text,marginBottom:14,padding:"12px",background:C.card,borderRadius:8,whiteSpace:"pre-wrap"}}>{/* the model sometimes answers in markdown: render **bold**, drop stray * / # markers */}{trainerInsight.replace(/^#+\s*/gm,"").split(/(\*\*[^*]+\*\*)/g).map((part,i)=>/^\*\*[^*]+\*\*$/.test(part)?<strong key={i}>{part.slice(2,-2)}</strong>:part.replace(/\*/g,""))}</div>}
               <Btn size="sm" variant="ghost" C={C} onClick={()=>{if(loadingInsight)return;setCoachUpgrade(null);loadTrainerInsight();}} style={{width:"100%"}}>
                 {trainerInsight?"↺ Refresh Insight":"✦ Get My Insight"}
               </Btn>
