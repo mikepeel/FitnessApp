@@ -1749,7 +1749,7 @@ function ProgressRing({value,max,color,C,size=88,stroke=9,children}){
 // Grouped-list surface (iOS inset-grouped) for settings rows; pair with className="iron-group".
 const groupCard=C=>({background:C.card,border:`1px solid ${C.border}`,borderRadius:16,boxShadow:C.shadow,padding:"0 14px",marginBottom:6});
 
-// In-memory only (no localStorage): the Coach insight survives tab switches for this app session, so
+// In-memory only (never browser storage): the Coach insight survives tab switches for this app session, so
 // re-opening Coach doesn't spend another AI request. Refresh on the Coach tab still fetches a new one.
 const TRAINER_INSIGHT_CACHE={text:null};
 
