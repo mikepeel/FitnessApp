@@ -50,8 +50,8 @@ Requirements: joint-friendly, similar muscle group, gym equipment available. Giv
     const ex = list(p.exercises, 30).map(e => ({ name: str(e && e.name, 80), muscle: str(e && e.muscle, 30) })).filter(e => e.name);
     if (ex.length < 2) return null;
     return `You are an expert personal trainer. Reorder these exercises for optimal workout sequencing -- compound lifts first, isolation second, abs and cardio last. Consider muscle fatigue, joint stress, and training science.
-Exercises: ${ex.map((e, i) => `${i + 1}. ${e.name} (${e.muscle || "unknown"})`).join(", ")}
-Give the exercise names, exactly as written above, in the optimal order.`;
+Exercises with their muscle groups: ${ex.map(e => `${e.name} — ${e.muscle || "unknown"}`).join("; ")}
+Return the order as these exact name strings, unchanged (no muscle labels or extra words): ${JSON.stringify(ex.map(e => e.name))}`;
   } },
   plan_builder: { maxTokens: 2000, schema: PLAN_SCHEMA, build: (p) => {
     const f = { goal: str(p.goal, 60), days: str(p.days, 30), duration: str(p.duration, 30), experience: str(p.experience, 40),

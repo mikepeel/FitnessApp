@@ -4112,7 +4112,9 @@ function PlanTab({plans,activePlanKey,setActivePlanKey,savePlans,settings,C,togg
       if(!Array.isArray(ordered))throw new Error("no order");
       const reordered=[];
       for(const name of ordered){
-        const found=day.exercises.find(e=>e.name===name);
+        // exact match first; tolerate a model-appended " (Muscle)" suffix
+        const nm=String(name||"");const bare=nm.replace(/\s*\([^)]*\)\s*$/,"");
+        const found=day.exercises.find(e=>e.name===nm&&!reordered.includes(e))||day.exercises.find(e=>e.name===bare&&!reordered.includes(e));
         if(found)reordered.push(found);
       }
       // append any not matched
