@@ -1746,6 +1746,45 @@ function ProgressRing({value,max,color,C,size=88,stroke=9,children}){
     <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>{children}</div>
   </div>;
 }
+// Loading placeholder: shimmering bars shaped like the content that's coming.
+function Skeleton({lines=3,C}){
+  const widths=["92%","78%","85%","60%","70%"];
+  return <div aria-busy="true" aria-label="Loading" style={{display:"flex",flexDirection:"column",gap:9,padding:"6px 0"}}>
+    {Array.from({length:lines},(_,i)=><div key={i} className="iron-skel" style={{height:12,width:widths[i%widths.length]}}/>)}
+  </div>;
+}
+// One-shot celebration burst (CSS-only, no dependency); unmounts itself.
+function Confetti({C}){
+  const [on,setOn]=useState(true);
+  useEffect(()=>{const t=setTimeout(()=>setOn(false),3200);return()=>clearTimeout(t);},[]);
+  const pieces=useMemo(()=>{const cols=[C.gold,C.neon,C.accent,C.violet,C.sky];return Array.from({length:36},(_,i)=>({left:Math.random()*100,dx:`${Math.round((Math.random()-0.5)*160)}px`,rot:`${Math.round(360+Math.random()*540)}deg`,dur:`${(1.8+Math.random()*1.1).toFixed(2)}s`,delay:`${(Math.random()*0.35).toFixed(2)}s`,col:cols[i%cols.length]}));},[C]);
+  if(!on)return null;
+  return <div aria-hidden="true">{pieces.map((q,i)=><span key={i} className="iron-confetti" style={{left:`${q.left}%`,background:q.col,"--dx":q.dx,"--rot":q.rot,"--dur":q.dur,"--delay":q.delay}}/>)}</div>;
+}
+// Last 5 weeks of training at a glance (Mon-start), colored by day type; dates are LOCAL.
+function TrainingCalendar({sessions,C}){
+  const toLocal=d=>d.toLocaleDateString("en-CA");
+  const byDay={};
+  for(const ss of (sessions||[])){if(!ss||!ss.completedAt)continue;const k=toLocal(new Date(ss.completedAt));if(!byDay[k])byDay[k]=ss;}
+  const today=new Date();today.setHours(12,0,0,0);
+  const start=new Date(today);start.setDate(today.getDate()-((today.getDay()+6)%7)-28); // Monday, 4 weeks back
+  const cells=Array.from({length:35},(_,i)=>{const d=new Date(start);d.setDate(start.getDate()+i);return d;});
+  const todayKey=toLocal(today);
+  const count=cells.filter(d=>byDay[toLocal(d)]).length;
+  return <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:16,boxShadow:C.shadow,padding:"14px 14px 12px",margin:"14px 18px 0"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:10}}>
+      <span style={{fontSize:12,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",color:C.muted}}>Last 5 weeks</span>
+      <span style={{fontSize:13,fontWeight:700,color:C.text}}>{count} workout{count!==1?"s":""}</span>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:6,justifyItems:"center"}}>
+      {["M","T","W","T","F","S","S"].map((l,i)=><span key={i} style={{fontSize:10,fontWeight:700,color:C.faint}}>{l}</span>)}
+      {cells.map(d=>{const k=toLocal(d),ss=byDay[k],fut=k>todayKey,isT=k===todayKey,col=ss?getDayColor({label:ss.dayLabel},C):null;
+        return <div key={k} title={ss?`${ss.dayLabel} · ${k}`:k} style={{width:30,height:30,borderRadius:15,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,
+          background:ss?col:"transparent",color:ss?"#fff":fut?C.faint:C.muted,opacity:fut?0.45:1,boxShadow:isT?`0 0 0 2px ${C.bg}, 0 0 0 4px ${C.accent}`:"none"}}>{d.getDate()}</div>;})}
+    </div>
+  </div>;
+}
+
 // Grouped-list surface (iOS inset-grouped) for settings rows; pair with className="iron-group".
 const groupCard=C=>({background:C.card,border:`1px solid ${C.border}`,borderRadius:16,boxShadow:C.shadow,padding:"0 14px",marginBottom:6});
 
@@ -1790,8 +1829,15 @@ function BodyMap({intensities={},focus=null,onSelect,C,figMax=150}){
   </div>;
 }
 
-function RestTimer({seconds,onDone,onSkip,C,next}){
+function RestTimer({seconds,onDone,onSkip,C,next,stickyTop=0}){
   const startTs=useRef(Date.now());
+  const sentinelRef=useRef(null);
+  const [compact,setCompact]=useState(false);
+  useEffect(()=>{
+    const onScroll=()=>{const el=sentinelRef.current;if(el)setCompact(el.getBoundingClientRect().top<stickyTop-4);};
+    onScroll();window.addEventListener("scroll",onScroll,{passive:true});
+    return()=>window.removeEventListener("scroll",onScroll);
+  },[stickyTop]);
   const [total,setTotal]=useState(seconds); // ±15s adjusts the target; elapsed stays wall-clock (iOS-safe)
   const [rem,setRem]=useState(seconds);
   useEffect(()=>{
@@ -1810,7 +1856,20 @@ function RestTimer({seconds,onDone,onSkip,C,next}){
   const size=92,stroke=8,r=(size-stroke)/2,circ=2*Math.PI*r,frac=total>0?Math.max(0,Math.min(1,rem/total)):0;
   const col=rem<=10?C.red:C.neon;
   const pill={minHeight:36,padding:"6px 12px",borderRadius:RADIUS.pill,border:`1px solid ${C.border}`,background:C.surface,color:C.text,fontFamily:C.sans,fontSize:13,fontWeight:700,cursor:"pointer"};
-  return <div style={{background:C.card,boxShadow:C.shadow,border:`1px solid ${C.border}`,borderRadius:16,padding:"14px",marginBottom:12}}>
+  const timeTxt=`${Math.floor(rem/60)}:${String(rem%60).padStart(2,"0")}`;
+  const elevated=C.shadow!=="none"?"0 8px 24px rgba(15,30,60,0.16)":"0 8px 24px rgba(0,0,0,0.45)";
+  return <><div ref={sentinelRef}/>
+  <div style={{position:"sticky",top:stickyTop,zIndex:40,marginBottom:12}}>
+  {compact?<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:16,boxShadow:elevated,padding:"8px 10px",display:"flex",alignItems:"center",gap:10}}>
+    <svg width="36" height="36" style={{flexShrink:0,transform:"rotate(-90deg)"}}><circle cx="18" cy="18" r="15" fill="none" stroke={C.border} strokeWidth="4"/>{frac>0&&<circle cx="18" cy="18" r="15" fill="none" stroke={col} strokeWidth="4" strokeLinecap="round" strokeDasharray={2*Math.PI*15} strokeDashoffset={2*Math.PI*15*(1-frac)} style={{transition:"stroke-dashoffset 1s linear"}}/>}</svg>
+    <div style={{minWidth:0,flex:1}}>
+      <div style={{fontSize:17,fontWeight:800,color:rem<=10?C.redInk:C.text,fontVariantNumeric:"tabular-nums",lineHeight:1.1}}>{timeTxt}</div>
+      {next&&<div style={{fontSize:12,color:C.muted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>Next: {next.exName?`${next.exName} · `:""}Set {next.setNum}</div>}
+    </div>
+    <button aria-label="Rest 15 seconds more" onClick={()=>adjust(15)} style={{...pill,minHeight:32,padding:"4px 10px"}}>+15s</button>
+    <button onClick={onSkip} style={{...pill,minHeight:32,padding:"4px 12px",background:C.neon,border:"1px solid transparent",color:ONACCENT}}>Skip</button>
+  </div>:
+  <div style={{background:C.card,boxShadow:C.shadow,border:`1px solid ${C.border}`,borderRadius:16,padding:"14px"}}>
     <div style={{display:"flex",alignItems:"center",gap:16}}>
       <div style={{position:"relative",width:size,height:size,flexShrink:0}}>
         <svg width={size} height={size} style={{display:"block",transform:"rotate(-90deg)"}}>
@@ -1819,7 +1878,7 @@ function RestTimer({seconds,onDone,onSkip,C,next}){
         </svg>
         <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
           <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.12em",color:C.muted}}>REST</div>
-          <div style={{fontSize:24,fontWeight:800,letterSpacing:"-0.02em",lineHeight:1.1,color:rem<=10?C.redInk:C.text,fontVariantNumeric:"tabular-nums"}}>{Math.floor(rem/60)}:{String(rem%60).padStart(2,"0")}</div>
+          <div style={{fontSize:24,fontWeight:800,letterSpacing:"-0.02em",lineHeight:1.1,color:rem<=10?C.redInk:C.text,fontVariantNumeric:"tabular-nums"}}>{timeTxt}</div>
         </div>
       </div>
       <div style={{flex:1,minWidth:0}}>
@@ -1835,7 +1894,8 @@ function RestTimer({seconds,onDone,onSkip,C,next}){
         </div>
       </div>
     </div>
-  </div>;
+  </div>}
+  </div></>;
 }
 
 function PlateCalc({weight,C}){
@@ -2075,7 +2135,15 @@ export default function ForgeApp(){
   const [deloadDismissedAt,setDeloadDismissedAt]=useState(null); // local override (ISO) for immediate hide; persisted to user_metadata.deload_dismissed_at
   const [longestStreak,setLongestStreak]=useState(0); // longest consecutive-weeks-with-a-workout, over FULL uncapped history
   const [workoutSummary,setWorkoutSummary]=useState(null);
-  const C=useTheme(themeMode);
+  const [sysDark,setSysDark]=useState(()=>{try{return !!(window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);}catch(e){return true;}});
+  useEffect(()=>{
+    if(!window.matchMedia)return;
+    const mq=window.matchMedia("(prefers-color-scheme: dark)");const on=e=>setSysDark(e.matches);
+    if(mq.addEventListener)mq.addEventListener("change",on);else if(mq.addListener)mq.addListener(on);
+    return()=>{if(mq.removeEventListener)mq.removeEventListener("change",on);else if(mq.removeListener)mq.removeListener(on);};
+  },[]);
+  const effectiveMode=themeMode==="system"?(sysDark?"dark":"light"):themeMode; // "system" = follow the phone
+  const C=useTheme(effectiveMode);
 
   // Fingerprint of exactly the fields that get persisted, so an unchanged plan can be skipped (⑤).
   const planFingerprint=(plan)=>JSON.stringify({n:plan.name,s:plan.subtitle,d:plan.description,dj:plan.days||[],sd:plan.startDate||null,dw:plan.durationWeeks||10});
@@ -2218,7 +2286,7 @@ export default function ForgeApp(){
   };
 
   const toggleTheme=(n)=>{
-    const mode=(typeof n==="string")?n:(themeMode==="dark"?"light":"dark");
+    const mode=(typeof n==="string")?n:(themeMode==="light"?"dark":themeMode==="dark"?"system":"light"); // Light → Dark → Auto
     setThemeMode(mode);
     saveSettings({...settings,theme_mode:mode});
   };
@@ -2717,7 +2785,7 @@ export default function ForgeApp(){
     {tab==="more"&&<MoreTab settings={settings} saveSettings={saveSettings} plans={plans} sessions={sessions} prs={prs} C={C} toggleTheme={toggleTheme} themeMode={themeMode} authUser={authUser}/>}
     <nav style={{position:"fixed",bottom:0,left:0,right:0,background:C.navBg,borderTop:`1px solid ${C.border}`,display:"flex",zIndex:100,paddingBottom:"env(safe-area-inset-bottom)"}}>
       {tabs.map(t=>(
-        <button key={t.key} onClick={()=>setTab(t.key)} style={{flex:1,padding:"10px 4px 8px",background:"none",border:"none",color:tab===t.key?(themeMode==="dark"?C.goldInk:C.accentInk):C.muted,cursor:"pointer",fontSize:10,fontFamily:C.sans,fontWeight:600,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+        <button key={t.key} onClick={()=>setTab(t.key)} style={{flex:1,padding:"10px 4px 8px",background:"none",border:"none",color:tab===t.key?(effectiveMode==="dark"?C.goldInk:C.accentInk):C.muted,cursor:"pointer",fontSize:10,fontFamily:C.sans,fontWeight:600,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
           <t.Icon size={ICON.md} strokeWidth={1.75} style={{flexShrink:0}}/>
           {t.label}
         </button>
@@ -2781,7 +2849,7 @@ function TodayTab({plan,plans,activePlanKey,setActivePlanKey,settings,sessions,p
           <div style={{fontSize:13,color:C.muted,marginTop:1}}>{new Date().toLocaleDateString("en",{month:"short",day:"numeric",year:"numeric"})}</div>
         </div>
         <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",letterSpacing:"0.08em",marginTop:2,display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
-          {themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}
+          {themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="system"?"AUTO":themeMode==="dark"?"DARK":"LIGHT"}
         </button>
       </div>
     </div>
@@ -3093,6 +3161,10 @@ function ExerciseLibraryModal({onSelect,onClose,C,multiAdd=false,initialMuscle=n
 function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,savePlans,authUser,workoutDraft,onMinimize,onFinish,onCancel,C}){
   const [exercises,setExercises]=useState(workoutDraft?.exercises||workout.exercises||[]);
   const [swapPick,setSwapPick]=useState(null); // exercise being swapped via the library picker
+  const headerRef=useRef(null);
+  const [headerH,setHeaderH]=useState(0); // sticky header height — the pinned rest timer sits just below it
+  useEffect(()=>{const m=()=>{if(headerRef.current)setHeaderH(headerRef.current.offsetHeight);};m();window.addEventListener("resize",m);return()=>window.removeEventListener("resize",m);},[]);
+  const [nudgeFor,setNudgeFor]=useState(null); // set row showing the quick-entry bar (stateKey)
   const [loggedSets,setLoggedSets]=useState(()=>{
     // If restoring from a saved draft, use draft data AS-IS — preserve prepop flags
     // so untouched suggestions stay "suggested" and don't appear as entered values
@@ -3418,7 +3490,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
     <div onPointerDown={e=>{dragStartYRef.current=e.clientY;setDragDelta(0);e.currentTarget.setPointerCapture(e.pointerId);}} onPointerMove={e=>{if(dragStartYRef.current===null)return;const d=e.clientY-dragStartYRef.current;setDragDelta(d>0?d:0);}} onPointerUp={async e=>{const d=dragStartYRef.current!==null?e.clientY-dragStartYRef.current:0;dragStartYRef.current=null;setDragDelta(0);if(d>80){await saveDraft();onMinimize({workout,loggedSets,elapsed,startedAt:startTime,exercises,completedExIds:[...completedExIds]});}}} onPointerCancel={()=>{dragStartYRef.current=null;setDragDelta(0);}} style={{height:28,display:"flex",alignItems:"center",justifyContent:"center",cursor:"grab",touchAction:"none",background:C.bg}}>
       <div style={{width:40,height:4,borderRadius:2,background:dragDelta>60?C.neon:C.border,transition:"background 0.15s"}}/>
     </div>
-    <div style={{background:C.bg,padding:"14px 18px 0",position:"sticky",top:0,zIndex:50,marginTop:0}}>
+    <div ref={headerRef} style={{background:C.bg,padding:"14px 18px 0",position:"sticky",top:0,zIndex:50,marginTop:0}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div>
           <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>{workout.label}</div>
@@ -3443,7 +3515,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
     <div style={{padding:"14px 18px"}}>
       {/* Scroll target so set-confirm brings the rest timer + active exercise into view */}
       <div ref={restAnchorRef} style={{scrollMarginTop:80}}/>
-      {showRest&&settings.restTimer&&<RestTimer key={restKey} seconds={settings.restSeconds||90} onDone={()=>setShowRest(false)} onSkip={()=>setShowRest(false)} C={C} next={restNext}/>}
+      {showRest&&settings.restTimer&&<RestTimer key={restKey} seconds={settings.restSeconds||90} onDone={()=>setShowRest(false)} onSkip={()=>setShowRest(false)} C={C} next={restNext} stickyTop={headerH}/>}
 
       <div ref={topRef}/>
       {workoutDisplayOrder(exercises,{completedIds:[...completedExIds],loggedSets,lastActive:lastActiveExRef.current}).map((ex,exIdx)=>{
@@ -3576,8 +3648,8 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
                     </div>]
                   :[
                     <Mono key={`n${n}`} style={{fontSize:12,color:setRowState==="inprogress"?C.text:C.muted,textAlign:"center",fontWeight:setRowState==="inprogress"?700:400}}>{n}</Mono>,
-                    <input key={`c1${n}`} type="number" inputMode="decimal" placeholder={isTime?(last?.[n]?.reps||"secs"):isReps?(last?.[n]?.reps||"reps"):(last?.[n]?.weight||"lbs")} value={(isRL?myLog[n]?.reps:myLog[n]?.weight)||""} onChange={e=>logSet(ex.name,n,isRL?"reps":"weight",e.target.value)} onFocus={()=>{if(isPrepop)setLoggedSets(prev=>({...prev,[ex.name]:{...prev[ex.name],[n]:{...prev[ex.name]?.[n],prepop:false}}}));}} style={{...inputStyle,color:setRowState==="suggested"?C.muted:C.text,fontStyle:setRowState==="suggested"?"italic":"normal",background:setRowState==="inprogress"?C.accent+"12":C.surface}}/>,
-                    <input key={`c2${n}`} type="number" inputMode="decimal" placeholder={isRL?"+lbs":(last?.[n]?.reps||"reps")} value={(isRL?myLog[n]?.weight:myLog[n]?.reps)||""} onChange={e=>logSet(ex.name,n,isRL?"weight":"reps",e.target.value)} onFocus={()=>{if(isPrepop)setLoggedSets(prev=>({...prev,[ex.name]:{...prev[ex.name],[n]:{...prev[ex.name]?.[n],prepop:false}}}));}} style={{...inputStyle,color:setRowState==="suggested"?C.muted:C.text,fontStyle:setRowState==="suggested"?"italic":"normal",background:setRowState==="inprogress"?C.accent+"12":C.surface,opacity:isRL&&!(myLog[n]?.weight)?0.8:1}}/>,
+                    <input key={`c1${n}`} type="number" inputMode="decimal" placeholder={isTime?(last?.[n]?.reps||"secs"):isReps?(last?.[n]?.reps||"reps"):(last?.[n]?.weight||"lbs")} value={(isRL?myLog[n]?.reps:myLog[n]?.weight)||""} onChange={e=>logSet(ex.name,n,isRL?"reps":"weight",e.target.value)} onFocus={()=>{setNudgeFor(stateKey);if(isPrepop)setLoggedSets(prev=>({...prev,[ex.name]:{...prev[ex.name],[n]:{...prev[ex.name]?.[n],prepop:false}}}));}} style={{...inputStyle,color:setRowState==="suggested"?C.muted:C.text,fontStyle:setRowState==="suggested"?"italic":"normal",background:setRowState==="inprogress"?C.accent+"12":C.surface}}/>,
+                    <input key={`c2${n}`} type="number" inputMode="decimal" placeholder={isRL?"+lbs":(last?.[n]?.reps||"reps")} value={(isRL?myLog[n]?.weight:myLog[n]?.reps)||""} onChange={e=>logSet(ex.name,n,isRL?"weight":"reps",e.target.value)} onFocus={()=>{setNudgeFor(stateKey);if(isPrepop)setLoggedSets(prev=>({...prev,[ex.name]:{...prev[ex.name],[n]:{...prev[ex.name]?.[n],prepop:false}}}));}} style={{...inputStyle,color:setRowState==="suggested"?C.muted:C.text,fontStyle:setRowState==="suggested"?"italic":"normal",background:setRowState==="inprogress"?C.accent+"12":C.surface,opacity:isRL&&!(myLog[n]?.weight)?0.8:1}}/>,
                     <button key={`d${n}`} onClick={()=>{
                       const w=myLog[n]?.weight||"";
                       const r=myLog[n]?.reps||"";
@@ -3594,12 +3666,26 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
                         return {...prev,[ex.name]:updated};
                       });
                       setSetStates(prev=>({...prev,[stateKey]:"confirmed"}));
+                      setNudgeFor(null);
                       const myL=draftSets[ex.name]||{};
                       const allFilled=Array.from({length:numSets},(_,i)=>i+1).every(s=>isRL?myL[s]?.reps:(myL[s]?.weight&&myL[s]?.reps));
                       if(n===numSets&&allFilled){markExerciseDone(ex.id,ex.name,!isWarmup);}
                       // REST TIMER: only triggered here, on explicit set confirmation
                       else if(!isWarmup){setRestNext({exName:ex.name,setNum:n+1,track,targetReps:ex.reps,weight:track==="weight"?w:"",lastW:last?.[n+1]?.weight,lastR:last?.[n+1]?.reps});setShowRest(true);setRestKey(k=>k+1);setTimeout(()=>restAnchorRef.current?.scrollIntoView({behavior:"smooth",block:"start"}),100);}
-                    }} aria-label="Confirm set" style={{padding:"9px 4px",background:"transparent",border:`1px solid ${C.neon}44`,borderRadius:7,color:C.neonInk,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Check size={ICON.md} strokeWidth={1.75}/></button>
+                    }} aria-label="Confirm set" style={{padding:"9px 4px",background:"transparent",border:`1px solid ${C.neon}44`,borderRadius:7,color:C.neonInk,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Check size={ICON.md} strokeWidth={1.75}/></button>,
+                    ...(nudgeFor===stateKey?[(()=>{
+                      // Quick entry: nudge the load without the keyboard; "Same as last" copies the previous set
+                      // in this workout, else last session's numbers for this set.
+                      const cur=myLog[n]||{};
+                      const prevSet=n>1&&(myLog[n-1]?.weight||myLog[n-1]?.reps)?myLog[n-1]:null;
+                      const src=prevSet||(last&&last[n])||null;
+                      const nb={minHeight:34,padding:"5px 0",borderRadius:9,border:`1px solid ${C.border}`,background:C.surface,color:C.text,fontFamily:C.sans,fontSize:13,fontWeight:700,cursor:"pointer"};
+                      const bump=d=>{const base=parseFloat(cur.weight)||parseFloat(last?.[n]?.weight)||0;const v=Math.max(0,Math.round((base+d)*10)/10);logSet(ex.name,n,"weight",String(v));};
+                      return <div key={`q${n}`} onPointerDown={e=>e.preventDefault()} style={{gridColumn:"1 / -1",display:"grid",gridTemplateColumns:isRL?"1fr":"repeat(4,1fr) 1.6fr",gap:6,margin:"2px 0 6px"}}>
+                        {!isRL&&[-5,-2.5,2.5,5].map(d=><button key={d} aria-label={`${d>0?"Add":"Subtract"} ${Math.abs(d)} pounds`} onClick={()=>bump(d)} style={nb}>{d>0?"+":"−"}{Math.abs(d)}</button>)}
+                        <button disabled={!src} onClick={()=>{if(!src)return;if(src.weight)logSet(ex.name,n,"weight",String(src.weight));if(src.reps)logSet(ex.name,n,"reps",String(src.reps));}} style={{...nb,color:src?C.accentInk:C.faint,cursor:src?"pointer":"default"}}>Same as last</button>
+                      </div>;
+                    })()]:[])
                   ])
               ];
             })}
@@ -4123,7 +4209,7 @@ No explanation, no markdown, just the JSON array.`;
     <div style={{background:C.bg,borderBottom:`1px solid ${C.border}`,padding:"16px 18px 14px"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
         <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>Plan Editor</div>
-        <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
+        <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="system"?"AUTO":themeMode==="dark"?"DARK":"LIGHT"}</button>
       </div>
       {/* View switcher */}
       <div style={{display:"flex",gap:6,marginBottom:10,background:C.card,padding:4,borderRadius:10}}>
@@ -5010,7 +5096,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
           <Mono style={{fontSize:11,color:C.muted}}>{filteredSorted.length} session{filteredSorted.length!==1?"s":""}{historyFilter!=="all"?` · last ${historyFilter.toUpperCase()}`:" · all time"}</Mono>
         </div>
         <div style={{display:"flex",gap:6,alignItems:"center",marginTop:2}}>
-          <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
+          <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="system"?"AUTO":themeMode==="dark"?"DARK":"LIGHT"}</button>
           <Btn size="sm" C={C} onClick={()=>setAddingSession(a=>!a)} style={{fontWeight:700,padding:"6px 10px",fontSize:11}}>+ Log</Btn>
         </div>
       </div>
@@ -5020,6 +5106,7 @@ function HistoryTab({sessions,saveSessions,setSessions,savePRs,prs,plans,C,toggl
         ))}
       </div>
     </div>
+    {sessions&&sessions.length>0&&<TrainingCalendar sessions={sessions} C={C}/>}
     {deleteError&&<div onClick={()=>setDeleteError(null)} style={{background:C.red,color:"#fff",padding:"10px 18px",fontSize:13,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",cursor:"pointer",textAlign:"center"}}>{deleteError} (tap to dismiss)</div>}
 
     {manualPick!==null&&<ExerciseLibraryModal sessions={sessions} plans={plans} onClose={()=>setManualPick(null)} C={C}
@@ -5821,7 +5908,8 @@ Total sessions: ${sessions.length}
 This week volume: ${Math.round(weekVol).toLocaleString()} lbs
 28-day volume change: ${vol28Delta!==null?`${vol28Delta>0?"+":""}${vol28Delta}%`:"N/A"}
 
-Focus on: progress trends, recovery patterns, or a specific recommendation to improve results. No generic advice.`;
+Focus on: progress trends, recovery patterns, or a specific recommendation to improve results. No generic advice.
+Keep the tone encouraging and measured: call something an imbalance only when the gap is large and repeats across several sessions, and state its size. Write plain text without markdown — it's shown as-is.`;
     try{
       const data=await callAI({action:"coach_insight",messages:[{role:"user",content:prompt}],maxTokens:200});
       if(data.upgradeRequired){setCoachUpgrade(data);setLoadingInsight(false);return;}
@@ -5842,7 +5930,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
     <div style={{background:C.bg,borderBottom:`1px solid ${C.border}`,padding:"16px 18px 14px"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
         <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>Progress</div>
-        <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
+        <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="system"?"AUTO":themeMode==="dark"?"DARK":"LIGHT"}</button>
       </div>
       {(()=>{const wk=planWeekOf(activePlan);const tot=activePlan?.durationWeeks||10;const fb=programStart?programWeekFromDate(programStart):programWeek(sessions);
         if(!wk)return <div style={{fontSize:12,color:C.muted,marginBottom:12}}>{`Week ${fb} of your program`}</div>;
@@ -6191,8 +6279,11 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
             <Btn size="sm" variant="ghost" C={C} style={{flex:1}} onClick={()=>setAddingBody(false)}>Cancel</Btn>
           </div>
         </div>}
-        {bodyStats.length===0&&!addingBody&&<div style={{textAlign:"center",padding:"32px 0",color:C.muted,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",fontSize:12}}>
-          No measurements logged yet.<br/>Tap + Log to add your first entry.
+        {bodyStats.length===0&&!addingBody&&<div style={{textAlign:"center",padding:"28px 20px",background:C.card,border:`1px solid ${C.border}`,borderRadius:18,boxShadow:C.shadow}}>
+          <div style={{width:56,height:56,borderRadius:28,margin:"0 auto 12px",display:"flex",alignItems:"center",justifyContent:"center",background:C.accent+"18",color:C.accentInk}}><TrendingUp size={26} strokeWidth={2}/></div>
+          <div style={{fontSize:17,fontWeight:800,color:C.text}}>Track your body, not just your lifts</div>
+          <div style={{fontSize:13,color:C.muted,marginTop:6,lineHeight:1.5}}>Log weight and measurements to see your trend line here.</div>
+          <Btn C={C} onClick={()=>setAddingBody(true)} style={{marginTop:16,minHeight:46,padding:"10px 22px",fontSize:15}}>Log first entry</Btn>
         </div>}
         {bodyStats.length>0&&<div>
           {/* Weight trend chart */}
@@ -6227,7 +6318,7 @@ Focus on: progress trends, recovery patterns, or a specific recommendation to im
         <div style={{background:`linear-gradient(135deg,${C.accent}18,${C.neon}10)`,border:`1px solid ${C.accent}33`,borderRadius:12,padding:"18px",marginBottom:16}}>
           <div style={{fontSize:16,fontWeight:700,marginBottom:6}}>✦ Personal Trainer AI</div>
           <div style={{fontSize:13,color:C.muted,lineHeight:1.6,marginBottom:14}}>Weekly insight based on your actual training data.</div>
-          {loadingInsight?<div style={{textAlign:"center",padding:"20px 0",color:C.muted,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",fontSize:12}}>Analyzing your training...</div>
+          {loadingInsight?<div style={{padding:"8px 0 14px"}}><Skeleton lines={4} C={C}/><div style={{fontSize:12,color:C.muted,marginTop:8}}>Reading your recent sessions…</div></div>
             :coachUpgrade?<UpgradePrompt {...coachUpgrade} C={C}/>
             :<div>
               {trainerInsight&&<div style={{fontSize:13,lineHeight:1.8,color:C.text,marginBottom:14,padding:"12px",background:C.card,borderRadius:8,whiteSpace:"pre-wrap"}}>{/* the model sometimes answers in markdown: render **bold**, drop stray * / # markers */}{trainerInsight.replace(/^#+\s*/gm,"").split(/(\*\*[^*]+\*\*)/g).map((part,i)=>/^\*\*[^*]+\*\*$/.test(part)?<strong key={i}>{part.slice(2,-2)}</strong>:part.replace(/\*/g,""))}</div>}
@@ -6409,7 +6500,7 @@ function MoreTab({settings,saveSettings,plans,sessions,prs,C,toggleTheme,themeMo
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em"}}>Settings</div>
         <div style={{display:"flex",gap:8}}>
-          <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="dark"?"DARK":"LIGHT"}</button>
+          <button onClick={toggleTheme} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:RADIUS.control,color:C.muted,cursor:"pointer",padding:"6px 11px",fontSize:10,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",letterSpacing:"0.08em",display:"flex",alignItems:"center",gap:5,flexShrink:0}}>{themeMode==="dark"?<Moon size={ICON.md} strokeWidth={1.75}/>:<Sun size={ICON.md} strokeWidth={1.75}/>}{themeMode==="system"?"AUTO":themeMode==="dark"?"DARK":"LIGHT"}</button>
           <button onClick={async()=>{try{await supabase.auth.signOut();}catch(e){console.error("signOut:",e);}}} style={{background:"transparent",border:`1px solid ${C.danger}44`,borderRadius:8,color:C.dangerInk,cursor:"pointer",padding:"7px 12px",fontSize:11,fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",letterSpacing:"0.04em"}}>
             Sign Out
           </button>
@@ -6646,7 +6737,7 @@ Plain text, no markdown, be concise.`;
       </div>
       <Btn variant="ghost" size="sm" onClick={onClose} C={C}>✕</Btn>
     </div>
-    {loading?<div style={{textAlign:"center",padding:"32px 0",fontFamily:"-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif",color:C.muted,fontSize:13}}>Analyzing...</div>
+    {loading?<div style={{padding:"12px 0 20px"}}><Skeleton lines={5} C={C}/></div>
       :aiUpgrade?<UpgradePrompt {...aiUpgrade} C={C}/>
       :<div style={{fontSize:13,lineHeight:1.8,color:C.text,whiteSpace:"pre-wrap"}}>{response}</div>}
   </Modal>;
@@ -6852,6 +6943,7 @@ function WorkoutSummary({session,newPRs,previousPRs,complianceStreak,setsWarning
     <SummaryPage C={C}>
       {setsWarning&&<div style={{background:"#f7c948",borderRadius:10,padding:"10px 14px",textAlign:"center",marginTop:16}}><Mono style={{fontSize:12,color:ONACCENT,fontWeight:700}}>Workout saved — set details failed to sync. Check History and re-log if needed.</Mono></div>}
       <SummaryMeta label="WORKOUT RECAP" title={session.dayLabel} sub={`${dayName}, ${dateStr} · ${durationMin} min`} C={C}/>
+      {heroIsPR&&<Confetti C={C}/>}
       <SummaryHero value={heroValue} sub={heroSub} caption={heroCaption} accent={heroIsPR} icon={heroIsPR?Trophy:null} C={C}/>
       {/* Supporting floor: the stats the hero doesn't already own. When a PR is the hero, volume shows here
           as LBS — same "lbs lifted" metric the volume-hero leads with when there's no PR. */}
