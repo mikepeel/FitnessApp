@@ -537,14 +537,15 @@ const BODYMAP_DATA = {
 const mkId = () => `id_${Math.random().toString(36).slice(2,9)}`;
 
 // -- AI PROXY HELPER -----------------------------------------------------------
-async function callAI({action,messages,maxTokens=800}){
+// AI requests carry an action + parameters only; api/ai.js builds the prompt, caps output and enforces limits.
+async function callAI({action,params,timeoutMs=15000}){
   const{data:{session}}=await supabase.auth.getSession();
   const token=session?.access_token;
   const ctrl=new AbortController();
-  const tid=setTimeout(()=>ctrl.abort(),15000);
+  const tid=setTimeout(()=>ctrl.abort(),timeoutMs);
   let res;
   try{
-    res=await fetch("/api/ai",{method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${token||""}`},body:JSON.stringify({action,messages,max_tokens:maxTokens}),signal:ctrl.signal});
+    res=await fetch("/api/ai",{method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${token||""}`},body:JSON.stringify({action,params}),signal:ctrl.signal});
   }finally{clearTimeout(tid);}
   if(res.status===402){const err=await res.json();return{upgradeRequired:true,...err};}
   if(!res.ok)throw new Error(`AI error: ${res.status}`);
@@ -1675,14 +1676,10 @@ const DEFAULT_SETTINGS = {
 };
 
 // Builds a trainer profile string injected into all AI prompts
-function aiProfileContext(s){
-  if(!s)return "";
-  const parts=[];
-  if(s.aiAgeRange)parts.push(`Age range: ${s.aiAgeRange}`);
-  if(s.aiExperience)parts.push(`Experience: ${s.aiExperience}`);
-  if(s.aiGoal)parts.push(`Goal: ${s.aiGoal}`);
-  if(s.aiJointNotes)parts.push(`Notes: ${s.aiJointNotes}`);
-  return parts.length?`\nTrainer profile — ${parts.join(", ")}.`:"";
+// AI trainer profile sent with AI requests (the server turns it into the prompt's profile line).
+function aiProfile(s){
+  if(!s)return {};
+  return {ageRange:s.aiAgeRange||"",experience:s.aiExperience||"",goal:s.aiGoal||"",jointNotes:s.aiJointNotes||""};
 }
 
 // -- THEME CONTEXT -------------------------------------------------------------
@@ -3797,15 +3794,11 @@ function SwapExerciseModal({exercise,settings,onSwap,onClose,cachedSuggestions,o
 
   async function loadAISuggestions(){
     setLoadingAI(true);
-    const prompt=`You are a personal trainer. Suggest 6 alternative exercises to swap for "${exercise.name}" (muscle: ${exercise.muscle||"unknown"}).${aiProfileContext(settings)}
-Requirements: joint-friendly, similar muscle group, gym equipment available.
-Return ONLY a JSON array of objects: [{"name":"Exercise Name","sets":"3","reps":"10-12","note":"brief reason","muscle":"${exercise.muscle||""}"}]
-No markdown, no explanation, just the array.`;
     try{
-      const data=await callAI({action:"exercise_swap",messages:[{role:"user",content:prompt}],maxTokens:600});
+      const data=await callAI({action:"exercise_swap",params:{exercise:exercise.name,muscle:exercise.muscle||"",profile:aiProfile(settings)}});
       if(data.upgradeRequired){setSwapUpgrade(data);setLoadingAI(false);return;}
-      const text=data.content?.find(b=>b.type==="text")?.text||"[]";
-      const parsed=JSON.parse(text.replace(/```json|```/g,"").trim());
+      const parsed=JSON.parse(data.content?.find(b=>b.type==="text")?.text||"{}").suggestions;
+      if(!Array.isArray(parsed)||!parsed.length)throw new Error("no suggestions");
       setAiSuggestions(parsed);
       if(onCacheSuggestions)onCacheSuggestions(exercise.name,parsed);
     }catch{
@@ -4112,15 +4105,11 @@ function PlanTab({plans,activePlanKey,setActivePlanKey,savePlans,settings,C,togg
 
   async function aiSequenceDay(day){
     setSequencingDay(day.id);
-    const prompt=`You are an expert personal trainer. Reorder these exercises for optimal workout sequencing -- compound lifts first, isolation second, abs and cardio last. Consider muscle fatigue, joint stress, and training science.
-Exercises: ${day.exercises.map((e,i)=>`${i+1}. ${e.name} (${e.muscle||"unknown"})`).join(", ")}
-Return ONLY a JSON array of exercise names in the optimal order. Example: ["Bench Press","Incline Press","Cable Fly","Machine Crunch"]
-No explanation, no markdown, just the JSON array.`;
     try{
-      const data=await callAI({action:"sequence_opt",messages:[{role:"user",content:prompt}],maxTokens:300});
+      const data=await callAI({action:"sequence_opt",params:{exercises:day.exercises.map(e=>({name:e.name,muscle:e.muscle||""}))}});
       if(data.upgradeRequired){setSequenceUpgrade(data);setSequencingDay(null);return;}
-      const text=data.content?.find(b=>b.type==="text")?.text||"[]";
-      const ordered=JSON.parse(text.replace(/```json|```/g,"").trim());
+      const ordered=JSON.parse(data.content?.find(b=>b.type==="text")?.text||"{}").order;
+      if(!Array.isArray(ordered))throw new Error("no order");
       const reordered=[];
       for(const name of ordered){
         const found=day.exercises.find(e=>e.name===name);
@@ -4631,40 +4620,10 @@ function GoalBuilderModal({onAdd,onClose,C}){
 
   async function buildPlan(ans){
     setLoading(true);
-    const prompt=`You are an expert personal trainer. Create a custom workout plan based on these answers:
-Goal: ${ans.goal}
-Days/week: ${ans.days}
-Session length: ${ans.duration}
-Experience: ${ans.experience}
-Limitations: ${ans.limitations}
-Equipment: ${ans.equipment}
-
-Return ONLY a JSON object with this exact structure (no markdown, no explanation):
-{
-  "name": "Plan name",
-  "subtitle": "Brief subtitle",
-  "description": "2-sentence description",
-  "days": [
-    {
-      "name": "Monday",
-      "label": "Push",
-      "tag": "Chest . Shoulders . Triceps",
-      "color": "#f7c948",
-      "isRest": false,
-      "exercises": [
-        {"name": "Bench Press", "sets": "4", "reps": "8-12", "note": "brief tip", "muscle": "Chest"}
-      ]
-    }
-  ]
-}
-Use 7 days total (fill rest days with isRest:true and minimal exercises array with one recovery item). Colors: use only these hex values: #4f8ef7, #f06584, #f7c948, #3ecf8e. Make the plan practical and appropriate for the stated limitations.`;
-
     try{
-      const data=await callAI({action:"plan_builder",messages:[{role:"user",content:prompt}],maxTokens:2000});
+      const data=await callAI({action:"plan_builder",params:{goal:ans.goal,days:ans.days,duration:ans.duration,experience:ans.experience,limitations:ans.limitations,equipment:ans.equipment},timeoutMs:45000});
       if(data.upgradeRequired){setResult({upgradeRequired:true,...data});setLoading(false);return;}
-      const text=data.content?.find(b=>b.type==="text")?.text||"";
-      const clean=text.replace(/```json|```/g,"").trim();
-      const parsed=JSON.parse(clean);
+      const parsed=JSON.parse(data.content?.find(b=>b.type==="text")?.text||"");
       const withIds={
         key:`ai_${Date.now()}`,
         name:parsed.name, subtitle:parsed.subtitle, description:parsed.description,
@@ -5900,18 +5859,8 @@ function StatsTab({sessions,programStart,prs,settings,C,activePlan,toggleTheme,t
     setLoadingInsight(true);
     const recentSessions=sessions.slice(0,5).map(s=>({day:s.dayLabel,date:s.completedAt?new Date(s.completedAt).toLocaleDateString("en-CA"):undefined,sets:(s.setsArr||[]).length}));
     const topPRs=prList.slice(0,5).map(([n,p])=>(`${n}: ${p.weight}lbs`));
-    const prompt=`You are a personal trainer AI.${aiProfileContext(settings)} Analyze this user's recent workout data and provide ONE specific, actionable insight in 2-3 sentences. Be direct and personalized.
-
-Recent sessions: ${JSON.stringify(recentSessions)}
-Top PRs: ${topPRs.join(", ")}
-Total sessions: ${sessions.length}
-This week volume: ${Math.round(weekVol).toLocaleString()} lbs
-28-day volume change: ${vol28Delta!==null?`${vol28Delta>0?"+":""}${vol28Delta}%`:"N/A"}
-
-Focus on: progress trends, recovery patterns, or a specific recommendation to improve results. No generic advice.
-Keep the tone encouraging and measured: call something an imbalance only when the gap is large and repeats across several sessions, and state its size. Write plain text without markdown — it's shown as-is.`;
     try{
-      const data=await callAI({action:"coach_insight",messages:[{role:"user",content:prompt}],maxTokens:200});
+      const data=await callAI({action:"coach_insight",params:{kind:"weekly",profile:aiProfile(settings),recentSessions,topPRs,totalSessions:sessions.length,weekVol:Math.round(weekVol),vol28Delta}});
       if(data.upgradeRequired){setCoachUpgrade(data);setLoadingInsight(false);return;}
       {const txt=data.content?.find(b=>b.type==="text")?.text||"";TRAINER_INSIGHT_CACHE.text=txt||null;setTrainerInsight(txt);}
     }catch{
@@ -6701,26 +6650,13 @@ function AIModal({exercise,day,settings,onClose,C}){
   async function getRecommendation(){
     setLoading(true);
     const isEx=!!exercise&&!day;
-    const profile=aiProfileContext(settings);
-    const prompt=isEx
-      ?`You are a personal trainer specializing in hypertrophy and joint-safe training.${profile}
-Program: ${exercise?.programNote||"Strength training program"}, currently week ${programWeek([])}.
-Exercise: "${exercise.name}" -- ${exercise.muscle||"unknown"}, ${exercise.sets} sets × ${exercise.reps}.
-Provide:
-1. THREE alternative exercises for the same muscle group (joint-friendly, brief reason each)
-2. ONE form or progression tip for the current exercise
-Plain text, no markdown, be concise and direct.`
-      :`You are a personal trainer analyzing a workout day.${profile}
-Program: ${day?.programNote||"Strength training program"}, currently week ${programWeek([])}.
-Day: "${day?.label}" (${day?.tag})
-Exercises: ${(day?.exercises||[]).map(e=>`${e.name} (${e.sets}×${e.reps})`).join(", ")}.
-Provide:
-1. Assessment of structure and volume balance (2 sentences)
-2. Any muscle gaps or imbalances
-3. One concrete optimization suggestion
-Plain text, no markdown, be concise.`;
+    // Server builds the prompt. (The old "Program: …, currently week N" line is gone: programNote was never
+    // set and programWeek([]) counted from a fixed fallback date, so every user got the same invented week.)
+    const params=isEx
+      ?{kind:"exercise",profile:aiProfile(settings),exercise:{name:exercise.name,muscle:exercise.muscle||"",sets:exercise.sets,reps:exercise.reps}}
+      :{kind:"day",profile:aiProfile(settings),day:{label:day?.label||"",tag:day?.tag||"",exercises:(day?.exercises||[]).map(e=>({name:e.name,sets:e.sets,reps:e.reps}))}};
     try{
-      const data=await callAI({action:"coach_insight",messages:[{role:"user",content:prompt}],maxTokens:800});
+      const data=await callAI({action:"coach_insight",params});
       if(data.upgradeRequired){setAiUpgrade(data);setLoading(false);return;}
       setResponse(data.content?.find(b=>b.type==="text")?.text||"No recommendation available.");
     }catch{
