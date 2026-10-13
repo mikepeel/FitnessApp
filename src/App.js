@@ -3161,7 +3161,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
   const headerRef=useRef(null);
   const [headerH,setHeaderH]=useState(0); // sticky header height — the pinned rest timer sits just below it
   useEffect(()=>{const m=()=>{if(headerRef.current)setHeaderH(headerRef.current.offsetHeight);};m();window.addEventListener("resize",m);return()=>window.removeEventListener("resize",m);},[]);
-  const [nudgeFor,setNudgeFor]=useState(null); // set row showing the quick-entry bar (stateKey)
+  const [nudgeFor,setNudgeFor]=useState(null); // quick-entry bar target: {key: set stateKey, field: "weight"|"reps"|"secs"}
   const [loggedSets,setLoggedSets]=useState(()=>{
     // If restoring from a saved draft, use draft data AS-IS — preserve prepop flags
     // so untouched suggestions stay "suggested" and don't appear as entered values
@@ -3645,8 +3645,8 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
                     </div>]
                   :[
                     <Mono key={`n${n}`} style={{fontSize:12,color:setRowState==="inprogress"?C.text:C.muted,textAlign:"center",fontWeight:setRowState==="inprogress"?700:400}}>{n}</Mono>,
-                    <input key={`c1${n}`} aria-label={`${ex.name} set ${n} ${isTime?"seconds":isReps?"reps":"weight"}`} type="number" inputMode="decimal" placeholder={isTime?(last?.[n]?.reps||"secs"):isReps?(last?.[n]?.reps||"reps"):(last?.[n]?.weight||"lbs")} value={(isRL?myLog[n]?.reps:myLog[n]?.weight)||""} onChange={e=>logSet(ex.name,n,isRL?"reps":"weight",e.target.value)} onFocus={()=>{setNudgeFor(stateKey);if(isPrepop)setLoggedSets(prev=>({...prev,[ex.name]:{...prev[ex.name],[n]:{...prev[ex.name]?.[n],prepop:false}}}));}} style={{...inputStyle,color:setRowState==="suggested"?C.muted:C.text,fontStyle:setRowState==="suggested"?"italic":"normal",background:setRowState==="inprogress"?C.accent+"12":C.surface}}/>,
-                    <input key={`c2${n}`} aria-label={`${ex.name} set ${n} ${isRL?"added weight":"reps"}`} type="number" inputMode="decimal" placeholder={isRL?"+lbs":(last?.[n]?.reps||"reps")} value={(isRL?myLog[n]?.weight:myLog[n]?.reps)||""} onChange={e=>logSet(ex.name,n,isRL?"weight":"reps",e.target.value)} onFocus={()=>{setNudgeFor(stateKey);if(isPrepop)setLoggedSets(prev=>({...prev,[ex.name]:{...prev[ex.name],[n]:{...prev[ex.name]?.[n],prepop:false}}}));}} style={{...inputStyle,color:setRowState==="suggested"?C.muted:C.text,fontStyle:setRowState==="suggested"?"italic":"normal",background:setRowState==="inprogress"?C.accent+"12":C.surface,opacity:isRL&&!(myLog[n]?.weight)?0.8:1}}/>,
+                    <input key={`c1${n}`} aria-label={`${ex.name} set ${n} ${isTime?"seconds":isReps?"reps":"weight"}`} type="number" inputMode="decimal" placeholder={isTime?(last?.[n]?.reps||"secs"):isReps?(last?.[n]?.reps||"reps"):(last?.[n]?.weight||"lbs")} value={(isRL?myLog[n]?.reps:myLog[n]?.weight)||""} onChange={e=>logSet(ex.name,n,isRL?"reps":"weight",e.target.value)} onFocus={()=>{setNudgeFor({key:stateKey,field:isTime?"secs":isReps?"reps":"weight"});if(isPrepop)setLoggedSets(prev=>({...prev,[ex.name]:{...prev[ex.name],[n]:{...prev[ex.name]?.[n],prepop:false}}}));}} style={{...inputStyle,color:setRowState==="suggested"?C.muted:C.text,fontStyle:setRowState==="suggested"?"italic":"normal",background:setRowState==="inprogress"?C.accent+"12":C.surface}}/>,
+                    <input key={`c2${n}`} aria-label={`${ex.name} set ${n} ${isRL?"added weight":"reps"}`} type="number" inputMode="decimal" placeholder={isRL?"+lbs":(last?.[n]?.reps||"reps")} value={(isRL?myLog[n]?.weight:myLog[n]?.reps)||""} onChange={e=>logSet(ex.name,n,isRL?"weight":"reps",e.target.value)} onFocus={()=>{setNudgeFor({key:stateKey,field:isRL?"weight":"reps"});if(isPrepop)setLoggedSets(prev=>({...prev,[ex.name]:{...prev[ex.name],[n]:{...prev[ex.name]?.[n],prepop:false}}}));}} style={{...inputStyle,color:setRowState==="suggested"?C.muted:C.text,fontStyle:setRowState==="suggested"?"italic":"normal",background:setRowState==="inprogress"?C.accent+"12":C.surface,opacity:isRL&&!(myLog[n]?.weight)?0.8:1}}/>,
                     <button key={`d${n}`} onClick={()=>{
                       const w=myLog[n]?.weight||"";
                       const r=myLog[n]?.reps||"";
@@ -3670,16 +3670,20 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
                       // REST TIMER: only triggered here, on explicit set confirmation
                       else if(!isWarmup){setRestNext({exName:ex.name,setNum:n+1,track,targetReps:ex.reps,weight:track==="weight"?w:"",lastW:last?.[n+1]?.weight,lastR:last?.[n+1]?.reps});setShowRest(true);setRestKey(k=>k+1);setTimeout(()=>restAnchorRef.current?.scrollIntoView({behavior:"smooth",block:"start"}),100);}
                     }} aria-label="Confirm set" style={{padding:"9px 4px",background:"transparent",border:`1px solid ${C.neon}44`,borderRadius:7,color:C.neonInk,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Check size={ICON.md} strokeWidth={1.75}/></button>,
-                    ...(nudgeFor===stateKey?[(()=>{
-                      // Quick entry: nudge the load without the keyboard; "Same as last" copies the previous set
-                      // in this workout, else last session's numbers for this set.
+                    ...(nudgeFor&&nudgeFor.key===stateKey?[(()=>{
+                      // Quick entry, contextual to the focused box: weight ±2.5/±5 lbs, reps −1/+1/+2/+3, hold
+                      // seconds ±5/±15. "Same as last" copies the previous set in this workout, else last session's.
                       const cur=myLog[n]||{};
                       const prevSet=n>1&&(myLog[n-1]?.weight||myLog[n-1]?.reps)?myLog[n-1]:null;
                       const src=prevSet||(last&&last[n])||null;
                       const nb={minHeight:34,padding:"5px 0",borderRadius:9,border:`1px solid ${C.border}`,background:C.surface,color:C.text,fontFamily:C.sans,fontSize:13,fontWeight:700,cursor:"pointer"};
-                      const bump=d=>{const base=parseFloat(cur.weight)||parseFloat(last?.[n]?.weight)||0;const v=Math.max(0,Math.round((base+d)*10)/10);logSet(ex.name,n,"weight",String(v));};
-                      return <div key={`q${n}`} onPointerDown={e=>e.preventDefault()} style={{gridColumn:"1 / -1",display:"grid",gridTemplateColumns:isRL?"1fr":"repeat(4,1fr) 1.6fr",gap:6,margin:"2px 0 6px"}}>
-                        {!isRL&&[-5,-2.5,2.5,5].map(d=><button key={d} aria-label={`${d>0?"Add":"Subtract"} ${Math.abs(d)} pounds`} onClick={()=>bump(d)} style={nb}>{d>0?"+":"−"}{Math.abs(d)}</button>)}
+                      const fld=nudgeFor.field; // seconds are stored in `reps`
+                      const store=fld==="weight"?"weight":"reps";
+                      const steps=fld==="weight"?[-5,-2.5,2.5,5]:fld==="secs"?[-15,-5,5,15]:[-1,1,2,3];
+                      const unit=fld==="weight"?"pounds":fld==="secs"?"seconds":"reps";
+                      const bump=d=>{const base=parseFloat(cur[store])||parseFloat(last?.[n]?.[store])||0;const v=fld==="weight"?Math.max(0,Math.round((base+d)*10)/10):Math.max(0,Math.round(base+d));logSet(ex.name,n,store,String(v));};
+                      return <div key={`q${n}`} onPointerDown={e=>e.preventDefault()} style={{gridColumn:"1 / -1",display:"grid",gridTemplateColumns:"repeat(4,1fr) 1.6fr",gap:6,margin:"2px 0 6px"}}>
+                        {steps.map(d=><button key={d} aria-label={`${d>0?"Add":"Subtract"} ${Math.abs(d)} ${unit}`} onClick={()=>bump(d)} style={nb}>{d>0?"+":"−"}{Math.abs(d)}{fld==="secs"?"s":""}</button>)}
                         <button disabled={!src} onClick={()=>{if(!src)return;if(src.weight)logSet(ex.name,n,"weight",String(src.weight));if(src.reps)logSet(ex.name,n,"reps",String(src.reps));}} style={{...nb,color:src?C.accentInk:C.faint,cursor:src?"pointer":"default"}}>Same as last</button>
                       </div>;
                     })()]:[])
