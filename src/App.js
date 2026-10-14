@@ -1828,12 +1828,18 @@ function BodyMap({intensities={},focus=null,onSelect,C,figMax=150}){
 
 function RestTimer({seconds,onDone,onSkip,C,next,stickyTop=0}){
   const startTs=useRef(Date.now());
-  const sentinelRef=useRef(null);
+  // The full card always stays in the page (fixed height); once it scrolls under the header a compact pill
+  // appears as a separate fixed overlay. Toggling never changes layout, so scrolling can't bounce between
+  // states (the old single sticky element shrank ~64px on toggle, shifting the page back across the threshold).
+  const cardRef=useRef(null);
   const [compact,setCompact]=useState(false);
   useEffect(()=>{
-    const onScroll=()=>{const el=sentinelRef.current;if(el)setCompact(el.getBoundingClientRect().top<stickyTop-4);};
-    onScroll();window.addEventListener("scroll",onScroll,{passive:true});
-    return()=>window.removeEventListener("scroll",onScroll);
+    let raf=0;
+    const check=()=>{raf=0;const el=cardRef.current;if(!el)return;const b=el.getBoundingClientRect().bottom;
+      setCompact(c=>c?b<stickyTop+16:b<stickyTop);}; // hysteresis: no flicker at the boundary
+    const on=()=>{if(!raf)raf=requestAnimationFrame(check);};
+    check();window.addEventListener("scroll",on,{passive:true});window.addEventListener("resize",on);
+    return()=>{window.removeEventListener("scroll",on);window.removeEventListener("resize",on);if(raf)cancelAnimationFrame(raf);};
   },[stickyTop]);
   const [total,setTotal]=useState(seconds); // ±15s adjusts the target; elapsed stays wall-clock (iOS-safe)
   const [rem,setRem]=useState(seconds);
@@ -1855,17 +1861,8 @@ function RestTimer({seconds,onDone,onSkip,C,next,stickyTop=0}){
   const pill={minHeight:36,padding:"6px 12px",borderRadius:RADIUS.pill,border:`1px solid ${C.border}`,background:C.surface,color:C.text,fontFamily:C.sans,fontSize:13,fontWeight:700,cursor:"pointer"};
   const timeTxt=`${Math.floor(rem/60)}:${String(rem%60).padStart(2,"0")}`;
   const elevated=C.shadow!=="none"?"0 8px 24px rgba(15,30,60,0.16)":"0 8px 24px rgba(0,0,0,0.45)";
-  return <><div ref={sentinelRef}/>
-  <div style={{position:"sticky",top:stickyTop,zIndex:40,marginBottom:12}}>
-  {compact?<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:16,boxShadow:elevated,padding:"8px 10px",display:"flex",alignItems:"center",gap:10}}>
-    <svg width="36" height="36" style={{flexShrink:0,transform:"rotate(-90deg)"}}><circle cx="18" cy="18" r="15" fill="none" stroke={C.border} strokeWidth="4"/>{frac>0&&<circle cx="18" cy="18" r="15" fill="none" stroke={col} strokeWidth="4" strokeLinecap="round" strokeDasharray={2*Math.PI*15} strokeDashoffset={2*Math.PI*15*(1-frac)} style={{transition:"stroke-dashoffset 1s linear"}}/>}</svg>
-    <div style={{minWidth:0,flex:1}}>
-      <div style={{fontSize:17,fontWeight:800,color:rem<=10?C.redInk:C.text,fontVariantNumeric:"tabular-nums",lineHeight:1.1}}>{timeTxt}</div>
-      {next&&<div style={{fontSize:12,color:C.muted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>Next: {next.exName?`${next.exName} · `:""}Set {next.setNum}</div>}
-    </div>
-    <button aria-label="Rest 15 seconds more" onClick={()=>adjust(15)} style={{...pill,minHeight:32,padding:"4px 10px"}}>+15s</button>
-    <button onClick={onSkip} style={{...pill,minHeight:32,padding:"4px 12px",background:C.neon,border:"1px solid transparent",color:ONACCENT}}>Skip</button>
-  </div>:
+  return <>
+  <div ref={cardRef} style={{marginBottom:12}}>
   <div style={{background:C.card,boxShadow:C.shadow,border:`1px solid ${C.border}`,borderRadius:16,padding:"14px"}}>
     <div style={{display:"flex",alignItems:"center",gap:16}}>
       <div style={{position:"relative",width:size,height:size,flexShrink:0}}>
@@ -1891,8 +1888,20 @@ function RestTimer({seconds,onDone,onSkip,C,next,stickyTop=0}){
         </div>
       </div>
     </div>
+  </div>
+  </div>
+  {compact&&<div className="iron-fade-down" style={{position:"fixed",top:stickyTop+6,left:0,right:0,zIndex:45,padding:"0 18px",boxSizing:"border-box"}}>
+  <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:16,boxShadow:elevated,padding:"8px 10px",display:"flex",alignItems:"center",gap:10}}>
+    <svg width="36" height="36" style={{flexShrink:0,transform:"rotate(-90deg)"}}><circle cx="18" cy="18" r="15" fill="none" stroke={C.border} strokeWidth="4"/>{frac>0&&<circle cx="18" cy="18" r="15" fill="none" stroke={col} strokeWidth="4" strokeLinecap="round" strokeDasharray={2*Math.PI*15} strokeDashoffset={2*Math.PI*15*(1-frac)} style={{transition:"stroke-dashoffset 1s linear"}}/>}</svg>
+    <div style={{minWidth:0,flex:1}}>
+      <div style={{fontSize:17,fontWeight:800,color:rem<=10?C.redInk:C.text,fontVariantNumeric:"tabular-nums",lineHeight:1.1}}>{timeTxt}</div>
+      {next&&<div style={{fontSize:12,color:C.muted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>Next: {next.exName?`${next.exName} · `:""}Set {next.setNum}</div>}
+    </div>
+    <button aria-label="Rest 15 seconds more" onClick={()=>adjust(15)} style={{...pill,minHeight:32,padding:"4px 10px"}}>+15s</button>
+    <button onClick={onSkip} style={{...pill,minHeight:32,padding:"4px 12px",background:C.neon,border:"1px solid transparent",color:ONACCENT}}>Skip</button>
+  </div>
   </div>}
-  </div></>;
+  </>;
 }
 
 function PlateCalc({weight,C}){
@@ -3621,8 +3630,8 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
           {!isCardio&&<div style={{display:"grid",gridTemplateColumns:"28px 24px 1fr 1fr 34px",gap:"4px 8px",alignItems:"center"}}>
             <div/>
             <Mono style={{fontSize:10,color:C.muted}}>#</Mono>
-            <Mono style={{fontSize:10,color:C.muted}}>{isTime?"SECONDS":isReps?"REPS":"WEIGHT"}</Mono>
-            <Mono style={{fontSize:10,color:C.muted}}>{isRL?"+LBS":"REPS"}</Mono>
+            <Mono style={{fontSize:10,color:C.muted}}>{isRL?"+LBS":"WEIGHT"}</Mono>
+            <Mono style={{fontSize:10,color:C.muted}}>{isTime?"SECONDS":"REPS"}</Mono>
             <div/>
             {Array.from({length:numSets},(_,i)=>i+1).map(n=>{
               const typ=(setTypes[ex.name]?.[n])||"working";
@@ -3640,13 +3649,13 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
                   ?[<div key={`confirmed${n}`} className="iron-pop" onClick={()=>{setSetStates(prev=>{const u={...prev};delete u[stateKey];return u;});}} style={{gridColumn:"span 4",background:C.neon+"12",border:`1px solid ${C.neon}22`,borderRadius:6,display:"flex",alignItems:"center",gap:8,padding:"8px 10px",cursor:"pointer"}}>
                       <span style={{color:C.neonInk,display:"inline-flex",alignItems:"center"}}><Check size={ICON.sm} strokeWidth={1.75}/></span>
                       <Mono style={{color:C.neonInk,fontSize:12,fontWeight:700}}>{n}</Mono>
-                      <Mono style={{color:C.text,fontSize:13,fontWeight:600,flex:1}}>{isTime?`${myLog[n]?.reps}s${myLog[n]?.weight?` +${myLog[n]?.weight} lbs`:""}`:isReps?`${myLog[n]?.reps} reps${myLog[n]?.weight?` +${myLog[n]?.weight} lbs`:""}`:`${myLog[n]?.weight} lbs × ${myLog[n]?.reps}`}</Mono>
+                      <Mono style={{color:C.text,fontSize:13,fontWeight:600,flex:1}}>{isRL?`${myLog[n]?.weight?`+${myLog[n]?.weight} lbs × `:""}${myLog[n]?.reps}${isTime?"s":" reps"}`:`${myLog[n]?.weight} lbs × ${myLog[n]?.reps}`}</Mono>
                       <Mono style={{color:C.muted,fontSize:11}}>tap to edit</Mono>
                     </div>]
                   :[
                     <Mono key={`n${n}`} style={{fontSize:12,color:setRowState==="inprogress"?C.text:C.muted,textAlign:"center",fontWeight:setRowState==="inprogress"?700:400}}>{n}</Mono>,
-                    <input key={`c1${n}`} aria-label={`${ex.name} set ${n} ${isTime?"seconds":isReps?"reps":"weight"}`} type="number" inputMode="decimal" placeholder={isTime?(last?.[n]?.reps||"secs"):isReps?(last?.[n]?.reps||"reps"):(last?.[n]?.weight||"lbs")} value={(isRL?myLog[n]?.reps:myLog[n]?.weight)||""} onChange={e=>logSet(ex.name,n,isRL?"reps":"weight",e.target.value)} onFocus={()=>{setNudgeFor({key:stateKey,field:isTime?"secs":isReps?"reps":"weight"});if(isPrepop)setLoggedSets(prev=>({...prev,[ex.name]:{...prev[ex.name],[n]:{...prev[ex.name]?.[n],prepop:false}}}));}} style={{...inputStyle,color:setRowState==="suggested"?C.muted:C.text,fontStyle:setRowState==="suggested"?"italic":"normal",background:setRowState==="inprogress"?C.accent+"12":C.surface}}/>,
-                    <input key={`c2${n}`} aria-label={`${ex.name} set ${n} ${isRL?"added weight":"reps"}`} type="number" inputMode="decimal" placeholder={isRL?"+lbs":(last?.[n]?.reps||"reps")} value={(isRL?myLog[n]?.weight:myLog[n]?.reps)||""} onChange={e=>logSet(ex.name,n,isRL?"weight":"reps",e.target.value)} onFocus={()=>{setNudgeFor({key:stateKey,field:isRL?"weight":"reps"});if(isPrepop)setLoggedSets(prev=>({...prev,[ex.name]:{...prev[ex.name],[n]:{...prev[ex.name]?.[n],prepop:false}}}));}} style={{...inputStyle,color:setRowState==="suggested"?C.muted:C.text,fontStyle:setRowState==="suggested"?"italic":"normal",background:setRowState==="inprogress"?C.accent+"12":C.surface,opacity:isRL&&!(myLog[n]?.weight)?0.8:1}}/>,
+                    <input key={`c1${n}`} aria-label={`${ex.name} set ${n} ${isRL?"added weight":"weight"}`} type="number" inputMode="decimal" placeholder={isRL?(last?.[n]?.weight||"+lbs"):(last?.[n]?.weight||"lbs")} value={myLog[n]?.weight||""} onChange={e=>logSet(ex.name,n,"weight",e.target.value)} onFocus={()=>{setNudgeFor({key:stateKey,field:"weight"});if(isPrepop)setLoggedSets(prev=>({...prev,[ex.name]:{...prev[ex.name],[n]:{...prev[ex.name]?.[n],prepop:false}}}));}} style={{...inputStyle,color:setRowState==="suggested"?C.muted:C.text,fontStyle:setRowState==="suggested"?"italic":"normal",background:setRowState==="inprogress"?C.accent+"12":C.surface,opacity:isRL&&!(myLog[n]?.weight)?0.8:1}}/>,
+                    <input key={`c2${n}`} aria-label={`${ex.name} set ${n} ${isTime?"seconds":"reps"}`} type="number" inputMode="decimal" placeholder={isTime?(last?.[n]?.reps||"secs"):(last?.[n]?.reps||"reps")} value={myLog[n]?.reps||""} onChange={e=>logSet(ex.name,n,"reps",e.target.value)} onFocus={()=>{setNudgeFor({key:stateKey,field:isTime?"secs":"reps"});if(isPrepop)setLoggedSets(prev=>({...prev,[ex.name]:{...prev[ex.name],[n]:{...prev[ex.name]?.[n],prepop:false}}}));}} style={{...inputStyle,color:setRowState==="suggested"?C.muted:C.text,fontStyle:setRowState==="suggested"?"italic":"normal",background:setRowState==="inprogress"?C.accent+"12":C.surface}}/>,
                     <button key={`d${n}`} onClick={()=>{
                       const w=myLog[n]?.weight||"";
                       const r=myLog[n]?.reps||"";
@@ -5451,17 +5460,17 @@ function SessionEditModal({session,onSave,onClose,allSessions=[],onRenameAll,C})
         {/* Set rows — cardio: minutes + level, strength: weight + reps */}
         <div style={{display:"grid",gridTemplateColumns:"24px 1fr 1fr 32px",gap:"4px 8px",alignItems:"center",marginBottom:6}}>
           <Mono style={{fontSize:9,color:C.muted}}>#</Mono>
-          <Mono style={{fontSize:9,color:C.muted}}>{isCardioEx?"MINUTES":isTimeEx?"SECONDS":isRepsEx?"REPS":"WEIGHT (lbs)"}</Mono>
-          <Mono style={{fontSize:9,color:C.muted}}>{isCardioEx?"LEVEL":isRL?"+LBS":"REPS"}</Mono>
+          <Mono style={{fontSize:9,color:C.muted}}>{isCardioEx?"MINUTES":isRL?"+LBS":"WEIGHT (lbs)"}</Mono>
+          <Mono style={{fontSize:9,color:C.muted}}>{isCardioEx?"LEVEL":isTimeEx?"SECONDS":"REPS"}</Mono>
           <div/>
           {setNums.map(n=>[
             <Mono key={`n${n}`} style={{fontSize:11,color:C.muted,textAlign:"center"}}>{n}</Mono>,
             isCardioEx
               ?<input key={`m${n}`} type="number" inputMode="decimal" value={sets[n]?.minutes||""} onChange={e=>updateSet(exName,n,"minutes",e.target.value)} style={inputStyle} placeholder="min"/>
-              :<input key={`c1${n}`} aria-label={`${exName} set ${n} ${isRL?"reps":"weight"}`} type="number" inputMode="decimal" value={(isRL?sets[n]?.reps:sets[n]?.weight)||""} onChange={e=>updateSet(exName,n,isRL?"reps":"weight",e.target.value)} style={inputStyle} placeholder={isTimeEx?"secs":isRepsEx?"reps":"lbs"}/>,
+              :<input key={`c1${n}`} aria-label={`${exName} set ${n} ${isRL?"added weight":"weight"}`} type="number" inputMode="decimal" value={sets[n]?.weight||""} onChange={e=>updateSet(exName,n,"weight",e.target.value)} style={inputStyle} placeholder={isRL?"+lbs":"lbs"}/>,
             isCardioEx
               ?<input key={`l${n}`} type="number" inputMode="decimal" value={sets[n]?.level||""} onChange={e=>updateSet(exName,n,"level",e.target.value)} style={inputStyle} placeholder="lvl"/>
-              :<input key={`c2${n}`} aria-label={`${exName} set ${n} ${isRL?"added weight":"reps"}`} type="number" inputMode="decimal" value={(isRL?sets[n]?.weight:sets[n]?.reps)||""} onChange={e=>updateSet(exName,n,isRL?"weight":"reps",e.target.value)} style={inputStyle} placeholder={isRL?"+lbs":"reps"}/>,
+              :<input key={`c2${n}`} aria-label={`${exName} set ${n} ${isTimeEx?"seconds":"reps"}`} type="number" inputMode="decimal" value={sets[n]?.reps||""} onChange={e=>updateSet(exName,n,"reps",e.target.value)} style={inputStyle} placeholder={isTimeEx?"secs":"reps"}/>,
             <button key={`x${n}`} onClick={()=>removeSet(exName,n)} style={{padding:"4px",background:"transparent",border:"none",color:C.dangerInk,cursor:"pointer",fontSize:14,borderRadius:4}}>✕</button>
           ])}
         </div>
