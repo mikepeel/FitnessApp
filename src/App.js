@@ -8,6 +8,7 @@ import { rollingVolume } from "./lib/volume";
 import { detectPlateaus, priorBests } from "./lib/plateaus";
 import { liftSeriesFromSets } from "./lib/liftSeries";
 import { liftSessionsFromSets } from "./lib/liftSessions";
+import { exerciseHistory } from "./lib/exerciseHistory";
 import { coachingFromRow, coachingToRow, COACHING_DEFAULTS } from "./lib/coachingSettings";
 import { deloadVisible } from "./lib/deloadVisible";
 import { longestWeeklyStreak } from "./lib/longestWeeklyStreak";
@@ -1904,6 +1905,70 @@ function RestTimer({seconds,onDone,onSkip,C,next,stickyTop=0}){
   </>;
 }
 
+// In-workout "History & progress" for one exercise: when you last went up, and the recent sessions with ▲/▼
+// vs the one before — so you can decide today's weight without leaving the workout.
+function ExerciseHistorySheet({exercise,sessions,track,C,onClose}){
+  const name=exercise.name;
+  const names=[name,EXERCISE_ALIASES[name],...Object.keys(EXERCISE_ALIASES).filter(k=>EXERCISE_ALIASES[k]===name)];
+  const cardio=track==="cardio";
+  const {rows,lastIncrease,total}=exerciseHistory(sessions,names,{limit:8,cardio});
+  const isTime=track==="time",isBW=track==="reps"||isTime;
+  const now=new Date();
+  const fmtDate=iso=>{const d=new Date(iso);return d.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",...(d.getFullYear()!==now.getFullYear()?{year:"numeric"}:{})});};
+  const setTxt=g=>cardio?`${g.minutes} min`:isBW?`${g.weight?`+${g.weight} lbs × `:""}${g.reps}${isTime?"s":" reps"}`:`${g.weight} lbs × ${g.reps}`;
+  const topTxt=t=>cardio?`${t.minutes} min`:isBW?`${t.weight?`+${t.weight} lbs × `:""}${t.reps}${isTime?"s":" reps"}`:`${t.weight} × ${t.reps}`;
+  const deltaTxt=ch=>{const n=Math.abs(ch.delta);return ch.what==="weight"?`${n} lbs`:ch.what==="minutes"?`${n} min`:isTime?`${n}s`:`${n} rep${n===1?"":"s"}`;};
+  const badge=ch=>{
+    if(ch.kind==="first")return <span style={{fontSize:12,fontWeight:600,color:C.muted}}>First</span>;
+    if(ch.kind==="same")return <span style={{fontSize:12,fontWeight:600,color:C.muted}}>Same</span>;
+    const up=ch.kind==="up";
+    return <span style={{fontSize:12,fontWeight:700,color:up?C.neonInk:C.muted,background:(up?C.neon:C.muted)+"1a",borderRadius:RADIUS.pill,padding:"3px 9px",whiteSpace:"nowrap"}}>{up?"▲ +":"▼ −"}{deltaTxt(ch)}</span>;
+  };
+  // trend line oldest → newest on the number that matters for this exercise type
+  const series=[...rows].reverse().map(r=>({weight:cardio?r.top.minutes:isBW?r.top.reps:r.top.weight}));
+  return <Modal onClose={onClose} C={C} showClose={false}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10,marginBottom:12}}>
+      <div style={{minWidth:0}}>
+        <div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em",color:C.text}}>{name}</div>
+        <div style={{fontSize:13,color:C.muted,marginTop:2}}>{total?`${total} session${total===1?"":"s"} logged`:"No history yet"}</div>
+      </div>
+      <button aria-label="Close" onClick={onClose} style={{width:36,height:36,borderRadius:18,border:"none",background:C.card,color:C.muted,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}}><X size={18} strokeWidth={2.25}/></button>
+    </div>
+    {total===0?<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:16,padding:"18px 16px",textAlign:"center",color:C.muted,fontSize:14,lineHeight:1.5}}>
+      This is your first time logging {name}. Your sets will show up here next time.
+    </div>:<>
+      {/* The answer to "when did I last go up?" */}
+      <div style={{background:lastIncrease?`linear-gradient(150deg, ${C.neon}24 0%, ${C.neon}08 65%), ${C.card}`:C.card,border:`1px solid ${lastIncrease?C.neon+"40":C.border}`,borderRadius:16,boxShadow:C.shadow,padding:"14px 16px",marginBottom:12}}>
+        {lastIncrease?<>
+          <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.08em",color:C.neonInk}}>LAST INCREASE</div>
+          <div style={{fontSize:18,fontWeight:800,color:C.text,marginTop:3}}>{fmtDate(lastIncrease.completedAt)}</div>
+          <div style={{fontSize:14,color:C.muted,marginTop:2}}>+{deltaTxt(lastIncrease.change)} · top set {topTxt(lastIncrease.top)}</div>
+        </>:<>
+          <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.08em",color:C.muted}}>{total===1?"ONE SESSION SO FAR":"NO INCREASE YET"}</div>
+          <div style={{fontSize:15,fontWeight:700,color:C.text,marginTop:3}}>{total===1?`Last time: ${topTxt(rows[0].top)}`:`Steady at ${topTxt(rows[0].top)}`}</div>
+          {total>1&&<div style={{fontSize:13,color:C.muted,marginTop:2}}>Ready to push? Try one more rep{cardio?" or a few more minutes":isBW?"":" or +2.5 lbs"}.</div>}
+        </>}
+      </div>
+      {series.length>=2&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:16,padding:"10px 12px 6px",marginBottom:12}}>
+        <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.08em",color:C.muted,marginBottom:4}}>{cardio?"MINUTES":isBW?(isTime?"BEST HOLD":"BEST REPS"):"TOP SET WEIGHT"} · LAST {series.length}</div>
+        <Sparkline data={series} color={C.accent}/>
+      </div>}
+      <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:16,overflow:"hidden"}}>
+        {rows.map((r,i)=><div key={r.sessionId} style={{padding:"11px 14px",borderTop:i>0?`1px solid ${C.border}`:"none"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
+            <span style={{fontSize:14,fontWeight:700,color:C.text}}>{fmtDate(r.completedAt)}</span>
+            {badge(r.change)}
+          </div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:6}}>
+            {r.groups.map((g,j)=><span key={j} style={{fontSize:12,fontWeight:600,color:C.text,background:C.bg,border:`1px solid ${C.border}`,borderRadius:9,padding:"4px 8px",whiteSpace:"nowrap"}}>{g.count>1?`${g.count} × `:""}{setTxt(g)}</span>)}
+          </div>
+        </div>)}
+      </div>
+      {total>rows.length&&<div style={{fontSize:12,color:C.muted,textAlign:"center",marginTop:10}}>Showing your last {rows.length} of {total} sessions</div>}
+    </>}
+  </Modal>;
+}
+
 function PlateCalc({weight,C}){
   if(!weight||isNaN(parseFloat(weight)))return null;
   const bar=45,plates=[45,35,25,10,5,2.5];
@@ -3167,6 +3232,7 @@ function ExerciseLibraryModal({onSelect,onClose,C,multiAdd=false,initialMuscle=n
 function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,savePlans,authUser,workoutDraft,onMinimize,onFinish,onCancel,C}){
   const [exercises,setExercises]=useState(workoutDraft?.exercises||workout.exercises||[]);
   const [swapPick,setSwapPick]=useState(null); // exercise being swapped via the library picker
+  const [histFor,setHistFor]=useState(null); // exercise whose History & progress sheet is open
   const headerRef=useRef(null);
   const [headerH,setHeaderH]=useState(0); // sticky header height — the pinned rest timer sits just below it
   useEffect(()=>{const m=()=>{if(headerRef.current)setHeaderH(headerRef.current.offsetHeight);};m();window.addEventListener("resize",m);return()=>window.removeEventListener("resize",m);},[]);
@@ -3553,9 +3619,9 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
               <div style={{fontSize:12,color:C.muted,marginTop:2}}>{isCardio?"Duration goal:":ex.sets+" sets ·"} {ex.reps}{!isCardio&&ex.muscle?` · ${ex.muscle}`:""}</div>
               {ex.note&&<div style={{fontSize:11,color:C.muted,marginTop:2}}>{ex.note}</div>}
               {((!isCardio&&last)||(isCardio&&last&&last[1]?.minutes)||myPR)&&<div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:7}}>
-                {!isCardio&&last&&<span style={{fontSize:12,fontWeight:600,color:C.muted,background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.pill,padding:"3px 9px"}}>{isTime?`Last ${last[1]?.reps||"--"}s`:isReps?`Last ${last[1]?.reps||"--"} reps${last[1]?.weight?` +${last[1].weight} lbs`:""}`:`Last ${last[1]?.weight||"--"} lbs × ${last[1]?.reps||"--"}`}</span>}
-                {isCardio&&last&&last[1]?.minutes&&<span style={{fontSize:12,fontWeight:600,color:C.muted,background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.pill,padding:"3px 9px"}}>Last {last[1].minutes} min</span>}
-                {myPR&&<span style={{fontSize:12,fontWeight:700,color:C.goldInk,background:C.gold+"1f",borderRadius:RADIUS.pill,padding:"3px 9px"}}>PR {myPR.weight} lbs</span>}
+                {!isCardio&&last&&<button aria-label={`${ex.name} history and progress`} onClick={()=>setHistFor(ex)} style={{fontSize:12,fontWeight:600,color:C.muted,background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.pill,padding:"3px 9px",fontFamily:C.sans,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:4}}>{isRL?`Last ${last[1]?.weight?`+${last[1].weight} lbs × `:""}${last[1]?.reps||"--"}${isTime?"s":" reps"}`:`Last ${last[1]?.weight||"--"} lbs × ${last[1]?.reps||"--"}`}<span aria-hidden="true" style={{fontSize:14,lineHeight:1}}>›</span></button>}
+                {isCardio&&last&&last[1]?.minutes&&<button aria-label={`${ex.name} history and progress`} onClick={()=>setHistFor(ex)} style={{fontSize:12,fontWeight:600,color:C.muted,background:C.surface,border:`1px solid ${C.border}`,borderRadius:RADIUS.pill,padding:"3px 9px",fontFamily:C.sans,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:4}}>Last {last[1].minutes} min<span aria-hidden="true" style={{fontSize:14,lineHeight:1}}>›</span></button>}
+                {myPR&&<button aria-label={`${ex.name} personal record and history`} onClick={()=>setHistFor(ex)} style={{fontSize:12,fontWeight:700,color:C.goldInk,background:C.gold+"1f",border:"none",borderRadius:RADIUS.pill,padding:"3px 9px",fontFamily:C.sans,cursor:"pointer"}}>PR {myPR.weight} lbs</button>}
               </div>}
               {!isCardio&&settings.plateCalc&&w0&&<PlateCalc weight={w0} C={C}/>}
             </div>
@@ -3752,6 +3818,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
         <div onClick={e=>e.stopPropagation()} style={{background:C.surface,borderRadius:"16px 16px 0 0",padding:"18px 16px calc(28px + env(safe-area-inset-bottom,0px))",display:"flex",flexDirection:"column",gap:8}}>
           <div style={{width:36,height:4,borderRadius:2,background:C.border,alignSelf:"center",marginBottom:4}}/>
           <Mono style={{fontSize:11,color:C.muted,letterSpacing:"0.1em",marginBottom:4}}>{(exMenu.name||"").toUpperCase()}</Mono>
+          {row("↗","History & progress",()=>{setHistFor(exMenu);setExMenu(null);})}
           {row("✎","Edit sets & reps",()=>{setEditExModal(exMenu);setExMenu(null);})}
           {!mCardio&&row("⇄","Swap exercise",()=>{setSwapPick(exMenu);setExMenu(null);})}
           {!mCardio&&settings.aiRecs&&row("✦","AI swap suggestions",()=>{setSwapModal(exMenu);setExMenu(null);})}
@@ -3763,6 +3830,7 @@ function WorkoutSession({workout,settings,prs,sessions,plans,activePlanKey,saveP
     })()}
     {swapModal&&<SwapExerciseModal exercise={swapModal} settings={settings} onSwap={(newData)=>swapExercise(swapModal,newData)} onClose={()=>setSwapModal(null)} cachedSuggestions={swapCache[swapModal.name]||null} onCacheSuggestions={(name,data)=>setSwapCache(prev=>({...prev,[name]:data}))} C={C}/>}
 
+    {histFor&&<ExerciseHistorySheet exercise={histFor} sessions={sessions} track={trackFor(histFor)} C={C} onClose={()=>setHistFor(null)}/>}
     {/* Swap from the library: changes the exercise, keeps your sets/reps targets */}
     {swapPick&&<ExerciseLibraryModal sessions={sessions} plans={plans} contextMuscles={swapPick.muscle?[swapPick.muscle]:null} initialMuscle={swapPick.muscle&&swapPick.muscle!=="Cardio"?swapPick.muscle:null} onClose={()=>setSwapPick(null)} C={C}
       onSelect={pk=>{swapExercise(swapPick,{name:pk.name,muscle:pk.muscle,note:pk.note});setSwapPick(null);}}/>}
